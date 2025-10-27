@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_session import Session
 from flask_marshmallow import Marshmallow
 from config import ApplicationConfig
-from models import db, ma, User, UserSchema
+from models import db, ma, User, UserSchema, Clients, ClientsSchema, Devis, DevisSchema, Articles, ArticlesSchema, DevisArticles
 from dotenv import load_dotenv
 from functools import wraps
 import os, re, logging
@@ -60,6 +60,23 @@ def validate_user_fields(email, first_name, last_name, password=None, role=None)
     if password is not None:
         if not is_strong_password(password):
             return "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial."
+    return None
+
+def validate_client_fields(nom, prenom, rue, ville, code_postal, telephone, email):
+    if not is_valid_email(email) or len(email) > 345:
+        return "Format d'email invalide ou trop long."
+    if len(nom) < 1 or len(nom) > 100:
+        return "Le nom doit contenir entre 1 et 100 caractères."
+    if len(prenom) < 1 or len(prenom) > 100:
+        return "Le prénom doit contenir entre 1 et 100 caractères."
+    if len(rue) < 1 or len(rue) > 200:
+        return "La rue doit contenir entre 1 et 200 caractères."
+    if len(ville) < 1 or len(ville) > 100:
+        return "La ville doit contenir entre 1 et 100 caractères."
+    if len(code_postal) < 1 or len(code_postal) > 20:
+        return "Le code postal doit contenir entre 1 et 20 caractères."
+    if len(telephone) < 1 or len(telephone) > 20:
+        return "Le téléphone doit contenir entre 1 et 20 caractères."
     return None
 
 # Email validation function
@@ -292,6 +309,50 @@ def login_user():
 def logout():
     session.pop('user_id', None)
     return jsonify({"message": "Successfully logged out."}), 200
+
+### Clients routes ###
+
+# Get all clients info route
+@app.route("/@all-clients", methods=['GET'])
+def get_all_clients():
+    tableEmpty = Clients.query.first() is None
+    if tableEmpty:
+        return jsonify({"error": "Aucuns clients trouvé"}), 404
+    
+    clients = Clients.query.all()
+    clients_schema = ClientsSchema(many=True)
+    clients_data = clients_schema.dump(clients)
+    return jsonify(data=clients_data)
+
+# Add new client route
+@app.route("/add-client", methods=["POST"])
+def add_client():
+    nom = request.json["last_name"]
+    prenom = request.json["first_name"]
+    rue = request.json["street"]
+    ville = request.json["city"]
+    code_postal = request.json["postal_code"]
+    telephone = request.json["phone"]
+    email = request.json["email"]
+    
+    # Vérification si le client existe déjà.
+    client_already_exists = Clients.query.filter_by(email=email).first() is not None
+
+    if client_already_exists:
+        return jsonify({"error": "Cette addresse email est déjà utilisée."}), 409
+    
+    error = validate_client_fields(nom, prenom, rue, ville, code_postal, telephone, email)
+    if error:
+        return jsonify({"error": error}), 400
+    
+    new_client = Clients(nom=nom,prenom=prenom,rue=rue,ville=ville,code_postal=code_postal,telephone=telephone,email=email)
+    db.session.add(new_client)
+    db.session.commit()
+    logging.info(f"Nouvel client ajouté: {new_client.email} (id: {new_client.id}) par l'utilisateur {session.get('user_id')}")
+    
+    return jsonify({
+        "id": new_client.id
+    })
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -7,12 +7,16 @@ const Header = lazy(() => import('./components/Header'));
 const PrivateRoute = lazy(() => import ('./components/PrivateRoute'));
 
 // Page imports
-const Home = lazy(() => import ('./pages/Home'));
 const Login = lazy(() => import ('./pages/Login'));
 const Register = lazy(() => import ('./pages/Register'));
 const NotFound = lazy(() => import ('./pages/NotFound'));
 const AdminDashboard = lazy(() => import ('./pages/AdminDashboard'));
 const ManageUser = lazy(() => import ('./pages/ManageUser'));
+const ListeClients = lazy(() => import ('./pages/ListeClients'));
+const Client = lazy(() => import ('./pages/Client'));
+const ListeArticles = lazy(() => import ('./pages/ListeArticles'));
+const ListeDevis = lazy(() => import ('./pages/ListeDevis'));
+const Devis = lazy(() => import ('./pages/Devis'));
 
 function App() {
   const [user, setUser] = useState(null);
@@ -46,9 +50,34 @@ function App() {
       <div className='container mt-4'>
         <Suspense fallback={<div>Chargement...</div>}>
           <Routes>
-            <Route path="/" element={<Home user={user}/>}/>
-            <Route path="/login" element={<Login setUser={setUser}/>}/>
+            <Route path="/" element={<Login setUser={setUser}/>}/>
             <Route path="/register" element={<Register setUser={setUser}/>}/>
+            <Route path="/*" element={<NotFound/>}/>
+            <Route path="/liste-clients" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <ListeClients/>
+              </PrivateRoute>
+            }/>
+            <Route path="/client/:id" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <Client/>
+              </PrivateRoute>
+            }/>
+            <Route path="/list-articles" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <ListeArticles/>
+              </PrivateRoute>
+            }/>
+            <Route path="/list-devis" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <ListeDevis/>
+              </PrivateRoute>
+            }/>
+            <Route path="/devis/:id" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <Devis/>
+              </PrivateRoute>
+            }/>
             <Route path="/admin/dashboard" element={
               <PrivateRoute user={user} requiredRole={'Administrateur'}>
                 <AdminDashboard setUser={setUser}/>
@@ -59,7 +88,6 @@ function App() {
                 <ManageUser/>
               </PrivateRoute>
             }/>
-            <Route path="/*" element={<NotFound/>}/>
           </Routes>
         </Suspense>
       </div>

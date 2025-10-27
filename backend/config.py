@@ -10,6 +10,7 @@ class ApplicationConfig:
     # Database config
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = True
+    # Store the sqlite DB inside the project's instance folder so it's easy to manage
     SQLALCHEMY_DATABASE_URI = 'sqlite:///pythonwebapp.db'
     
     # Server side ession config
