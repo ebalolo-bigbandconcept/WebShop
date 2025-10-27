@@ -8,7 +8,6 @@ const PrivateRoute = lazy(() => import ('./components/PrivateRoute'));
 
 // Page imports
 const Login = lazy(() => import ('./pages/Login'));
-const Register = lazy(() => import ('./pages/Register'));
 const NotFound = lazy(() => import ('./pages/NotFound'));
 const AdminDashboard = lazy(() => import ('./pages/AdminDashboard'));
 const ManageUser = lazy(() => import ('./pages/ManageUser'));

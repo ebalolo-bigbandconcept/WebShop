@@ -129,64 +129,64 @@ function ListeClients() {
   };
 
   // ### Add a new client to the database ###
-    const addNewClient = async (e) => {
-      e.preventDefault();
-      setFormSubmited(true);
-  
-      const isFirstNameValid = firstNameVerif(new_first_name);
-      const isLastNameValid = lastNameVerif(new_last_name);
-      const isStreetValid = streetVerif(new_street);
-      const isCityValid = cityVerif(new_city);
-      const isPostalCodeValid = postalCodeVerif(new_postal_code);
-      const isEmailValid = emailVerif(new_email);
-      const isPhoneValid = phoneVerif(new_phone);
-  
-      const isFormValid = isFirstNameValid && isLastNameValid && isEmailValid && isStreetValid && isCityValid && isPostalCodeValid && isPhoneValid;
-  
-      if (isFormValid) {
-        httpClient
-          .post(`${process.env.REACT_APP_BACKEND_URL}/add-client`, {
-            first_name: new_first_name,
-            last_name: new_last_name,
-            street: new_street,
-            city: new_city,
-            postal_code: new_postal_code,
-            email: new_email,
-            phone: new_phone,
-          })
-          .then((resp) => {
-            console.log(resp);
-            handleClose();
-            getAllUsersInfo();
-          })
-          .catch((error) => {
-            if (error.response && error.response.data && error.response.data.error) {
-              alert(error.response.data.error);
-            } else {
-              alert("Une erreur est survenue.");
-            }
-          });
-      }
-    };
+  const addNewClient = async (e) => {
+    e.preventDefault();
+    setFormSubmited(true);
+
+    const isFirstNameValid = firstNameVerif(new_first_name);
+    const isLastNameValid = lastNameVerif(new_last_name);
+    const isStreetValid = streetVerif(new_street);
+    const isCityValid = cityVerif(new_city);
+    const isPostalCodeValid = postalCodeVerif(new_postal_code);
+    const isEmailValid = emailVerif(new_email);
+    const isPhoneValid = phoneVerif(new_phone);
+
+    const isFormValid = isFirstNameValid && isLastNameValid && isEmailValid && isStreetValid && isCityValid && isPostalCodeValid && isPhoneValid;
+
+    if (isFormValid) {
+      httpClient
+        .post(`${process.env.REACT_APP_BACKEND_URL}/add-client`, {
+          first_name: new_first_name,
+          last_name: new_last_name,
+          street: new_street,
+          city: new_city,
+          postal_code: new_postal_code,
+          email: new_email,
+          phone: new_phone,
+        })
+        .then((resp) => {
+          console.log(resp);
+          handleClose();
+          getAllUsersInfo();
+        })
+        .catch((error) => {
+          if (error.response && error.response.data && error.response.data.error) {
+            alert(error.response.data.error);
+          } else {
+            alert("Une erreur est survenue.");
+          }
+        });
+    }
+  };
 
   const handleClose = () => {
-      const popup = document.getElementById("popup");
-      const modal = bootstrap.Modal.getInstance(popup);
-      modal.hide();
-      // Reset form
-      setNewFirstName("");
-      setNewLastName("");
-      setNewEmail("");
-      setFormSubmited(false);
-      setFirstNameError("");
-      setLastNameError("");
-      setEmailError("");
-    };
+    const popup = document.getElementById("popup");
+    const modal = bootstrap.Modal.getInstance(popup);
+    modal.hide();
+    // Reset form
+    setNewFirstName("");
+    setNewLastName("");
+    setNewEmail("");
+    setFormSubmited(false);
+    setFirstNameError("");
+    setLastNameError("");
+    setEmailError("");
+  };
 
-    useEffect(() => {
-      getAllUsersInfo();
-      setLoading(false);
-    }, []);
+  useEffect(() => {
+    getAllUsersInfo();
+    setLoading(false);
+  }, []);
 
   return (
     <div>
