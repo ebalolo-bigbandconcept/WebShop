@@ -88,9 +88,6 @@ function Login({ setUser }) {
 
             <div className="text-center text-lg-start mt-4 pt-2">
               <button type="button" onClick={logUserIn} data-mdb-button-init data-mdb-ripple-init className="btn btn-primary btn-lg">Se connecter</button>
-              <p className="small fw-bold mt-2 pt-1 mb-0">
-                Vous n'avez pas de compte?{" "}<a href="./register" className="link-danger">Créer un compte</a>
-              </p>
             </div>
           </form>
         </div>

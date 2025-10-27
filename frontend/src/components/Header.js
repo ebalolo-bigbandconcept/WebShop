@@ -44,16 +44,11 @@ function Header({ user, setUser }) {
               </ul>
             )}
 
-            {user == null ? (
-              <div className="d-flex align-items-center">
-                <a href="/" type="button" className="btn btn-link px-3 me-2">Se connecter</a>
-                <a href="/register" type="button" className="btn btn-primary me-3">Créer un compte</a>
-              </div>
-            ) : (
+            {user !== null ? (
               <div className="d-flex align-items-center">
                 <button type="button" onClick={logUserOut} className="btn btn-danger px-3 me-2">Se déconnecter</button>
               </div>
-            )}
+            ): null}
           </div>
         </div>
       </nav>

@@ -51,7 +51,6 @@ function App() {
         <Suspense fallback={<div>Chargement...</div>}>
           <Routes>
             <Route path="/" element={<Login setUser={setUser}/>}/>
-            <Route path="/register" element={<Register setUser={setUser}/>}/>
             <Route path="/*" element={<NotFound/>}/>
             <Route path="/liste-clients" element={
               <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
