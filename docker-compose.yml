@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      FLASK_ENV: development
+      SECRET_KEY: ${SECRET_KEY}
+      ADMIN_MAIL: ${ADMIN_MAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    networks:
+      - main
+    volumes:
+      - db_data:/app/instance
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - main
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - main
+
+volumes:
+  db_data:
+
+networks:
+  main:
+    driver: bridge

@@ -1,0 +1,268 @@
+import { useParams } from "react-router";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import httpClient from "../components/httpClient";
+
+function ManageUser() {
+  const user_id = useParams();
+  const navigate = useNavigate();
+
+  const [user, setUser] = useState();
+
+  const [new_first_name, setNewFirstName] = useState(null);
+  const [new_last_name, setNewLastName] = useState(null);
+  const [new_email, setNewEmail] = useState(null);
+  const [new_password, setNewPassword] = useState(null);
+  const [new_role, setNewRole] = useState(null);
+
+  const [form_submited, setFormSubmited] = useState(false);
+  const [first_name_error, setFirstNameError] = useState("");
+  const [last_name_error, setLastNameError] = useState("");
+  const [email_error, setEmailError] = useState("");
+  const [password_error, setPasswordError] = useState("");
+  const [role_error, setRoleError] = useState("");
+
+  // Set modal to modify or delete mode
+  const [MODIFY, setMODIFY] = useState(false);
+  const [DELETE, setDELETE] = useState(false);
+
+  // ### User input verifications ###
+  const firstNameVerif = (value) => {
+    if (value === "") {
+      setFirstNameError("Veuillez entrer votre prénom");
+      return false;
+    }
+    setFirstNameError("");
+    return true;
+  };
+
+  const lastNameVerif = (value) => {
+    if (value === "") {
+      setLastNameError("Veuillez entrer votre nom");
+      return false;
+    }
+    setLastNameError("");
+    return true;
+  };
+
+  const emailVerif = (value) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      setEmailError("Format d'email invalide");
+      return false;
+    }
+    setEmailError("");
+    return true;
+  };
+
+  const passwordVerif = (value) => {
+    if (value) {
+      // Only check password if it's provided
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+      if (!passwordRegex.test(value)) {
+        setPasswordError(
+          "Le mot de passe doit contenir au moins 8 caractères et doit inclure une majuscule, une minuscule, un chiffre et un caractère spécial."
+        );
+        return false;
+      }
+    }
+    setPasswordError("");
+    return true;
+  };
+
+  // ### Modify account ###
+  const modify_account = async (e) => {
+    e.preventDefault();
+    setFormSubmited(true);
+
+    const isFirstNameValid = firstNameVerif(new_first_name);
+    const isLastNameValid = lastNameVerif(new_last_name);
+    const isEmailValid = emailVerif(new_email);
+    const isPasswordValid = passwordVerif(new_password);
+
+    const isFormValid =
+      isFirstNameValid && isLastNameValid && isEmailValid && isPasswordValid;
+    if (isFormValid) {
+      const payload = {
+        first_name: new_first_name ?? user.first_name,
+        last_name: new_last_name ?? user.last_name,
+        email: new_email ?? user.email,
+        role: new_role ?? user.role,
+      };
+
+      if (new_password) {
+        payload.password = new_password;
+      } else {
+        payload.password = user.password;
+      }
+
+      httpClient
+        .post(`${process.env.REACT_APP_BACKEND_URL}/modify-user/${user_id.id}`, payload, {
+          headers: {"Content-Type": "application/json"},
+        })
+        .then((resp) => {
+          navigate("/admin/dashboard");
+          console.log(resp.data);
+        })
+        .catch((error) => {
+          if (error.response && error.response.data && error.response.data.error) {
+            if (error.response.data.error === "Impossible de modifier le rôle du dernier compte administrateur.") {
+              setRoleError("Impossible de modifier le rôle du dernier compte administrateur.");
+            }else if (error.response.data.error === "Impossible de modifier votre propre rôle administrateur.") {
+              setRoleError("Impossible de modifier votre propre rôle administrateur.");
+            }else{
+              alert(error.response.data.error);
+            }
+          } else {
+            alert("Une erreur est survenue.");
+          }
+        });
+    }
+  };
+
+  // ### Delete account ###
+  const delete_account = async () => {
+    setFormSubmited(true);
+    httpClient
+      .post(`${process.env.REACT_APP_BACKEND_URL}/delete-user/${user_id.id}`)
+      .then((resp) => {
+        navigate("/admin/dashboard");
+        console.log(resp.data);
+      })
+      .catch((error) => {
+        if (error.response && error.response.data && error.response.data.error) {
+          alert(error.response.data.error);
+          if (error.response.data.error === "Vous ne pouvez pas supprimer votre propre compte admin.") {
+            navigate("/admin/dashboard");
+          }
+        } else {
+          alert("Une erreur est survenue.");
+        }
+      });
+  };
+
+  // ### Handle modal close ###
+  const handle_close = async () => {
+    setDELETE(false);
+    setMODIFY(false);
+  };
+
+  // ### Fetch user info on page load ###
+  useEffect(() => {
+    httpClient
+      .post(`${process.env.REACT_APP_BACKEND_URL}/user-info/${user_id.id}`)
+      .then((resp) => {
+        setUser(resp.data);
+      })
+      .catch((error) => {
+        if (error.response && error.response.data && error.response.data.error) {
+          alert(error.response.data.error);
+        } else {
+          alert("Une erreur est survenue.");
+        }
+      });
+  }, [user_id.id]);
+
+  // ### Pre-fill form with current user info ###
+  useEffect(() => {
+    if (user) {
+      setNewFirstName(user.first_name);
+      setNewLastName(user.last_name);
+      setNewEmail(user.email);
+      setNewRole(user.role);
+    }
+  }, [user]);
+
+  return (
+    <div>
+      {user !== undefined ? (
+        <div className="">
+          <h1>Modifier les informations de {user.first_name} {user.last_name}</h1>
+          <form className="row mt-4">
+            <div className="form-outline col-4">
+              <label className="form-label">Nom</label>
+              <input type="text" id="nom" value={new_last_name} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
+                className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau nom."
+              />
+              <div className="invalid-feedback">{last_name_error}</div>
+            </div>
+            <div className="form-outline col-4">
+              <label className="form-label">Prénom</label>
+              <input type="text" id="prénom" value={new_first_name} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom."
+              />
+              <div className="invalid-feedback">{first_name_error}</div>
+            </div>
+            <div className="form-outline col-4">
+              <label className="form-label">Rôle</label>
+              <select value={new_role} onChange={(e) => setNewRole(e.target.value)}
+                className={`form-control form-control-lg ${role_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} 
+              >
+                <option value="Utilisateur">Utilisateur</option>
+                <option value="Administrateur">Administrateur</option>
+              </select>
+              <div className="invalid-feedback">{role_error}</div>
+            </div>
+            <div className="form-outline mb-4">
+              <label className="form-label">Adresse mail</label>
+              <input type="email" id="email" value={new_email}onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
+                className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une nouvelle adresse  mail."
+              />
+              <div className="invalid-feedback">{email_error}</div>
+            </div>
+
+            <div className="form-outline mb-3">
+              <label className="form-label">Mot de passe</label>
+              <input type="password" id="password" value={new_password} onChange={(e) => {setNewPassword(e.target.value);passwordVerif(e.target.value);}}
+                className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau mot de passe."
+              />
+              <div className="invalid-feedback">{password_error}</div>
+            </div>
+
+            <div className="text-center text-lg-start mt-4 pt-2">
+              <div className="d-flex justify-content-between">
+                <button type="button" onClick={(e) => setMODIFY(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-primary btn-lg">Modifier le compte</button>
+                <button type="button" onClick={(e) => setDELETE(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-danger btn-lg"> Supprimer le compte</button>
+              </div>
+              <div className="modal fade" id="popup" tabIndex="-1">
+                <div className="modal-dialog">
+                  <div className="modal-content">
+                    <div className="modal-header">
+                      <h1 className="modal-title fs-5" id="popupLabel">Attention !</h1>
+                    </div>
+                    <div className="modal-body">
+                      {MODIFY === true
+                        ? "Êtes vous sur de vouloir modifier le compte de " + user.first_name + " " + user.last_name + " ?"
+                        : DELETE === true
+                        ? "Êtes vous sur de vouloir supprimer le compte de " + user.first_name + " " + user.last_name + " ?"
+                        : ""}
+                    </div>
+                    <div className="modal-footer d-flex justify-content-center">
+                      {MODIFY === true ? (
+                        <div>
+                          <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={modify_account}>Oui</button>
+                          <button type="button" className="btn btn-danger" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
+                        </div>
+                      ) : DELETE === true ? (
+                        <div>
+                          <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={delete_account}>Oui</button>
+                          <button type="button" className="btn btn-danger" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
+                        </div>
+                      ) : (
+                        ""
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      ) : (
+        <div>Chargement...</div>
+      )}
+    </div>
+  );
+}
+
+export default ManageUser;
