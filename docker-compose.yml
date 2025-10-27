@@ -15,6 +15,7 @@ services:
     networks:
       - main
     volumes:
+      - ./backend:/app # Mount backend code for development
       - db_data:/app/instance
 
   frontend:
@@ -29,6 +30,8 @@ services:
       - backend
     networks:
       - main
+    volumes:
+      - ./frontend:/app # Mount frontend code for development
 
   redis:
     image: redis:7
