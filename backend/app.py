@@ -355,7 +355,7 @@ def add_client():
     })
 
 # Get client info route
-@app.route('/client-info/<client_id>', methods=['POST'])
+@app.route('/client-info/<client_id>', methods=['GET'])
 def get_client_info(client_id):
     client = Clients.query.filter_by(id=client_id).first()
     return jsonify({
@@ -370,8 +370,12 @@ def get_client_info(client_id):
     })
 
 # Get client devis route
-@app.route('/client-devis/<client_id>', methods=['POST'])
+@app.route('/client-devis/<client_id>', methods=['GET'])
 def get_client_devis(client_id):
+    tableEmpty = Devis.query.filter_by(client_id=client_id).first() is None
+    if tableEmpty:
+        return jsonify({"error": "Aucuns devis trouvé"}), 404
+    
     devis = Devis.query.filter_by(client_id=client_id).all()
     devis_schema = DevisSchema(many=True)
     devis_data = devis_schema.dump(devis)
