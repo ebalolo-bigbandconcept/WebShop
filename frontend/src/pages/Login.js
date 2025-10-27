@@ -48,7 +48,7 @@ function Login({ setUser }) {
       .then(function (response) {
         setUser(response.data);
         console.log(response.data);
-        navigate("/");
+        navigate("/liste-clients");
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {

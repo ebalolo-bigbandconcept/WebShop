@@ -90,7 +90,7 @@ const Register = ({ setUser }) => {
         .then((resp) => {
           setUser(resp.data);
           console.log(resp.data);
-          navigate("/");
+          navigate("/liste-clients");
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {

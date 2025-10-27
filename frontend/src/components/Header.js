@@ -31,23 +31,22 @@ function Header({ user, setUser }) {
             {user != null && user.role === "Administrateur" ? (
               <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                 <li className="nav-item">
-                  <a className="nav-link" href="/">{location.pathname === "/" ? <u>Home</u> : "Home"}</a>
+                  <a className="nav-link" href="/liste-clients">{location.pathname.includes("client") ? <u>Clients</u> : "Clients"}</a>
                 </li>
                 <li className="nav-item">
                   <a className="nav-link" href="/admin/dashboard">{location.pathname.includes("admin") ? (<u>Admin</u>) : ("Admin")}</a>
                 </li>
               </ul>
             ) : (
-              <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                <li className="nav-item">
-                  <a className="nav-link" href="/">{location.pathname === "" ? <u>Home</u> : "Home"}</a>
+              <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
+                <li className="nav-item"><h3>Connection</h3>
                 </li>
               </ul>
             )}
 
             {user == null ? (
               <div className="d-flex align-items-center">
-                <a href="/login" type="button" className="btn btn-link px-3 me-2">Se connecter</a>
+                <a href="/" type="button" className="btn btn-link px-3 me-2">Se connecter</a>
                 <a href="/register" type="button" className="btn btn-primary me-3">Créer un compte</a>
               </div>
             ) : (
