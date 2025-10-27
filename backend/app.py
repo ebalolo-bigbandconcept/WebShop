@@ -354,5 +354,28 @@ def add_client():
         "id": new_client.id
     })
 
+# Get client info route
+@app.route('/client-info/<client_id>', methods=['POST'])
+def get_client_info(client_id):
+    client = Clients.query.filter_by(id=client_id).first()
+    return jsonify({
+        "id": client.id,
+        "first_name": client.prenom,
+        "last_name": client.nom,
+        "street": client.rue,
+        "city": client.ville,
+        "postal_code": client.code_postal,
+        "phone": client.telephone,
+        "email": client.email
+    })
+
+# Get client devis route
+@app.route('/client-devis/<client_id>', methods=['POST'])
+def get_client_devis(client_id):
+    devis = Devis.query.filter_by(client_id=client_id).all()
+    devis_schema = DevisSchema(many=True)
+    devis_data = devis_schema.dump(devis)
+    return jsonify(data=devis_data)
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
