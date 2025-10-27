@@ -52,3 +52,15 @@ class DevisArticles(db.Model):
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
+
+class ClientsSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Clients
+
+class DevisSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Devis
+
+class ArticlesSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Articles
