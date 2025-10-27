@@ -31,6 +31,9 @@ class Devis(db.Model):
     titre = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     date = db.Column(db.Date(), nullable=False)
+    montant_HT = db.Column(db.Float(), nullable=False)
+    montant_TVA = db.Column(db.Float(), nullable=False)
+    tauxTVA_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)
     montant_TTC = db.Column(db.Float(), nullable=False)
     statut = db.Column(db.String(50), nullable=False)
 
@@ -47,6 +50,11 @@ class DevisArticles(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=False)
     article_id = db.Column(db.Integer(), db.ForeignKey('articles.id'), nullable=False)
+
+class TauxTVA(db.Model):
+    __tablename__ = "taux_tva"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    taux = db.Column(db.Float(), nullable=False, default=0.20)
 
 # Marshmallow Schema to strucuture the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):
