@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_session import Session
 from flask_marshmallow import Marshmallow
 from config import ApplicationConfig
-from models import db, ma, User, UserSchema, Clients, ClientsSchema, Devis, DevisSchema, Articles, ArticlesSchema, DevisArticles
+from models import db, ma, User, UserSchema, Clients, ClientsSchema, Devis, DevisSchema, Articles, ArticlesSchema, DevisArticles, DevisArticlesSchema, TauxTVA, TauxTVASchema
 from dotenv import load_dotenv
 from functools import wraps
 import os, re, logging
@@ -35,12 +35,18 @@ ma.init_app(app)
 with app.app_context():
     db.create_all()
     # Créer le 1er admin si la table users est vide.
-    table_empty = User.query.filter_by(email=ADMIN_MAIL).first() is None
+    table_empty_user = User.query.filter_by(email=ADMIN_MAIL).first() is None
 
-    if table_empty:
+    if table_empty_user:
         hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD)
         admin_user = User(first_name='Admin',last_name='Admin',email=ADMIN_MAIL,password=hashed_admin_password,role='Administrateur')
         db.session.add(admin_user)
+        db.session.commit()
+    
+    table_empty_tva = TauxTVA.query.first() is None
+    if table_empty_tva:
+        taux20 = TauxTVA(taux=20.0)
+        db.session.add(taux20)
         db.session.commit()
 
 ### USEFULL FUNCTIONS ###
@@ -77,6 +83,20 @@ def validate_client_fields(nom, prenom, rue, ville, code_postal, telephone, emai
         return "Le code postal doit contenir entre 1 et 20 caractères."
     if len(telephone) < 1 or len(telephone) > 20:
         return "Le téléphone doit contenir entre 1 et 20 caractères."
+    return None
+
+def validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux_tva_id):
+    if len(nom) < 1 or len(nom) > 200:
+        return "Le nom de l'article doit contenir entre 1 et 200 caractères."
+    if len(description) < 1:
+        return "La description de l'article ne peut pas être vide."
+    if prix_achat_HT < 0:
+        return "Le prix d'achat HT ne peut pas être négatif."
+    if prix_vente_HT < 0:
+        return "Le prix de vente HT ne peut pas être négatif."
+    taux_tva = TauxTVA.query.filter_by(id=taux_tva_id).first()
+    if not taux_tva:
+        return "Le taux de TVA spécifié n'existe pas."
     return None
 
 # Email validation function
@@ -416,6 +436,28 @@ def get_all_articles():
     articles_schema = ArticlesSchema(many=True)
     articles_data = articles_schema.dump(articles)
     return jsonify(data=articles_data)
+
+# Add new article route
+@app.route("/add-article", methods=["POST"])
+def add_article():
+    nom = request.json["nom"]
+    description = request.json["description"]
+    prix_achat_HT = request.json["prix_achat_ht"]
+    prix_vente_HT = request.json["prix_vente_ht"]
+    taux_tva_id = request.json["taux_tva"]
+    
+    error = validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux_tva_id)
+    if error:
+        return jsonify({"error": error}), 400
+    
+    new_article = Articles(nom=nom,description=description,prix_achat_HT=prix_achat_HT,prix_vente_HT=prix_vente_HT,taux_tva_id=taux_tva_id)
+    db.session.add(new_article)
+    db.session.commit()
+    logging.info(f"Nouvel article ajouté: {new_article.nom} (id: {new_article.id}) par l'utilisateur {session.get('user_id')}")
+    
+    return jsonify({
+        "id": new_article.id
+    })
 
 ### Main ###
 
