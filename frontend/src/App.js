@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import httpClient from "./components/httpClient";
+import './App.css';
 
 // Component imports
 const Header = lazy(() => import('./components/Header'));
@@ -13,7 +14,7 @@ const AdminDashboard = lazy(() => import ('./pages/AdminDashboard'));
 const ManageUser = lazy(() => import ('./pages/ManageUser'));
 const ListeClients = lazy(() => import ('./pages/ListeClients'));
 const Client = lazy(() => import ('./pages/Client'));
-const ListeArticles = lazy(() => import ('./pages/ListeArticles'));
+const ListeArticles = lazy(() => import ('./pages/AdminListeArticles'));
 const ListeDevis = lazy(() => import ('./pages/ListeDevis'));
 const Devis = lazy(() => import ('./pages/Devis'));
 
@@ -61,17 +62,12 @@ function App() {
                 <Client/>
               </PrivateRoute>
             }/>
-            <Route path="/list-articles" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <ListeArticles/>
-              </PrivateRoute>
-            }/>
             <Route path="/list-devis" element={
               <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
                 <ListeDevis/>
               </PrivateRoute>
             }/>
-            <Route path="/devis/:id" element={
+            <Route path="/devis/:id_client/:id_devis" element={
               <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
                 <Devis/>
               </PrivateRoute>
@@ -79,6 +75,11 @@ function App() {
             <Route path="/admin/dashboard" element={
               <PrivateRoute user={user} requiredRole={'Administrateur'}>
                 <AdminDashboard setUser={setUser}/>
+              </PrivateRoute>
+            }/>
+            <Route path="/admin/liste-articles" element={
+              <PrivateRoute user={user} requiredRole={'Administrateur'}>
+                <ListeArticles/>
               </PrivateRoute>
             }/>
             <Route path="/admin/manage-user/:id" element={

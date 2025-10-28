@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import httpClient from "../components/httpClient";
 import logo from "../assets/logo.jpg";
+import "bootstrap/dist/js/bootstrap.min.js";
 
 function Header({ user, setUser }) {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ function Header({ user, setUser }) {
 
   return (
     <div>
-      <nav className="navbar navbar-expand-lg bg-body-tertiary">
+      <nav className="navbar navbar-expand-sm bg-body-tertiary">
         <div className="d-flex flex-row justify-content-between mx-4 w-100">
           <div>
             <a className="navbar-brand me-2" href="/">
@@ -34,7 +35,10 @@ function Header({ user, setUser }) {
                   <a className="nav-link" href="/liste-clients">{location.pathname.includes("client") ? <u>Clients</u> : "Clients"}</a>
                 </li>
                 <li className="nav-item">
-                  <a className="nav-link" href="/admin/dashboard">{location.pathname.includes("admin") ? (<u>Admin</u>) : ("Admin")}</a>
+                  <a className="nav-link" href="/admin/dashboard">{location.pathname.includes("dashboard") ? (<u>Admin</u>) : ("Admin")}</a>
+                </li>
+                <li className="nav-item">
+                  <a className="nav-link" href="/admin/liste-articles">{location.pathname.includes("article") ? (<u>Articles</u>) : ("Articles")}</a>
                 </li>
               </ul>
             ) : (

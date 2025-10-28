@@ -369,8 +369,8 @@ def get_client_info(client_id):
         "email": client.email
     })
 
-# Get client devis route
-@app.route('/client-devis/<client_id>', methods=['GET'])
+# Get every devis of a client route
+@app.route('/@client-devis/<client_id>', methods=['GET'])
 def get_client_devis(client_id):
     tableEmpty = Devis.query.filter_by(client_id=client_id).first() is None
     if tableEmpty:
@@ -380,6 +380,44 @@ def get_client_devis(client_id):
     devis_schema = DevisSchema(many=True)
     devis_data = devis_schema.dump(devis)
     return jsonify(data=devis_data)
+
+# Get specific devis info route
+@app.route('/devis-info/<devis_id>', methods=['GET'])
+def get_devis_info(devis_id):
+    devis = Devis.query.filter_by(id=devis_id).first()
+    if not devis:
+        return jsonify({"error": "Devis non trouvé"}), 404
+    
+    devis_schema = DevisSchema()
+    return devis_schema.jsonify(devis)
+
+# Get new devis id route
+@app.route('/new-devis-id', methods=['GET'])
+def get_new_devis_id():
+    new_devis_id = Devis.query.order_by(Devis.id.desc()).first()
+    if new_devis_id is None:
+        return jsonify({
+            "id": 1
+        })
+        
+    return jsonify({
+        "id": new_devis_id.id + 1
+    })
+
+### Articles routes ###
+# Get all articles info route
+@app.route("/@all-articles", methods=['GET'])
+def get_all_articles():
+    tableEmpty = Articles.query.first() is None
+    if tableEmpty:
+        return jsonify({"error": "Aucuns articles trouvé"}), 404
+    
+    articles = Articles.query.all()
+    articles_schema = ArticlesSchema(many=True)
+    articles_data = articles_schema.dump(articles)
+    return jsonify(data=articles_data)
+
+### Main ###
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)

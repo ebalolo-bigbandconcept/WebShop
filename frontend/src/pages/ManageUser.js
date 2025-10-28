@@ -196,8 +196,7 @@ function ManageUser() {
             <div className="form-outline col-4">
               <label className="form-label">Rôle</label>
               <select value={new_role} onChange={(e) => setNewRole(e.target.value)}
-                className={`form-control form-control-lg ${role_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} 
-              >
+                className={`form-control form-control-lg ${role_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}>
                 <option value="Utilisateur">Utilisateur</option>
                 <option value="Administrateur">Administrateur</option>
               </select>

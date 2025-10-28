@@ -191,10 +191,8 @@ function ListeClients() {
   return (
     <div>
       <h1>Liste des Clients</h1>
+      <br/>
       <div>
-        <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouveau client</button>
-        <br />
-        <br />
         <div className="modal fade" id="popup" tabIndex="-1">
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
@@ -290,9 +288,15 @@ function ListeClients() {
               <td></td>
               <td></td>
             </tr>
-          ) : ("")}
+          ) : (
+            <tr>
+              <td colSpan={6}>Aucun client trouvé</td>
+            </tr>
+            )}
         </tbody>
       </table>
+      <br/>
+      <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouveau client</button>
     </div>
   );
 }
