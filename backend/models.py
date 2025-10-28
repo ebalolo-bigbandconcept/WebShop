@@ -28,14 +28,18 @@ class Devis(db.Model):
     __tablename__ = "devis"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     client_id = db.Column(db.Integer(), db.ForeignKey('clients.id'), nullable=False)
+    tauxTVA_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)
     titre = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     date = db.Column(db.Date(), nullable=False)
     montant_HT = db.Column(db.Float(), nullable=False)
     montant_TVA = db.Column(db.Float(), nullable=False)
-    tauxTVA_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)
     montant_TTC = db.Column(db.Float(), nullable=False)
     statut = db.Column(db.String(50), nullable=False)
+    
+    client = db.relationship('Clients', backref='devis', lazy=True)
+    taux_tva = db.relationship('TauxTVA', backref='devis', lazy=True)
+    articles = db.relationship('DevisArticles', backref='devis', lazy=True)
 
 class Articles(db.Model):
     __tablename__ = "articles"
@@ -44,12 +48,18 @@ class Articles(db.Model):
     description = db.Column(db.Text, nullable=False)
     prix_achat_HT = db.Column(db.Float(), nullable=False)
     prix_vente_HT = db.Column(db.Float(), nullable=False)
+    taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)
+    
+    taux_tva = db.relationship('TauxTVA', backref='articles', lazy=True)
 
 class DevisArticles(db.Model):
     __tablename__ = "devis_articles"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=False)
     article_id = db.Column(db.Integer(), db.ForeignKey('articles.id'), nullable=False)
+    quantite = db.Column(db.Integer(), nullable=False)
+    
+    article = db.relationship('Articles', backref='devis_articles', lazy=True)
 
 class TauxTVA(db.Model):
     __tablename__ = "taux_tva"
@@ -60,15 +70,37 @@ class TauxTVA(db.Model):
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
+        load_instance = True
 
 class ClientsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Clients
+        load_instance = True
 
-class DevisSchema(ma.SQLAlchemyAutoSchema):
+class TauxTVASchema(ma.SQLAlchemyAutoSchema):
     class Meta:
-        model = Devis
+        model = TauxTVA
+        load_instance = True
 
 class ArticlesSchema(ma.SQLAlchemyAutoSchema):
+    taux_tva = ma.Nested('TauxTVASchema')
+    
     class Meta:
         model = Articles
+        load_instance = True
+
+class DevisArticlesSchema(ma.SQLAlchemyAutoSchema):
+    article = ma.Nested('ArticlesSchema')
+    
+    class Meta:
+        model = DevisArticles
+        load_instance = True
+
+class DevisSchema(ma.SQLAlchemyAutoSchema):
+    client = ma.Nested('ClientsSchema')
+    taux_tva = ma.Nested('TauxTVASchema')
+    articles = ma.Nested('DevisArticlesSchema', many=True)
+    
+    class Meta:
+        model = Devis
+        load_instance = True
