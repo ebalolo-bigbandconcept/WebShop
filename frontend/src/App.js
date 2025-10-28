@@ -62,7 +62,7 @@ function App() {
                 <Client/>
               </PrivateRoute>
             }/>
-            <Route path="/list-devis" element={
+            <Route path="/liste-devis" element={
               <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
                 <ListeDevis/>
               </PrivateRoute>

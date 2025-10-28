@@ -121,7 +121,9 @@ function ListeClients() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          if (error.response.data.error !== "Aucun clients trouvé") {
+            alert(error.response.data.error);
+          }
         } else {
           alert("Une erreur est survenue.");
         }
@@ -177,16 +179,26 @@ function ListeClients() {
     setNewFirstName("");
     setNewLastName("");
     setNewEmail("");
+    setNewStreet("");
+    setNewCity("");
+    setNewPostalCode("");
+    setNewPhone("");
     setFormSubmited(false);
     setFirstNameError("");
     setLastNameError("");
     setEmailError("");
+    setStreetError("");
+    setCityError("");
+    setPostalCodeError("");
+    setPhoneError("");
   };
 
   useEffect(() => {
     getAllUsersInfo();
     setLoading(false);
   }, []);
+
+  if (loading) return <div>Chargement...</div>;
 
   return (
     <div>
@@ -279,15 +291,6 @@ function ListeClients() {
                 <td>{client.email}</td>
               </tr>
             ))
-          ) : loading ? (
-            <tr>
-              <td>Chargement...</td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-            </tr>
           ) : (
             <tr>
               <td colSpan={6}>Aucun client trouvé</td>

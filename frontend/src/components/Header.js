@@ -29,13 +29,28 @@ function Header({ user, setUser }) {
           </div>
 
           <div className="collapse navbar-collapse">
-            {user != null && user.role === "Administrateur" ? (
+            {user !== null && user.role === "Administrateur" ? (
+              <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+                <li className="nav-item">
+                  <a className="nav-link" href="/admin/dashboard">{location.pathname.includes("dashboard") ? (<u>Admin</u>) : ("Admin")}</a>
+                </li>
+                <li className="nav-item">
+                  <a className="nav-link" href="/liste-clients">{location.pathname.includes("client") ? <u>Clients</u> : "Clients"}</a>
+                </li>
+                <li className="nav-item">
+                  <a className="nav-link" href="/liste-devis">{location.pathname.includes("devis") ? <u>Devis</u> : "Devis"}</a>
+                </li>
+                <li className="nav-item">
+                  <a className="nav-link" href="/admin/liste-articles">{location.pathname.includes("article") ? (<u>Articles</u>) : ("Articles")}</a>
+                </li>
+              </ul>
+            ) : user !==null && user.role === "Utilisateur" ? (
               <ul className="navbar-nav me-auto mb-2 mb-lg-0">
                 <li className="nav-item">
                   <a className="nav-link" href="/liste-clients">{location.pathname.includes("client") ? <u>Clients</u> : "Clients"}</a>
                 </li>
                 <li className="nav-item">
-                  <a className="nav-link" href="/admin/dashboard">{location.pathname.includes("dashboard") ? (<u>Admin</u>) : ("Admin")}</a>
+                  <a className="nav-link" href="/liste-devis">{location.pathname.includes("devis") ? <u>Devis</u> : "Devis"}</a>
                 </li>
                 <li className="nav-item">
                   <a className="nav-link" href="/admin/liste-articles">{location.pathname.includes("article") ? (<u>Articles</u>) : ("Articles")}</a>

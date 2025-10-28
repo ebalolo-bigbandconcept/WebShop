@@ -45,7 +45,7 @@ with app.app_context():
     
     table_empty_tva = TauxTVA.query.first() is None
     if table_empty_tva:
-        taux20 = TauxTVA(taux=20.0)
+        taux20 = TauxTVA(taux=0.20)
         db.session.add(taux20)
         db.session.commit()
 
@@ -90,9 +90,9 @@ def validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux
         return "Le nom de l'article doit contenir entre 1 et 200 caractères."
     if len(description) < 1:
         return "La description de l'article ne peut pas être vide."
-    if prix_achat_HT < 0:
+    if float(prix_achat_HT) < 0:
         return "Le prix d'achat HT ne peut pas être négatif."
-    if prix_vente_HT < 0:
+    if float(prix_vente_HT) < 0:
         return "Le prix de vente HT ne peut pas être négatif."
     taux_tva = TauxTVA.query.filter_by(id=taux_tva_id).first()
     if not taux_tva:
@@ -235,10 +235,10 @@ def delete_user(user_id):
         admin_count = User.query.filter_by(role="Administrateur").count()
         if admin_count <= 1:
             return jsonify({"error": "Impossible de supprimer le dernier compte administrateur."}), 403
-    
+    user_email = user.email
     User.query.filter_by(id=user_id).delete()
     db.session.commit()
-    logging.info(f"Admin {session.get('user_id')} a supprimé l'utilisateur: {user.email} (id: {user.id})")
+    logging.info(f"Admin {session.get('user_id')} a supprimé l'utilisateur: {user_email} (id: {user_id})")
     
     return jsonify({
         "200": "User successfully deleted."
@@ -337,7 +337,7 @@ def logout():
 def get_all_clients():
     tableEmpty = Clients.query.first() is None
     if tableEmpty:
-        return jsonify({"error": "Aucuns clients trouvé"}), 404
+        return jsonify({"error": "Aucun clients trouvé"}), 404
     
     clients = Clients.query.all()
     clients_schema = ClientsSchema(many=True)
@@ -427,6 +427,7 @@ def get_new_devis_id():
 ### Articles routes ###
 # Get all articles info route
 @app.route("/@all-articles", methods=['GET'])
+@admin_required
 def get_all_articles():
     tableEmpty = Articles.query.first() is None
     if tableEmpty:
@@ -437,14 +438,32 @@ def get_all_articles():
     articles_data = articles_schema.dump(articles)
     return jsonify(data=articles_data)
 
+# Get specific article info route
+@app.route('/article-info/<article_id>', methods=['GET'])
+@admin_required
+def get_article_info(article_id):
+    article = Articles.query.filter_by(id=article_id).first()
+    if not article:
+        return jsonify({"error": "Article non trouvé"}), 404
+    
+    article_schema = ArticlesSchema()
+    return article_schema.jsonify(article)
+
 # Add new article route
 @app.route("/add-article", methods=["POST"])
+@admin_required
 def add_article():
     nom = request.json["nom"]
     description = request.json["description"]
-    prix_achat_HT = request.json["prix_achat_ht"]
-    prix_vente_HT = request.json["prix_vente_ht"]
-    taux_tva_id = request.json["taux_tva"]
+    prix_achat_HT = request.json["prix_achat_HT"]
+    prix_vente_HT = request.json["prix_vente_HT"]
+    taux_tva = request.json["taux_tva"]
+    
+    if not taux_tva:
+        return jsonify({"error": "Le taux de TVA est requis."}), 400
+        
+    taux_tva_id = TauxTVA.query.filter_by(taux=taux_tva).first().id
+    
     
     error = validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux_tva_id)
     if error:
@@ -457,6 +476,59 @@ def add_article():
     
     return jsonify({
         "id": new_article.id
+    })
+
+# Modify article route
+@app.route("/modify-article/<article_id>", methods=['POST'])
+@admin_required
+def modify_article(article_id):
+    article = Articles.query.filter_by(id=article_id).first()
+    if not article:
+        return jsonify({"error": "Article non trouvé"}), 404
+    
+    new_nom = request.json["nom"]
+    new_description = request.json["description"]
+    new_prix_achat_HT = request.json["prix_achat_HT"]
+    new_prix_vente_HT = request.json["prix_vente_HT"]
+    new_taux_tva = request.json["taux_tva"]
+    
+    if not new_taux_tva:
+        return jsonify({"error": "Le taux de TVA est requis."}), 400
+        
+    new_taux_tva_id = TauxTVA.query.filter_by(taux=new_taux_tva).first().id
+    
+    error = validate_article_fields(new_nom, new_description, new_prix_achat_HT, new_prix_vente_HT, new_taux_tva_id)
+    if error:
+        return jsonify({"error": error}), 400
+    
+    article.nom = new_nom
+    article.description = new_description
+    article.prix_achat_HT = new_prix_achat_HT
+    article.prix_vente_HT = new_prix_vente_HT
+    article.taux_tva_id = new_taux_tva_id
+    
+    db.session.commit()
+    logging.info(f"Article modifié: {article.nom} (id: {article.id}) par l'utilisateur {session.get('user_id')}")
+    
+    return jsonify({
+        "id": article.id
+    })
+
+# Delete article route
+@app.route("/delete-article/<article_id>", methods=['POST'])
+@admin_required
+def delete_article(article_id):
+    article = Articles.query.filter_by(id=article_id).first()
+    if not article:
+        return jsonify({"error": "Article non trouvé"}), 404
+    
+    article_name = article.nom
+    Articles.query.filter_by(id=article_id).delete()
+    db.session.commit()
+    logging.info(f"Article supprimé: {article_name} (id: {article_id}) par l'utilisateur {session.get('user_id')}")
+    
+    return jsonify({
+        "200": "Article successfully deleted."
     })
 
 ### Main ###
