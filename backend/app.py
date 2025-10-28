@@ -389,6 +389,8 @@ def get_client_info(client_id):
         "email": client.email
     })
 
+### Devis routes ###
+
 # Get every devis of a client route
 @app.route('/@client-devis/<client_id>', methods=['GET'])
 def get_client_devis(client_id):
@@ -422,6 +424,51 @@ def get_new_devis_id():
         
     return jsonify({
         "id": new_devis_id.id + 1
+    })
+
+# Create new devis route
+@app.route('/create-devis', methods=['POST'])
+def create_devis():
+    client_id = request.json["client_id"]
+    tauxTVA_id = request.json["tauxTVA_id"]
+    titre = request.json["title"]
+    description = request.json["description"]
+    date = request.json["date"]
+    montant_HT = request.json["montant_HT"]
+    montant_TVA = request.json["montant_TVA"]
+    montant_TTC = request.json["montant_TTC"]
+    statut = request.json["statut"]
+    
+    new_devis = Devis(client_id=client_id,tauxTVA_id=tauxTVA_id,titre=titre,description=description,date=date,montant_HT=montant_HT,montant_TVA=montant_TVA,montant_TTC=montant_TTC,statut=statut)
+    db.session.add(new_devis)
+    db.session.commit()
+    logging.info(f"Nouveau devis créé: {new_devis.titre} (id: {new_devis.id}) par l'utilisateur {session.get('user_id')}")
+    
+    return jsonify({
+        "id": new_devis.id
+    })
+
+# Update devis route
+@app.route('/update-devis/<devis_id>', methods=['POST'])
+def update_devis(devis_id):
+    devis = Devis.query.filter_by(id=devis_id).first()
+    if not devis:
+        return jsonify({"error": "Devis non trouvé"}), 404
+    
+    devis.tauxTVA_id = request.json["tauxTVA_id"]
+    devis.titre = request.json["title"]
+    devis.description = request.json["description"]
+    devis.date = request.json["date"]
+    devis.montant_HT = request.json["montant_HT"]
+    devis.montant_TVA = request.json["montant_TVA"]
+    devis.montant_TTC = request.json["montant_TTC"]
+    devis.statut = request.json["statut"]
+    
+    db.session.commit()
+    logging.info(f"Devis modifié: {devis.titre} (id: {devis.id}) par l'utilisateur {session.get('user_id')}")
+    
+    return jsonify({
+        "id": devis.id
     })
 
 ### Articles routes ###
