@@ -334,7 +334,7 @@ def logout():
 ### Clients routes ###
 
 # Get all clients info route
-@app.route("/@all-clients", methods=['GET'])
+@app.route("/all-clients", methods=['GET'])
 def get_all_clients():
     tableEmpty = Clients.query.first() is None
     if tableEmpty:
@@ -392,8 +392,19 @@ def get_client_info(client_id):
 
 ### Devis routes ###
 
+# Get every devis of every clients route
+@app.route('/all-devis', methods=['GET'])
+def get_every_devis():
+    devis = Devis.query.all()
+    if len(devis) == 0:
+        return jsonify({"error": "Aucuns devis trouvé"}), 404
+    
+    devis_schema = DevisSchema(many=True)
+    devis_data = devis_schema.dump(devis)
+    return jsonify(data=devis_data)
+
 # Get every devis of a client route
-@app.route('/@client-devis/<client_id>', methods=['GET'])
+@app.route('/client-devis/<client_id>', methods=['GET'])
 def get_client_devis(client_id):
     devis = Devis.query.filter_by(client_id=client_id).all()
     if not devis:
@@ -508,7 +519,7 @@ def delete_devis(devis_id):
 
 ### Articles routes ###
 # Get all articles info route
-@app.route("/@all-articles", methods=['GET'])
+@app.route("/all-articles", methods=['GET'])
 @admin_required
 def get_all_articles():
     tableEmpty = Articles.query.first() is None

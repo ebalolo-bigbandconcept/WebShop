@@ -213,7 +213,7 @@ function ListeArticles() {
 
   const getAllArticles = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/@all-articles`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/all-articles`)
       .then((resp) => {
         setArticles(resp.data.data);
         console.log(resp.data.data);

@@ -115,7 +115,7 @@ function ListeClients() {
   // ### Fetch all clients from the backend ###
   const getAllUsersInfo = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/@all-clients`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/all-clients`)
       .then((resp) => {
         setclients(resp.data);
       })

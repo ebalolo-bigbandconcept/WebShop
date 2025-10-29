@@ -28,7 +28,7 @@ function Client() {
 
   const getClientAllDevis = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/@client-devis/${client_id.id}`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/client-devis/${client_id.id}`)
       .then((resp) => {
         setDevis(resp.data.data);
       })
@@ -72,7 +72,7 @@ function Client() {
       <div>
         <div className="d-flex justify-content-between align-items-center">
           <h1 className="col-lg-11 col-10">Client - {client.last_name} {client.first_name}</h1>
-          <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(`/liste-clients`)}>Retour</button>
+          <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(-1)}>Retour</button>
         </div>
         <br/>
         <table className="table table-hover table-striped">
@@ -85,6 +85,7 @@ function Client() {
               <th scope="col">Montant HT</th>
               <th scope="col">Montant TVA</th>
               <th scope="col">Montant TTC</th>
+              <th scope="col">Statut</th>
             </tr>
           </thead>
           <tbody>
@@ -98,11 +99,12 @@ function Client() {
                   <td>{devis.montant_HT}</td>
                   <td>{devis.montant_TVA}</td>
                   <td>{devis.montant_TTC}</td>
+                  <td>{devis.statut}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7}>Aucun devis trouvé</td>
+                <td colSpan={8}>Aucun devis trouvé</td>
               </tr>
             )}
           </tbody>

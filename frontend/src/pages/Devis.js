@@ -262,7 +262,7 @@ function Devis() {
 
   const getAllArticles = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/@all-articles`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/all-articles`)
       .then((resp) => {
         setArticles(resp.data);
       })
@@ -315,7 +315,7 @@ function Devis() {
     <div>
       <div className="d-flex justify-content-between align-items-center">
         <h1 className="col-lg-11 col-10">Devis N°{id_devis}</h1>
-        <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(`/client/${id_client}`)}>Retour</button>
+        <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(-1)}>Retour</button>
       </div>
       <br/>
       <h3>Client: {client.last_name} {client.first_name}</h3>
@@ -344,7 +344,10 @@ function Devis() {
           </div>
         </div>
       </form>
-      <h3 className="text-end mt-4">Montant total TTC: {devis_montant_TTC} €</h3>
+      <div className="d-flex flex-row-reverse justify-content-between w-100">
+        <h3 className="text-end mt-4">Montant total TTC: {devis_montant_TTC} €</h3>
+        {!isNewDevis && <h3 className="text-end mt-4">{devis.statut === "Non payé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
+      </div>
       <table className="table table-hover table-striped mt-4">
         <thead>
           <tr>
