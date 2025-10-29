@@ -81,7 +81,7 @@ const Register = ({ setUser }) => {
 
     if (isFormValid) {
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/register`, {
+        .post(`${process.env.REACT_APP_BACKEND_URL}/user/register`, {
           email: email,
           first_name: first_name,
           last_name: last_name,

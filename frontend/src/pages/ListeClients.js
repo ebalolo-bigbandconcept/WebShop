@@ -115,7 +115,7 @@ function ListeClients() {
   // ### Fetch all clients from the backend ###
   const getAllUsersInfo = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/all-clients`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/clients/all`)
       .then((resp) => {
         setclients(resp.data);
       })
@@ -147,7 +147,7 @@ function ListeClients() {
 
     if (isFormValid) {
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/add-client`, {
+        .post(`${process.env.REACT_APP_BACKEND_URL}/clients/create`, {
           first_name: new_first_name,
           last_name: new_last_name,
           street: new_street,

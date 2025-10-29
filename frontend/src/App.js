@@ -11,7 +11,7 @@ const PrivateRoute = lazy(() => import ('./components/PrivateRoute'));
 const Login = lazy(() => import ('./pages/Login'));
 const NotFound = lazy(() => import ('./pages/NotFound'));
 const AdminDashboard = lazy(() => import ('./pages/AdminDashboard'));
-const ManageUser = lazy(() => import ('./pages/ManageUser'));
+const ManageUser = lazy(() => import ('./pages/AdminManageUser'));
 const ListeClients = lazy(() => import ('./pages/ListeClients'));
 const Client = lazy(() => import ('./pages/Client'));
 const ListeArticles = lazy(() => import ('./pages/AdminListeArticles'));
@@ -28,7 +28,7 @@ function App() {
 
     const fetchUser = async () => {
       try {
-        const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/@me`);
+        const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/user/me`);
         if (isMounted) setUser(resp.data);
       } catch (error) {
         console.error("Error fetching user:", error);

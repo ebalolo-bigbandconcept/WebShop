@@ -11,7 +11,7 @@ function ListeDevis() {
   // ### Fetch all devis from all clients from the backend ###
   const getEveryDevis = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/all-devis`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/devis/all`)
       .then((resp) => {
         setDevis(resp.data.data);
         console.log(resp.data.data)

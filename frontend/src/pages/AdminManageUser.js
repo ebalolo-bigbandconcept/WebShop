@@ -97,7 +97,7 @@ function ManageUser() {
       }
 
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/modify-user/${user_id.id}`, payload, {
+        .post(`${process.env.REACT_APP_BACKEND_URL}/admin/update-user/${user_id.id}`, payload, {
           headers: {"Content-Type": "application/json"},
         })
         .then((resp) => {
@@ -124,7 +124,7 @@ function ManageUser() {
   const delete_account = async () => {
     setFormSubmited(true);
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/delete-user/${user_id.id}`)
+      .post(`${process.env.REACT_APP_BACKEND_URL}/admin/delete-user/${user_id.id}`)
       .then((resp) => {
         navigate("/admin/dashboard");
         console.log(resp.data);
@@ -150,7 +150,7 @@ function ManageUser() {
   // ### Fetch user info on page load ###
   useEffect(() => {
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/user-info/${user_id.id}`)
+      .post(`${process.env.REACT_APP_BACKEND_URL}/admin/info-user/${user_id.id}`)
       .then((resp) => {
         setUser(resp.data);
       })
@@ -239,13 +239,13 @@ function ManageUser() {
                     <div className="modal-footer d-flex justify-content-center">
                       {MODIFY === true ? (
                         <div>
+                          <button type="button" className="btn btn-danger me-4" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                           <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={modify_account}>Oui</button>
-                          <button type="button" className="btn btn-danger" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                         </div>
                       ) : DELETE === true ? (
                         <div>
+                          <button type="button" className="btn btn-danger me-4" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                           <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={delete_account}>Oui</button>
-                          <button type="button" className="btn btn-danger" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                         </div>
                       ) : (
                         ""

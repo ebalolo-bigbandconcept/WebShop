@@ -13,7 +13,7 @@ function Client() {
 
   const handleNewDevis = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/new-devis-id`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/devis/new-id`)
       .then((resp) => {
         navigate({ pathname: `/devis/${client.id}/${resp.data.id}` });
       })
@@ -28,7 +28,7 @@ function Client() {
 
   const getClientAllDevis = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/client-devis/${client_id.id}`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/devis/client/${client_id.id}`)
       .then((resp) => {
         setDevis(resp.data.data);
       })
@@ -45,7 +45,7 @@ function Client() {
 
   const getClientInfo = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/client-info/${client_id.id}`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/clients/info/${client_id.id}`)
       .then((resp) => {
         setClient(resp.data);
       })

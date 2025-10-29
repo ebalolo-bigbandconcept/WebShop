@@ -174,7 +174,7 @@ function Devis() {
       if (isNewDevis) {
         // Create new devis
         httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/create-devis`, devisData)
+        .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
         .then((resp) => {
           console.log(resp);
           navigate(`/client/${id_client}`);
@@ -189,7 +189,7 @@ function Devis() {
       } else {
         // Update existing devis
         httpClient
-        .put(`${process.env.REACT_APP_BACKEND_URL}/update-devis/${id_devis}`, devisData)
+        .put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData)
         .then((resp) => {
           console.log(resp);
           navigate(`/client/${id_client}`);
@@ -208,7 +208,7 @@ function Devis() {
   // ### Delete devis
   const deleteDevis = async () => {
     httpClient
-    .delete(`${process.env.REACT_APP_BACKEND_URL}/delete-devis/${id_devis}`)
+    .delete(`${process.env.REACT_APP_BACKEND_URL}/devis/delete/${id_devis}`)
       .then((resp) => {
         handleClose()
         navigate(`/client/${id_client}`);
@@ -226,7 +226,7 @@ function Devis() {
   // ### Fetch devis, client info and every articles on page load ###
   const getDevisInfo = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/devis-info/${id_devis}`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${id_devis}`)
       .then((resp) => {
         setDevis(resp.data);
         console.log(resp.data);
@@ -247,7 +247,7 @@ function Devis() {
 
   const getClientInfo = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/client-info/${id_client}`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/clients/info/${id_client}`)
       .then((resp) => {
         setClient(resp.data);
       })
@@ -262,7 +262,7 @@ function Devis() {
 
   const getAllArticles = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/all-articles`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/articles/all`)
       .then((resp) => {
         setArticles(resp.data);
       })
@@ -429,14 +429,14 @@ function Devis() {
                 </div>
               )}
             </div>
-            <div className="modal-footer">
+            <div className="modal-footer d-flex justify-content-center">
               {DELETE ? (
-                <div className="d-flex justify-content-between w-100">
-                  <button className="btn btn-lg btn-danger" onClick={handleClose}>Non</button>
-                  <button className="btn btn-lg btn-success" onClick={deleteDevis}>Oui</button>
+                <div>
+                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
+                  <button className="btn btn-lg btn-primary" onClick={deleteDevis}>Oui</button>
                 </div>
               ) : (
-                <div className="d-flex justify-content-between w-100">
+                <div>
                   <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
                   <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
                 </div>

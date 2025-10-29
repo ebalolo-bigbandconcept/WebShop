@@ -101,7 +101,7 @@ function ListeArticles() {
     if (isFormValid) {
       console.log(article_taux_tva);
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/add-article`, {
+        .post(`${process.env.REACT_APP_BACKEND_URL}/articles/create`, {
           nom: article_nom,
           description: article_description,
           prix_achat_HT: article_prix_achat_HT,
@@ -130,7 +130,7 @@ function ListeArticles() {
     setCREATE(false);
     setDELETE(false);
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/article-info/${article_id}`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/articles/info/${article_id}`)
       .then((resp) => {
         setArticleId(resp.data.id);
         setArticleNom(resp.data.nom);
@@ -162,7 +162,7 @@ function ListeArticles() {
 
     if (isFormValid) {
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/modify-article/${article_id}`, {
+        .post(`${process.env.REACT_APP_BACKEND_URL}/articles/update/${article_id}`, {
           nom: article_nom,
           description: article_description,
           prix_achat_HT: article_prix_achat_HT,
@@ -194,7 +194,7 @@ function ListeArticles() {
 
   const deleteArticle = async () => {
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/delete-article/${article_id}`)
+      .post(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${article_id}`)
       .then((resp) => {
         console.log(resp);
         handleClose();
@@ -213,7 +213,7 @@ function ListeArticles() {
 
   const getAllArticles = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/all-articles`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/articles/all`)
       .then((resp) => {
         setArticles(resp.data.data);
         console.log(resp.data.data);
@@ -284,7 +284,7 @@ function ListeArticles() {
                 </h1>
               </div>
               <div className="modal-body">
-                {DELETE ? <h3>Êtes-vous sûr de vouloir supprimer l'article "{article_nom}" ?</h3>
+                {DELETE ? <h5>Êtes-vous sûr de vouloir supprimer l'article "{article_nom}" ?</h5>
                 : 
                 <form className="row">
                   <div className="form-outline col-12">
@@ -326,18 +326,21 @@ function ListeArticles() {
                 </form>
                 }
               </div>
-              <div className="modal-footer d-flex justify-content-between">
-                <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-                {CREATE ? <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+              <div className="modal-footer">
+                {CREATE ? 
+                  <div className="d-flex justify-content-between w-100">
+                    <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+                    <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+                  </div>
                 : MODIFY ?
-                  <div>
+                  <div className="d-flex justify-content-between w-100">
                     <button className="btn btn-lg btn-danger" onClick={handleDeleteArticle}>Supprimer</button>
-                    <button className="btn btn-lg btn-success ms-4" onClick={modifyArticle}>Modifier</button>
+                    <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
                   </div>
                 : DELETE ? 
-                <div>
-                  <button className="btn btn-lg btn-danger" onClick={deleteArticle}>Oui</button>
-                  <button className="btn btn-lg btn-primary ms-4" onClick={handleClose}>Non</button>
+                <div className="d-flex justify-content-center w-100">
+                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
+                  <button className="btn btn-lg btn-primary" onClick={deleteArticle}>Oui</button>
                 </div> : ''
                 }
               </div>

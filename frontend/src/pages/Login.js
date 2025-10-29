@@ -41,7 +41,7 @@ function Login({ setUser }) {
     const isFormValid = isEmailValid && isPasswordValid;
 
     if (isFormValid){
-      await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/login`, {
+      await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/user/login`, {
         email: email,
         password: password,
       })

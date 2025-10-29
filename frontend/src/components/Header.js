@@ -9,7 +9,7 @@ function Header({ user, setUser }) {
   const location = useLocation();
 
   const logUserOut = async () => {
-    await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/logout`);
+    await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/user/logout`);
     setUser(null);
     navigate("/");
   };
