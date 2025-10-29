@@ -392,6 +392,7 @@ function Devis() {
         <button className="btn btn-primary" onClick={handleAddArticle}>+ Ajouter un article</button>
         <div>
           {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis}> Supprimer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-success me-4" onClick={() => navigate(`/devis/${id_client}/${id_devis}/pdf`)}>Générer le devis</button> : ""}
           <button className="btn btn-success" onClick={saveDevis}> Enregistrer le devis</button>
         </div>
       </div>

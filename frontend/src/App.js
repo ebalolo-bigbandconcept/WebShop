@@ -17,6 +17,7 @@ const Client = lazy(() => import ('./pages/Client'));
 const ListeArticles = lazy(() => import ('./pages/AdminListeArticles'));
 const ListeDevis = lazy(() => import ('./pages/ListeDevis'));
 const Devis = lazy(() => import ('./pages/Devis'));
+const DevisPdf = lazy(() => import ('./pages/DevisPdf'));
 
 function App() {
   const [user, setUser] = useState(null);
@@ -70,6 +71,11 @@ function App() {
             <Route path="/devis/:id_client/:id_devis" element={
               <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
                 <Devis/>
+              </PrivateRoute>
+            }/>
+            <Route path="/devis/:id_client/:id_devis/pdf" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <DevisPdf/>
               </PrivateRoute>
             }/>
             <Route path="/admin/dashboard" element={

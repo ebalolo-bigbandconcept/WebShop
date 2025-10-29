@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, render_template, make_response
 from models import db, Devis, DevisSchema, DevisArticles
 from datetime import datetime
-import logging
+from weasyprint import HTML
+import logging, os
 
 # Create a Blueprint for authentication-related routes
 devis_bp = Blueprint('devis_bp', __name__, url_prefix='/devis')
@@ -130,3 +131,29 @@ def delete_devis(devis_id):
     return jsonify({
         "200": "Devis successfully deleted."
     })
+
+# Create PDF of the devis
+@devis_bp.route('/pdf/<devis_id>', methods=['GET'])
+def get_devis_pdf(devis_id):
+    devis = Devis.query.filter_by(id=devis_id).first()
+    if not devis:
+        return jsonify({"error": "Devis non trouvé"}), 404
+    
+    # Convert Devis object to dict including articles
+    devis_schema = DevisSchema()
+    devis_data = devis_schema.dump(devis)
+
+    # Render HTML using Jinja2 template
+    html_out = render_template("pdf.html", devis=devis_data)
+    
+    # Calculate the absolute path to the folder containing your template and static files
+    base_path = '/app/pdf/'
+
+    # Generate PDF
+    pdf = HTML(string=html_out,base_url=base_path).write_pdf()
+
+    # Return PDF as response
+    response = make_response(pdf)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"inline; filename=devis_{devis_id}.pdf"
+    return response

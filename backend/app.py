@@ -18,7 +18,7 @@ ADMIN_MAIL = os.getenv('ADMIN_MAIL')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
 
 # Config App
-app = Flask(__name__)
+app = Flask(__name__,template_folder="pdf")
 app.config.from_object(ApplicationConfig)
 CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
 bcrypt = Bcrypt()
