@@ -70,14 +70,18 @@ function Client() {
   return (
     <div>
       <div>
-        <h1>Client - {client.last_name} {client.first_name}</h1>
+        <div className="d-flex justify-content-between align-items-center">
+          <h1 className="col-lg-11 col-10">Client - {client.last_name} {client.first_name}</h1>
+          <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(`/liste-clients`)}>Retour</button>
+        </div>
         <br/>
         <table className="table table-hover table-striped">
           <thead>
             <tr>
-              <th scope="col">N° de devis</th>
-              <th scope="col">Date</th>
+              <th scope="col">#</th>
+              <th scope="col">Titre</th>
               <th scope="col">Description</th>
+              <th scope="col">Date</th>
               <th scope="col">Montant HT</th>
               <th scope="col">Montant TVA</th>
               <th scope="col">Montant TTC</th>
@@ -88,8 +92,9 @@ function Client() {
               devis.map((devis) => (
                 <tr key={devis.id} onClick={() => {navigate({ pathname: `/devis/${client.id}/${devis.id}` });}}>
                   <td>{devis.id}</td>
-                  <td>{devis.date}</td>
+                  <td>{devis.titre}</td>
                   <td>{devis.description}</td>
+                  <td>{devis.date}</td>
                   <td>{devis.montant_HT}</td>
                   <td>{devis.montant_TVA}</td>
                   <td>{devis.montant_TTC}</td>
@@ -97,7 +102,7 @@ function Client() {
               ))
             ) : (
               <tr>
-                <td colSpan={6}>Aucun devis trouvé</td>
+                <td colSpan={7}>Aucun devis trouvé</td>
               </tr>
             )}
           </tbody>

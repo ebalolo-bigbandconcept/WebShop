@@ -313,7 +313,10 @@ function Devis() {
 
   return (
     <div>
-      <h1>Devis N°{id_devis}</h1>
+      <div className="d-flex justify-content-between align-items-center">
+        <h1 className="col-lg-11 col-10">Devis N°{id_devis}</h1>
+        <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(`/client/${id_client}`)}>Retour</button>
+      </div>
       <br/>
       <h3>Client: {client.last_name} {client.first_name}</h3>
       <h3>Adresse: {client.street}, {client.postal_code} à {client.city}</h3>
