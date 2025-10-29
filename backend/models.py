@@ -28,7 +28,6 @@ class Devis(db.Model):
     __tablename__ = "devis"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     client_id = db.Column(db.Integer(), db.ForeignKey('clients.id'), nullable=False)
-    tauxTVA_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)
     titre = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     date = db.Column(db.Date(), nullable=False)
@@ -38,7 +37,6 @@ class Devis(db.Model):
     statut = db.Column(db.String(50), nullable=False)
     
     client = db.relationship('Clients', backref='devis', lazy=True)
-    taux_tva = db.relationship('TauxTVA', backref='devis', lazy=True)
     articles = db.relationship('DevisArticles', backref='devis', lazy=True)
 
 class Articles(db.Model):
@@ -98,7 +96,6 @@ class DevisArticlesSchema(ma.SQLAlchemyAutoSchema):
 
 class DevisSchema(ma.SQLAlchemyAutoSchema):
     client = ma.Nested('ClientsSchema')
-    taux_tva = ma.Nested('TauxTVASchema')
     articles = ma.Nested('DevisArticlesSchema', many=True)
     
     class Meta:
