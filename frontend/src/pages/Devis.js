@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import httpClient from "../components/httpClient";
 import bootstrap from "bootstrap/dist/js/bootstrap.js";
@@ -7,6 +7,7 @@ import bootstrap from "bootstrap/dist/js/bootstrap.js";
 function Devis() {
   const { id_client, id_devis } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const today = new Date().toISOString().split('T')[0];
 
@@ -83,6 +84,17 @@ function Devis() {
     }
     setArticleQuantityError("");
     return true;
+  }
+
+  // ### Go back button ###
+
+  const goBack = () => {
+    if (location.state.from) {
+      console.log(location.state.from)
+      navigate(location.state.from);
+    }else{
+      navigate('/liste-devis');
+    }
   }
 
   // ### Handle modal ###
@@ -315,7 +327,7 @@ function Devis() {
     <div>
       <div className="d-flex justify-content-between align-items-center">
         <h1 className="col-lg-11 col-10">Devis N°{id_devis}</h1>
-        <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(-1)}>Retour</button>
+        <button className="btn btn-danger col-lg-1 col-2" onClick={goBack}>Retour</button>
       </div>
       <br/>
       <h3>Client: {client.last_name} {client.first_name}</h3>

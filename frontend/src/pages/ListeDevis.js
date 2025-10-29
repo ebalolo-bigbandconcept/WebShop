@@ -54,7 +54,7 @@ function ListeDevis() {
         <tbody>
           {devis !== undefined ? (
             devis.map((devis) => (
-              <tr key={devis.id} onClick={() => {navigate({ pathname: `/devis/${devis.client.id}/${devis.id}`});}}>
+              <tr key={devis.id} onClick={() => {navigate(`/devis/${devis.client.id}/${devis.id}`, {state : {from: '/liste-devis'}});}}>
                 <td>{devis.id}</td>
                 <td>{devis.client.nom} {devis.client.prenom}</td>
                 <td>{devis.titre}</td>

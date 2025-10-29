@@ -72,7 +72,7 @@ function Client() {
       <div>
         <div className="d-flex justify-content-between align-items-center">
           <h1 className="col-lg-11 col-10">Client - {client.last_name} {client.first_name}</h1>
-          <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate(-1)}>Retour</button>
+          <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate('/liste-clients')}>Retour</button>
         </div>
         <br/>
         <table className="table table-hover table-striped">
@@ -91,7 +91,7 @@ function Client() {
           <tbody>
             {devis.length > 0 ? (
               devis.map((devis) => (
-                <tr key={devis.id} onClick={() => {navigate({ pathname: `/devis/${client.id}/${devis.id}` });}}>
+                <tr key={devis.id} onClick={() => {navigate(`/devis/${client.id}/${devis.id}`, {state : {from: `/client/${client.id}`}});}}>
                   <td>{devis.id}</td>
                   <td>{devis.titre}</td>
                   <td>{devis.description}</td>
