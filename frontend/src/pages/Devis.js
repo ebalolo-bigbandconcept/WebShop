@@ -14,7 +14,7 @@ function Devis() {
   const [client, setClient] = useState(null);
   const [articles, setArticles] = useState(null);
 
-  const [article_selected, setArticleSelected] = useState(null);
+  const [article_selected, setArticleSelected] = useState([]);
   const [article_quantity, setArticleQuantity] = useState(1);
   const [articles_in_devis, setArticlesInDevis] = useState([]);
 
@@ -35,8 +35,10 @@ function Devis() {
 
   const [isNewDevis, setIsNewDevis] = useState(false);
 
+  const [DELETE, setDELETE] = useState(false);
+
   // ### User input validation ###
-  const devisTitleVerif = async (value) => {
+  const devisTitleVerif = (value) => {
     if (value === "") {
       setDevisTitleError("Veuillez entrer un nom d'article");
       return false;
@@ -45,7 +47,7 @@ function Devis() {
     return true;
   }
 
-  const devisDescriptionVerif = async (value) => {
+  const devisDescriptionVerif = (value) => {
     if (value === "") {
       setDevisDescriptionError("Veuillez entrer une description");
       return false;
@@ -54,7 +56,7 @@ function Devis() {
     return true;
   }
 
-  const devisDateVerif = async (value) => {
+  const devisDateVerif = (value) => {
     if (value === "") {
       setDevisDateError("Veuillez entrer une date");
       return false;
@@ -66,7 +68,7 @@ function Devis() {
     return true;
   }
 
-  const devisContentVerif = async (articles) => {
+  const devisContentVerif = (articles) => {
     if (articles.length === 0) {
       alert("Veuillez ajouter au moins un article au devis.");
       return false;
@@ -74,7 +76,7 @@ function Devis() {
     return true;
   }
 
-  const articleQuantityVerif = async (value) => {
+  const articleQuantityVerif = (value) => {
     if (value <= 0) {
       setArticleQuantityError("Veuillez entrer une quantité valide");
       return false;
@@ -94,22 +96,28 @@ function Devis() {
     showModal();
   }
 
+  const handleDeleteDevis = () => {
+    setDELETE(true);
+    showModal();
+  }
+
   const handleClose = () => {
     const popup = document.getElementById("popup");
     const modal = bootstrap.Modal.getInstance(popup);
     modal.hide();
 
     setArticleQuantity(1);
-    setArticleSelected(null);
+    setArticleSelected([]);
     setArticleQuantityError("");
-    console.log(articles_in_devis);
+    setDELETE(false);
   }
 
   // ### Add new article to devis ###
   
   const addNewArticle = async () => {
     const isQuantityValid = articleQuantityVerif(article_quantity);
-    const isArticleSelected = article_selected !== null;
+    console.log(article_selected)
+    const isArticleSelected = article_selected.length !== 0;
 
     // If article is not already in the devis
     if (articles_in_devis.find(article => article.id === article_selected.id)) {
@@ -121,7 +129,7 @@ function Devis() {
     if (isQuantityValid && isArticleSelected) {
       const newArticle = {
         ...article_selected,
-        quantité: article_quantity,
+        quantite: article_quantity,
         montant_HT: (article_selected.prix_vente_HT * article_quantity).toFixed(2),
         montant_TVA: ((article_selected.prix_vente_HT * article_selected.taux_tva.taux) * article_quantity).toFixed(2),
         montant_TTC: ((article_selected.prix_vente_HT * (1 + article_selected.taux_tva.taux)) * article_quantity).toFixed(2),
@@ -155,11 +163,11 @@ function Devis() {
         montant_HT: devis_montant_HT,
         montant_TVA: devis_montant_TVA,
         montant_TTC: devis_montant_TTC,
-        status: devis_status,
+        statut: devis_status,
         client_id: id_client,
         articles: articles_in_devis.map(article => ({
           article_id: article.id,
-          quantité: article.quantité,
+          quantite: article.quantite,
         })),
       };
 
@@ -169,7 +177,7 @@ function Devis() {
         .post(`${process.env.REACT_APP_BACKEND_URL}/create-devis`, devisData)
         .then((resp) => {
           console.log(resp);
-          navigate(`/admin/clients/${id_client}`);
+          navigate(`/client/${id_client}`);
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -181,9 +189,10 @@ function Devis() {
       } else {
         // Update existing devis
         httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/update-devis/${id_devis}`, devisData)
+        .put(`${process.env.REACT_APP_BACKEND_URL}/update-devis/${id_devis}`, devisData)
         .then((resp) => {
-          alert("Devis mis à jour avec succès.");
+          console.log(resp);
+          navigate(`/client/${id_client}`);
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -194,6 +203,24 @@ function Devis() {
         });
       }
     }
+  }
+
+  // ### Delete devis
+  const deleteDevis = async () => {
+    httpClient
+    .delete(`${process.env.REACT_APP_BACKEND_URL}/delete-devis/${id_devis}`)
+      .then((resp) => {
+        handleClose()
+        navigate(`/client/${id_client}`);
+        console.log(resp.data);
+      })
+      .catch((error) => {
+        if (error.response && error.response.data && error.response.data.error) {
+          alert(error.response.data.error);
+        } else {
+          alert("Une erreur est survenue.");
+        }
+      });
   }
 
   // ### Fetch devis, client info and every articles on page load ###
@@ -208,6 +235,7 @@ function Devis() {
         if (error.response && error.response.data && error.response.data.error) {
           if (error.response.status === 404) {
             setIsNewDevis(true);
+            setLoading(false);
           }else{
             alert(error.response.data.error);
           }
@@ -222,7 +250,6 @@ function Devis() {
       .get(`${process.env.REACT_APP_BACKEND_URL}/client-info/${id_client}`)
       .then((resp) => {
         setClient(resp.data);
-        setLoading(false);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -241,7 +268,9 @@ function Devis() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          if (error.response.status !== 404) {
+            alert(error.response.data.error);
+          }
         } else {
           alert("Une erreur est survenue.");
         }
@@ -249,10 +278,36 @@ function Devis() {
   }
 
   useEffect(() => {
-    getDevisInfo();
     getClientInfo();
     getAllArticles();
+    getDevisInfo();
   }, []);
+
+  useEffect(() => {
+  if (devis && !isNewDevis) {
+    console.log("Update devis")
+    setDevisTitle(devis.titre);
+    setDevisDescription(devis.description);
+    setDevisDate(devis.date);
+    setDevisMontantHT(devis.montant_HT);
+    setDevisMontantTVA(devis.montant_TVA);
+    setDevisMontantTTC(devis.montant_TTC);
+    setDevisStatus(devis.statut);
+
+    if (Array.isArray(devis.articles)){
+      setArticlesInDevis(
+        devis.articles.map((da) => ({
+          ...da.article,
+          quantite: da.quantite,
+          montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
+          montant_TVA: ((da.article.prix_vente_HT * da.article.taux_tva.taux) * da.quantite).toFixed(2),
+          montant_TTC: ((da.article.prix_vente_HT * (1 + da.article.taux_tva.taux)) * da.quantite).toFixed(2),
+        }))
+      );
+    }
+    setLoading(false);
+  }
+}, [devis, isNewDevis]);
 
   if (loading) return <div>Chargement...</div>;
 
@@ -302,7 +357,7 @@ function Devis() {
             articles_in_devis.map((article) => (
               <tr key={article.id}>
                 <td>{article.nom}</td>
-                <td>{article.quantité}</td>
+                <td>{article.quantite}</td>
                 <td>{article.montant_HT} €</td>
                 <td>{article.montant_TVA} €</td>
                 <td>{article.montant_TTC} €</td>
@@ -317,53 +372,70 @@ function Devis() {
       </table>
       <div className="d-flex justify-content-between">
         <button className="btn btn-primary" onClick={handleAddArticle}>+ Ajouter un article</button>
-        <button className="btn btn-success" onClick={saveDevis}> Enregistrer le devis</button>
+        <div>
+          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis}> Supprimer le devis</button> : ""}
+          <button className="btn btn-success" onClick={saveDevis}> Enregistrer le devis</button>
+        </div>
       </div>
       <div className="modal fade" id="popup" tabIndex="-1">
         <div className="modal-dialog modal-lg">
           <div className="modal-content">
             <div className="modal-header">
-              <h1 className="modal-title fs-5" id="popupLabel">Ajouter un article</h1>
+              <h1 className="modal-title fs-5" id="popupLabel">{DELETE ? 'Supprimer le devis' : "Ajouter un article"}</h1>
             </div>
             <div className="modal-body">
-              <table className="table table-hover table-striped mt-4">
-                <thead>
-                  <tr>
-                    <th scope="col">Article</th>
-                    <th scope="col">Description</th>
-                    <th scope="col">Montant u. HT</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {articles !== null && articles !== undefined ? (
-                    articles.data.map((article) => (
-                      <tr key={article.id} onClick={() => {setArticleSelected(article);}}>
-                        <td>{article.nom}</td>
-                        <td>{article.description}</td>
-                        <td>{article.prix_vente_HT}</td>
-                      </tr>
-                    ))
-                  ) : (
+              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis.titre} de {client.last_name} {client.first_name}?</h5> : (
+                <div>
+                <table className="table table-hover table-striped mt-4">
+                  <thead>
                     <tr>
-                      <td colSpan={6}>Aucun articles</td>
+                      <th scope="col">Article</th>
+                      <th scope="col">Description</th>
+                      <th scope="col">Montant u. HT</th>
                     </tr>
-                    )}
-                </tbody>
+                  </thead>
+                  <tbody>
+                    {articles !== null && articles !== undefined ? (
+                      articles.data.map((article) => (
+                        <tr key={article.id} onClick={() => {setArticleSelected(article);}}>
+                          <td>{article.nom}</td>
+                          <td>{article.description}</td>
+                          <td>{article.prix_vente_HT}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6}>Aucun articles</td>
+                      </tr>
+                      )}
+                  </tbody>
                 </table>
-              <form className="row">
-                <div className="col-5"/>
-                <div className="form-outline col-2">
-                  <label className="form-label">Quantité</label>
-                  <input type="number" id="quantité" value={article_quantity} onChange={(e) => {setArticleQuantity(e.target.value);articleQuantityVerif(e.target.value);}}
-                    className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer une quantité."/>
-                  <div className="invalid-feedback">{article_quantity_error}</div>
+                <form className="row">
+                  <div className="col-5"/>
+                  <div className="form-outline col-2">
+                    <label className="form-label">Quantité</label>
+                    <input type="number" id="quantite" value={article_quantity} onChange={(e) => {setArticleQuantity(e.target.value);articleQuantityVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer une quantité."/>
+                    <div className="invalid-feedback">{article_quantity_error}</div>
+                  </div>
+                  <div className="col-5"/>
+                </form>
                 </div>
-                <div className="col-5"/>
-              </form>
+              )}
             </div>
-            <div className="modal-footer d-flex justify-content-between">
-              <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-              <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+            <div className="modal-footer">
+              {DELETE ? (
+                <div className="d-flex justify-content-between w-100">
+                  <button className="btn btn-lg btn-danger" onClick={handleClose}>Non</button>
+                  <button className="btn btn-lg btn-success" onClick={deleteDevis}>Oui</button>
+                </div>
+              ) : (
+                <div className="d-flex justify-content-between w-100">
+                  <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+                  <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+                </div>
+              )}
+              
             </div>
           </div>
         </div>

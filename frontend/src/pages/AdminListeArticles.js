@@ -357,7 +357,7 @@ function ListeArticles() {
           </tr>
         </thead>
         <tbody>
-          {articles !== undefined ? (
+          {articles.length > 0 ? (
             articles.map((article) => (
               <tr key={article.id} onClick={() => {handleModifyArticle(article.id)}}>
                 <td>{article.id}</td>

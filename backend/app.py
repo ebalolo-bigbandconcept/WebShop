@@ -7,6 +7,7 @@ from config import ApplicationConfig
 from models import db, ma, User, UserSchema, Clients, ClientsSchema, Devis, DevisSchema, Articles, ArticlesSchema, DevisArticles, DevisArticlesSchema, TauxTVA, TauxTVASchema
 from dotenv import load_dotenv
 from functools import wraps
+from datetime import datetime
 import os, re, logging
 
 # CONSTANTS
@@ -394,11 +395,10 @@ def get_client_info(client_id):
 # Get every devis of a client route
 @app.route('/@client-devis/<client_id>', methods=['GET'])
 def get_client_devis(client_id):
-    tableEmpty = Devis.query.filter_by(client_id=client_id).first() is None
-    if tableEmpty:
+    devis = Devis.query.filter_by(client_id=client_id).all()
+    if not devis:
         return jsonify({"error": "Aucuns devis trouvé"}), 404
     
-    devis = Devis.query.filter_by(client_id=client_id).all()
     devis_schema = DevisSchema(many=True)
     devis_data = devis_schema.dump(devis)
     return jsonify(data=devis_data)
@@ -413,7 +413,7 @@ def get_devis_info(devis_id):
     devis_schema = DevisSchema()
     return devis_schema.jsonify(devis)
 
-# Get new devis id route
+# Get new devis id route (for display in front only)
 @app.route('/new-devis-id', methods=['GET'])
 def get_new_devis_id():
     new_devis_id = Devis.query.order_by(Devis.id.desc()).first()
@@ -429,18 +429,24 @@ def get_new_devis_id():
 # Create new devis route
 @app.route('/create-devis', methods=['POST'])
 def create_devis():
-    client_id = request.json["client_id"]
-    tauxTVA_id = request.json["tauxTVA_id"]
     titre = request.json["title"]
     description = request.json["description"]
-    date = request.json["date"]
+    date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
     montant_HT = request.json["montant_HT"]
     montant_TVA = request.json["montant_TVA"]
     montant_TTC = request.json["montant_TTC"]
     statut = request.json["statut"]
+    client_id = request.json["client_id"]
+    articles_data = request.json["articles"]
     
-    new_devis = Devis(client_id=client_id,tauxTVA_id=tauxTVA_id,titre=titre,description=description,date=date,montant_HT=montant_HT,montant_TVA=montant_TVA,montant_TTC=montant_TTC,statut=statut)
+    new_devis = Devis(client_id=client_id,titre=titre,description=description,date=date,montant_HT=montant_HT,montant_TVA=montant_TVA,montant_TTC=montant_TTC,statut=statut)
     db.session.add(new_devis)
+    db.session.flush()
+    
+    for article in articles_data:
+        devis_article = DevisArticles(devis_id=new_devis.id,article_id=article["article_id"],quantite=article['quantite'],)
+        db.session.add(devis_article)
+        
     db.session.commit()
     logging.info(f"Nouveau devis créé: {new_devis.titre} (id: {new_devis.id}) par l'utilisateur {session.get('user_id')}")
     
@@ -449,26 +455,55 @@ def create_devis():
     })
 
 # Update devis route
-@app.route('/update-devis/<devis_id>', methods=['POST'])
+@app.route('/update-devis/<devis_id>', methods=['PUT'])
 def update_devis(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
         return jsonify({"error": "Devis non trouvé"}), 404
     
-    devis.tauxTVA_id = request.json["tauxTVA_id"]
     devis.titre = request.json["title"]
     devis.description = request.json["description"]
-    devis.date = request.json["date"]
+    devis.date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
     devis.montant_HT = request.json["montant_HT"]
     devis.montant_TVA = request.json["montant_TVA"]
     devis.montant_TTC = request.json["montant_TTC"]
     devis.statut = request.json["statut"]
+    articles_data = request.json["articles"]
     
+    try:
+        DevisArticles.query.filter_by(devis_id=devis.id).delete()
+        
+        for article in articles_data:
+            devis_article = DevisArticles(devis_id=devis.id,article_id=article["article_id"],quantite=article["quantite"])
+            db.session.add(devis_article)
+    
+        db.session.commit()
+        
+        logging.info(f"Devis modifié: {devis.titre} (id: {devis.id}) par l'utilisateur {session.get('user_id')}")
+    
+        return jsonify({
+            "id": devis.id
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# Delete devis route
+@app.route('/delete-devis/<devis_id>', methods=['DELETE'])
+def delete_devis(devis_id):
+    devis = Devis.query.filter_by(id=devis_id).first()
+    if not devis:
+        return jsonify({"error": "Article non trouvé"}), 404
+    
+    devis_nom = devis.titre
+    Devis.query.filter_by(id=devis_id).delete()
+    DevisArticles.query.filter_by(devis_id=devis.id).delete()
     db.session.commit()
-    logging.info(f"Devis modifié: {devis.titre} (id: {devis.id}) par l'utilisateur {session.get('user_id')}")
+    logging.info(f"Devis supprimé: {devis_nom} (id: {devis_id}) par l'utilisateur {session.get('user_id')}")
     
     return jsonify({
-        "id": devis.id
+        "200": "Devis successfully deleted."
     })
 
 ### Articles routes ###

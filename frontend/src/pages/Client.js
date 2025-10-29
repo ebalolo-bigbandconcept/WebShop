@@ -26,8 +26,7 @@ function Client() {
       });
   }
 
-  // ### Fetch client all devis and info on page load ###
-  useEffect(() => {
+  const getClientAllDevis = async () => {
     httpClient
       .get(`${process.env.REACT_APP_BACKEND_URL}/@client-devis/${client_id.id}`)
       .then((resp) => {
@@ -42,12 +41,13 @@ function Client() {
           alert("Une erreur est survenue.");
         }
       });
+  };
 
+  const getClientInfo = async () => {
     httpClient
       .get(`${process.env.REACT_APP_BACKEND_URL}/client-info/${client_id.id}`)
       .then((resp) => {
         setClient(resp.data);
-        setLoading(false);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -56,7 +56,14 @@ function Client() {
           alert("Une erreur est survenue.");
         }
       });
-    }, [client_id.id]);
+  };
+
+  // ### Fetch client all devis and info on page load ###
+  useEffect(() => {
+    getClientInfo();
+    getClientAllDevis();
+    setLoading(false);
+    }, []);
   
   if (loading) return <div>Chargement...</div>;
 
@@ -77,8 +84,8 @@ function Client() {
             </tr>
           </thead>
           <tbody>
-            {devis.data !== undefined ? (
-              devis.data.map((devis) => (
+            {devis.length > 0 ? (
+              devis.map((devis) => (
                 <tr key={devis.id} onClick={() => {navigate({ pathname: `/devis/${client.id}/${devis.id}` });}}>
                   <td>{devis.id}</td>
                   <td>{devis.date}</td>

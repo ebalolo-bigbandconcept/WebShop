@@ -172,9 +172,19 @@ function ListeClients() {
   };
 
   const handleClose = () => {
+    // Close modal
     const popup = document.getElementById("popup");
     const modal = bootstrap.Modal.getInstance(popup);
-    modal.hide();
+    if (modal){
+      modal.hide();
+    }
+    // Close modal residues
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    backdrops.forEach((b) => b.remove());
+
+    document.body.classList.remove("modal-open");
+    document.body.style.overflow = "";
+    document.body.style.paddingRight = "";
     // Reset form
     setNewFirstName("");
     setNewLastName("");
