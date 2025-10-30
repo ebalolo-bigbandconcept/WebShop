@@ -19,8 +19,10 @@ function ListeDevis() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          if (error.response.data.error !== "Aucun clients trouvé") {
+          if (error.response.data.error !== "Aucuns devis trouvé") {
             alert(error.response.data.error);
+          }else{
+            setLoading(false);
           }
         } else {
           alert("Une erreur est survenue.");
@@ -52,7 +54,7 @@ function ListeDevis() {
           </tr>
         </thead>
         <tbody>
-          {devis !== undefined ? (
+          {devis.length > 0 ? (
             devis.map((devis) => (
               <tr key={devis.id} onClick={() => {navigate(`/devis/${devis.client.id}/${devis.id}`, {state : {from: '/liste-devis'}});}}>
                 <td>{devis.id}</td>

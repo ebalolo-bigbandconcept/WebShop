@@ -330,7 +330,7 @@ function Devis() {
         <button className="btn btn-danger col-lg-1 col-2" onClick={goBack}>Retour</button>
       </div>
       <br/>
-      <h3>Client: {client.last_name} {client.first_name}</h3>
+      <h3>Client: {client.nom} {client.prenom}</h3>
       <h3>Adresse: {client.street}, {client.postal_code} à {client.city}</h3>
       <form className="row">
         <div className="row">
@@ -344,7 +344,8 @@ function Devis() {
             <label className="form-label">Date</label>
             <input type="date" id="date" value={devis_date} onChange={(e) => {setDevisDate(e.target.value);devisDateVerif(e.target.value);}}
               className={`form-control form-control-lg ${devis_date_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
-            <div className="invalid-feedback">{devis_date_error}</div>
+            <div
+             className="invalid-feedback">{devis_date_error}</div>
           </div>
         </div>
         <div className="row">
@@ -403,7 +404,7 @@ function Devis() {
               <h1 className="modal-title fs-5" id="popupLabel">{DELETE ? 'Supprimer le devis' : "Ajouter un article"}</h1>
             </div>
             <div className="modal-body">
-              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis.titre} de {client.last_name} {client.first_name}?</h5> : (
+              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis.titre} de {client.nom} {client.prenom}?</h5> : (
                 <div>
                 <table className="table table-hover table-striped mt-4">
                   <thead>

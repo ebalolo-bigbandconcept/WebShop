@@ -6,9 +6,9 @@ const Register = ({ setUser }) => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
-  const [first_name, setFirstName] = useState("");
-  const [last_name, setLastName] = useState("");
-  const [password, setPassword] = useState("");
+  const [prenom, setFirstName] = useState("");
+  const [nom, setLastName] = useState("");
+  const [mdp, setPassword] = useState("");
 
   const [form_submited, setFormSubmited] = useState(false);
   const [first_name_error, setFirstNameError] = useState("");
@@ -71,10 +71,10 @@ const Register = ({ setUser }) => {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isFirstNameValid = firstNameVerif(first_name);
-    const isLastNameValid = lastNameVerif(last_name);
+    const isFirstNameValid = firstNameVerif(prenom);
+    const isLastNameValid = lastNameVerif(nom);
     const isEmailValid = emailVerif(email);
-    const isPasswordValid = passwordVerif(password);
+    const isPasswordValid = passwordVerif(mdp);
 
     const isFormValid =
       isFirstNameValid && isLastNameValid && isEmailValid && isPasswordValid;
@@ -83,9 +83,9 @@ const Register = ({ setUser }) => {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/user/register`, {
           email: email,
-          first_name: first_name,
-          last_name: last_name,
-          password: password,
+          prenom: prenom,
+          nom: nom,
+          mdp: mdp,
         })
         .then((resp) => {
           setUser(resp.data);
@@ -113,13 +113,13 @@ const Register = ({ setUser }) => {
             <div className="row mb-4">
               <div className="form-outline col-6">
                 <label className="form-label">Nom</label>
-                <input type="text" value={last_name} onChange={(e) => {setLastName(e.target.value);lastNameVerif(e.target.value);}}
+                <input type="text" value={nom} onChange={(e) => {setLastName(e.target.value);lastNameVerif(e.target.value);}}
                   className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Nom"/>
                 <div className="invalid-feedback">{last_name_error}</div>
               </div>
               <div className="form-outline col-6">
                 <label className="form-label">Prénom</label>
-                <input type="text" value={first_name} onChange={(e) => {setFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                <input type="text" value={prenom} onChange={(e) => {setFirstName(e.target.value);firstNameVerif(e.target.value);}}
                   className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Prénom"/>
                 <div className="invalid-feedback">{first_name_error}</div>
               </div>
@@ -133,7 +133,7 @@ const Register = ({ setUser }) => {
 
             <div className="form-outline mb-3">
               <label className="form-label">Mot de passe</label>
-              <input type="password" value={password} onChange={(e) => {setPassword(e.target.value);passwordVerif(e.target.value);}}
+              <input type="password" value={mdp} onChange={(e) => {setPassword(e.target.value);passwordVerif(e.target.value);}}
                 className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : "" }`} placeholder="Entrer votre mot de passe."/>
               <div className="invalid-feedback">{password_error}</div>
             </div>

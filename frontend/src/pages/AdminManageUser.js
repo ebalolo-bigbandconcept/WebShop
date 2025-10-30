@@ -9,8 +9,8 @@ function ManageUser() {
 
   const [user, setUser] = useState();
 
-  const [new_first_name, setNewFirstName] = useState(null);
-  const [new_last_name, setNewLastName] = useState(null);
+  const [new_prenom, setNewFirstName] = useState(null);
+  const [new_nom, setNewLastName] = useState(null);
   const [new_email, setNewEmail] = useState(null);
   const [new_password, setNewPassword] = useState(null);
   const [new_role, setNewRole] = useState(null);
@@ -57,7 +57,7 @@ function ManageUser() {
 
   const passwordVerif = (value) => {
     if (value) {
-      // Only check password if it's provided
+      // Only check mdp if it's provided
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
       if (!passwordRegex.test(value)) {
         setPasswordError(
@@ -75,8 +75,8 @@ function ManageUser() {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isFirstNameValid = firstNameVerif(new_first_name);
-    const isLastNameValid = lastNameVerif(new_last_name);
+    const isFirstNameValid = firstNameVerif(new_prenom);
+    const isLastNameValid = lastNameVerif(new_nom);
     const isEmailValid = emailVerif(new_email);
     const isPasswordValid = passwordVerif(new_password);
 
@@ -84,16 +84,16 @@ function ManageUser() {
       isFirstNameValid && isLastNameValid && isEmailValid && isPasswordValid;
     if (isFormValid) {
       const payload = {
-        first_name: new_first_name ?? user.first_name,
-        last_name: new_last_name ?? user.last_name,
+        prenom: new_prenom ?? user.prenom,
+        nom: new_nom ?? user.nom,
         email: new_email ?? user.email,
         role: new_role ?? user.role,
       };
 
       if (new_password) {
-        payload.password = new_password;
+        payload.mdp = new_password;
       } else {
-        payload.password = user.password;
+        payload.mdp = user.mdp;
       }
 
       httpClient
@@ -166,8 +166,8 @@ function ManageUser() {
   // ### Pre-fill form with current user info ###
   useEffect(() => {
     if (user) {
-      setNewFirstName(user.first_name);
-      setNewLastName(user.last_name);
+      setNewFirstName(user.prenom);
+      setNewLastName(user.nom);
       setNewEmail(user.email);
       setNewRole(user.role);
     }
@@ -177,18 +177,18 @@ function ManageUser() {
     <div>
       {user !== undefined ? (
         <div className="">
-          <h1>Modifier les informations de {user.first_name} {user.last_name}</h1>
+          <h1>Modifier les informations de {user.prenom} {user.nom}</h1>
           <form className="row mt-4">
             <div className="form-outline col-4">
               <label className="form-label">Nom</label>
-              <input type="text" id="nom" value={new_last_name} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
+              <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
                 className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau nom."
               />
               <div className="invalid-feedback">{last_name_error}</div>
             </div>
             <div className="form-outline col-4">
               <label className="form-label">Prénom</label>
-              <input type="text" id="prénom" value={new_first_name} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
+              <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
                 className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom."
               />
               <div className="invalid-feedback">{first_name_error}</div>
@@ -212,7 +212,7 @@ function ManageUser() {
 
             <div className="form-outline mb-3">
               <label className="form-label">Mot de passe</label>
-              <input type="password" id="password" value={new_password} onChange={(e) => {setNewPassword(e.target.value);passwordVerif(e.target.value);}}
+              <input type="password" id="mdp" value={new_password} onChange={(e) => {setNewPassword(e.target.value);passwordVerif(e.target.value);}}
                 className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau mot de passe."
               />
               <div className="invalid-feedback">{password_error}</div>
@@ -231,9 +231,9 @@ function ManageUser() {
                     </div>
                     <div className="modal-body">
                       {MODIFY === true
-                        ? "Êtes vous sur de vouloir modifier le compte de " + user.first_name + " " + user.last_name + " ?"
+                        ? "Êtes vous sur de vouloir modifier le compte de " + user.prenom + " " + user.nom + " ?"
                         : DELETE === true
-                        ? "Êtes vous sur de vouloir supprimer le compte de " + user.first_name + " " + user.last_name + " ?"
+                        ? "Êtes vous sur de vouloir supprimer le compte de " + user.prenom + " " + user.nom + " ?"
                         : ""}
                     </div>
                     <div className="modal-footer d-flex justify-content-center">

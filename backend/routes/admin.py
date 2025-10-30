@@ -39,9 +39,9 @@ def get_all_users():
 @admin_required
 def add_user():
     email = request.json["email"]
-    first_name = request.json["first_name"]
-    last_name = request.json["last_name"]
-    password = request.json["password"]
+    prenom = request.json["prenom"]
+    nom = request.json["nom"]
+    mdp = request.json["mdp"]
     role = request.json["role"]
     
     # Vérification si le nom d'utilisateur existe déjà.
@@ -50,13 +50,13 @@ def add_user():
     if user_already_exists:
         return jsonify({"error": "Cette addresse email est déjà utilisée."}), 409
     
-    error = validate_user_fields(email, first_name, last_name, password, role)
+    error = validate_user_fields(email, prenom, nom, mdp, role)
     if error:
         return jsonify({"error": error}), 400
     
     # Création du nouvel utilisateur du mot de passe.
-    hashed_password = bcrypt.generate_password_hash(password)
-    new_user = User(email=email,first_name=first_name,last_name=last_name,password=hashed_password,role=role)
+    hashed_password = bcrypt.generate_password_hash(mdp)
+    new_user = User(email=email,prenom=prenom,nom=nom,mdp=hashed_password,role=role)
     db.session.add(new_user)
     db.session.commit()
     logging.info(f"Admin {session.get('user_id')} a créé un nouvel utilisateur: {new_user.email} (id: {new_user.id}, rôle: {new_user.role})")
@@ -74,9 +74,9 @@ def modify_user(user_id):
         return jsonify({"error": "User not found"}), 404
     
     new_email = request.json["email"]
-    new_first_name = request.json["first_name"]
-    new_last_name = request.json["last_name"]
-    new_password = request.json.get("password")
+    new_first_name = request.json["prenom"]
+    new_last_name = request.json["nom"]
+    new_password = request.json.get("mdp")
     new_role = request.json["role"]
     
     # Empêcher la modification du rôle du dernier admin
@@ -101,13 +101,13 @@ def modify_user(user_id):
         return jsonify({"error": error}), 400
     
     user.email = new_email
-    user.first_name = new_first_name
-    user.last_name = new_last_name
+    user.prenom = new_first_name
+    user.nom = new_last_name
     user.role = new_role
     
     if new_password:
         new_hashed_password = bcrypt.generate_password_hash(new_password)
-        user.password = new_hashed_password
+        user.mdp = new_hashed_password
     
     db.session.commit()
     logging.info(f"Admin {session.get('user_id')} a modifié l'utilisateur: {user.email} (id: {user.id}, rôle: {user.role})")
@@ -150,8 +150,8 @@ def get_user_info(user_id):
     user = User.query.filter_by(id=user_id).first()
     return jsonify({
         "id": user.id,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
+        "prenom": user.prenom,
+        "nom": user.nom,
         "email": user.email,
         "role": user.role
     })

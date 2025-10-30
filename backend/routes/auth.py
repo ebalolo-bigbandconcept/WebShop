@@ -28,9 +28,9 @@ def get_current_user():
 @auth_bp.route("/register", methods=["POST"])
 def register():
     email = request.json["email"]
-    first_name = request.json["first_name"]
-    last_name = request.json["last_name"]
-    password = request.json["password"]
+    prenom = request.json["prenom"]
+    nom = request.json["nom"]
+    mdp = request.json["mdp"]
     
     # Vérification si le nom d'utilisateur existe déjà.
     user_already_exists = User.query.filter_by(email=email).first() is not None
@@ -38,13 +38,13 @@ def register():
     if user_already_exists:
         return jsonify({"error": "User already exists"}), 409
     
-    error = validate_user_fields(email, first_name, last_name, password, role=None)
+    error = validate_user_fields(email, prenom, nom, mdp, role=None)
     if error:
         return jsonify({"error": error}), 400
     
     # Création du nouvel utilisateur du mot de passe.
-    hashed_password = bcrypt.generate_password_hash(password)
-    new_user = User(email=email,first_name=first_name,last_name=last_name,password=hashed_password)
+    hashed_password = bcrypt.generate_password_hash(mdp)
+    new_user = User(email=email,prenom=prenom,nom=nom,mdp=hashed_password)
     db.session.add(new_user)
     db.session.commit()
     logging.info(f"Nouvel utilisateur enregistré: {new_user.email} (id: {new_user.id})")
@@ -59,14 +59,14 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login_user():
     email = request.json["email"]
-    password = request.json["password"]
+    mdp = request.json["mdp"]
     
     user = User.query.filter_by(email=email).first()
 
     if user is None:
         return jsonify({"error": "Email invalide"}), 401
     
-    if not bcrypt.check_password_hash(user.password, password):
+    if not bcrypt.check_password_hash(user.mdp, mdp):
         return jsonify({"error": "Mot de passe invalide"}), 401
     
     session["user_id"] = user.id

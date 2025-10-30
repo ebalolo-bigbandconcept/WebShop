@@ -71,7 +71,7 @@ function Client() {
     <div>
       <div>
         <div className="d-flex justify-content-between align-items-center">
-          <h1 className="col-lg-11 col-10">Client - {client.last_name} {client.first_name}</h1>
+          <h1 className="col-lg-11 col-10">Client - {client.nom} {client.prenom}</h1>
           <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate('/liste-clients')}>Retour</button>
         </div>
         <br/>

@@ -21,8 +21,8 @@ def get_all_clients():
 # Add new client route
 @clients_bp.route("/create", methods=["POST"])
 def add_client():
-    nom = request.json["last_name"]
-    prenom = request.json["first_name"]
+    nom = request.json["nom"]
+    prenom = request.json["prenom"]
     rue = request.json["street"]
     ville = request.json["city"]
     code_postal = request.json["postal_code"]
@@ -54,8 +54,8 @@ def get_client_info(client_id):
     client = Clients.query.filter_by(id=client_id).first()
     return jsonify({
         "id": client.id,
-        "first_name": client.prenom,
-        "last_name": client.nom,
+        "prenom": client.prenom,
+        "nom": client.nom,
         "street": client.rue,
         "city": client.ville,
         "postal_code": client.code_postal,

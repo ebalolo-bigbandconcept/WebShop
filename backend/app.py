@@ -50,10 +50,11 @@ with app.app_context():
 
     if table_empty_user:
         hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD)
-        admin_user = User(first_name='Admin',last_name='Admin',email=ADMIN_MAIL,password=hashed_admin_password,role='Administrateur')
+        admin_user = User(nom='Admin',prenom='Admin',email=ADMIN_MAIL,mdp=hashed_admin_password,role='Administrateur')
         db.session.add(admin_user)
         db.session.commit()
     
+    # Ajoute la TVA 20% si la table est vide
     table_empty_tva = TauxTVA.query.first() is None
     if table_empty_tva:
         taux20 = TauxTVA(taux=0.20)

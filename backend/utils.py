@@ -4,17 +4,17 @@ import re
 # Validate user fields for database entry
 VALID_ROLES = {"Utilisateur", "Administrateur"}
 
-def validate_user_fields(email, first_name, last_name, password=None, role=None):
+def validate_user_fields(email, nom, prenom, mdp=None, role=None):
     if not is_valid_email(email) or len(email) > 345:
         return "Format d'email invalide ou trop long."
-    if len(first_name) < 1 or len(first_name) > 50:
+    if len(prenom) < 1 or len(prenom) > 50:
         return "Le prénom doit contenir entre 1 et 50 caractères."
-    if len(last_name) < 1 or len(last_name) > 50:
+    if len(nom) < 1 or len(nom) > 50:
         return "Le nom doit contenir entre 1 et 50 caractères."
     if role and role not in VALID_ROLES:
         return "Rôle invalide."
-    if password is not None:
-        if not is_strong_password(password):
+    if mdp is not None:
+        if not is_strong_password(mdp):
             return "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial."
     return None
 

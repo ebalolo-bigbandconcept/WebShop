@@ -6,7 +6,7 @@ function Login({ setUser }) {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mdp, setPassword] = useState("");
 
   const [form_submited, setFormSubmited] = useState(false);
   const [email_error, setEmailError] = useState("");
@@ -36,14 +36,14 @@ function Login({ setUser }) {
     setFormSubmited(true);
 
     const isEmailValid = emailVerif(email);
-    const isPasswordValid = passwordVerif(password);
+    const isPasswordValid = passwordVerif(mdp);
 
     const isFormValid = isEmailValid && isPasswordValid;
 
     if (isFormValid){
       await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/user/login`, {
         email: email,
-        password: password,
+        mdp: mdp,
       })
       .then(function (response) {
         setUser(response.data);
@@ -81,7 +81,7 @@ function Login({ setUser }) {
 
             <div data-mdb-input-init className="form-outline mb-3">
               <label className="form-label">Mot de passe</label>
-              <input type="password" id="password" value={password} onChange={(e) => {setPassword(e.target.value);passwordVerif(e.target.value)}} 
+              <input type="password" id="mdp" value={mdp} onChange={(e) => {setPassword(e.target.value);passwordVerif(e.target.value)}} 
               className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un mot de passe valide"/>
               <div className="invalid-feedback">{password_error}</div>
             </div>

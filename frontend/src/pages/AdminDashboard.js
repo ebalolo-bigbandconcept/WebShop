@@ -7,8 +7,8 @@ function AdminDashboard() {
   const navigate = useNavigate();
 
   const [users, setUsers] = useState();
-  const [new_first_name, setNewFirstName] = useState("");
-  const [new_last_name, setNewLastName] = useState("");
+  const [new_prenom, setNewFirstName] = useState("");
+  const [new_nom, setNewLastName] = useState("");
   const [new_email, setNewEmail] = useState("");
   const [new_password, setNewPassword] = useState("");
   const [new_role, setNewRole] = useState("Utilisateur");
@@ -89,8 +89,8 @@ function AdminDashboard() {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isFirstNameValid = firstNameVerif(new_first_name);
-    const isLastNameValid = lastNameVerif(new_last_name);
+    const isFirstNameValid = firstNameVerif(new_prenom);
+    const isLastNameValid = lastNameVerif(new_nom);
     const isEmailValid = emailVerif(new_email);
     const isPasswordValid = passwordVerif(new_password);
 
@@ -100,10 +100,10 @@ function AdminDashboard() {
     if (isFormValid) {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/admin/create-user`, {
-          first_name: new_first_name,
-          last_name: new_last_name,
+          prenom: new_prenom,
+          nom: new_nom,
           email: new_email,
-          password: new_password,
+          mdp: new_password,
           role: new_role,
         })
         .then((resp) => {
@@ -168,13 +168,13 @@ function AdminDashboard() {
                 <form className="row">
                   <div className="form-outline col-4">
                     <label className="form-label">Nom</label>
-                    <input type="text" id="nom" value={new_last_name} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
+                    <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
                       className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nouveau nom."/>
                     <div className="invalid-feedback">{last_name_error}</div>
                   </div>
                   <div className="form-outline col-4">
                     <label className="form-label">Prénom</label>
-                    <input type="text" id="prénom" value={new_first_name} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                    <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
                       className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
                       placeholder="Entrer un nouveau prénom."
                     />
@@ -195,7 +195,7 @@ function AdminDashboard() {
                   </div>
                   <div className="form-outline mt-4">
                     <label className="form-label">Mot de passe</label>
-                    <input type="password" id="password" value={new_password} onChange={(e) => { setNewPassword(e.target.value); passwordVerif(e.target.value);}}
+                    <input type="password" id="mdp" value={new_password} onChange={(e) => { setNewPassword(e.target.value); passwordVerif(e.target.value);}}
                       className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer un nouveau mot de passe."/>
                     <div className="invalid-feedback">{password_error}</div>
                   </div>
@@ -226,8 +226,8 @@ function AdminDashboard() {
                 navigate({ pathname: `/admin/manage-user/` + user.id });
               }}>
                 <td>{user.id}</td>
-                <td>{user.last_name}</td>
-                <td>{user.first_name}</td>
+                <td>{user.nom}</td>
+                <td>{user.prenom}</td>
                 <td>{user.email}</td>
                 <td>{user.role}</td>
               </tr>

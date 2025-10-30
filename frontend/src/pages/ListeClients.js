@@ -8,8 +8,8 @@ function ListeClients() {
   const [loading, setLoading] = useState(true);
 
   const [clients, setclients] = useState();
-  const [new_first_name, setNewFirstName] = useState("");
-  const [new_last_name, setNewLastName] = useState("");
+  const [new_prenom, setNewFirstName] = useState("");
+  const [new_nom, setNewLastName] = useState("");
   const [new_street, setNewStreet] = useState("");
   const [new_postal_code, setNewPostalCode] = useState("");
   const [new_city, setNewCity] = useState("");
@@ -135,8 +135,8 @@ function ListeClients() {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isFirstNameValid = firstNameVerif(new_first_name);
-    const isLastNameValid = lastNameVerif(new_last_name);
+    const isFirstNameValid = firstNameVerif(new_prenom);
+    const isLastNameValid = lastNameVerif(new_nom);
     const isStreetValid = streetVerif(new_street);
     const isCityValid = cityVerif(new_city);
     const isPostalCodeValid = postalCodeVerif(new_postal_code);
@@ -148,8 +148,8 @@ function ListeClients() {
     if (isFormValid) {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/clients/create`, {
-          first_name: new_first_name,
-          last_name: new_last_name,
+          prenom: new_prenom,
+          nom: new_nom,
           street: new_street,
           city: new_city,
           postal_code: new_postal_code,
@@ -225,13 +225,13 @@ function ListeClients() {
                 <form className="row">
                   <div className="form-outline col-6">
                     <label className="form-label">Nom</label>
-                    <input type="text" id="nom" value={new_last_name} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
+                    <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
                       className={`form-control form-control-lg ${nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom."/>
                     <div className="invalid-feedback">{nom_error}</div>
                   </div>
                   <div className="form-outline col-6">
                     <label className="form-label">Prénom</label>
-                    <input type="text" id="prénom" value={new_first_name} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                    <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
                       className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un prénom."/>
                     <div className="invalid-feedback">{first_name_error}</div>
                   </div>
