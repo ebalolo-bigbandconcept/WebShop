@@ -22,7 +22,8 @@ class Clients(db.Model):
     ville = db.Column(db.String(100), nullable=False)
     code_postal = db.Column(db.String(20), nullable=False)
     telephone = db.Column(db.String(20), nullable=False)
-    email = db.Column(db.String(345), nullable=False, unique=True)
+    email = db.Column(db.String(345), nullable=False)
+    caduque = db.Column(db.Boolean, nullable=False, default=False)
 
 class Devis(db.Model):
     __tablename__ = "devis"
