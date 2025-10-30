@@ -62,9 +62,9 @@ function ListeDevis() {
                 <td>{devis.titre}</td>
                 <td>{devis.description}</td>
                 <td>{devis.date}</td>
-                <td>{devis.montant_HT}</td>
-                <td>{devis.montant_TVA}</td>
-                <td>{devis.montant_TTC}</td>
+                <td>{devis.montant_HT} €</td>
+                <td>{devis.montant_TVA} €</td>
+                <td>{devis.montant_TTC} €</td>
                 <td>{devis.statut}</td>
               </tr>
             ))

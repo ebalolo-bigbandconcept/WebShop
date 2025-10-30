@@ -38,9 +38,7 @@ def add_client():
     existing = Clients.query.filter_by(email=email).first()
     if existing and not force:
         return jsonify({
-            "warning": "L'adresse e-mail est déjà utilisée par un autre client.",
-            "email_exists": True
-        }), 409  # 409 Conflict
+            "error": "L'adresse e-mail est déjà utilisée par un autre client."}), 409  # 409 Conflict
     
     new_client = Clients(nom=nom,prenom=prenom,rue=rue,ville=ville,code_postal=code_postal,telephone=telephone,email=email,caduque=False)
     db.session.add(new_client)

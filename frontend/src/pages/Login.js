@@ -75,7 +75,7 @@ function Login({ setUser }) {
             <div data-mdb-input-init className="form-outline mb-4">
               <label className="form-label">Adresse mail</label>
               <input type="email" id="email" value={email} onChange={(e) => {setEmail(e.target.value);emailVerif(e.target.value)}}
-              className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail valide."/>
+              className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail valide"/>
               <div className="invalid-feedback">{email_error}</div>
             </div>
 

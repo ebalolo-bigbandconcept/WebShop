@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import httpClient from "../components/httpClient";
 import bootstrap from "bootstrap/dist/js/bootstrap.js";
+import trashCan from "../assets/trash3-fill.svg";
 
 function Devis() {
   const { id_client, id_devis } = useParams();
@@ -16,7 +17,7 @@ function Devis() {
   const [articles, setArticles] = useState(null);
 
   const [article_selected, setArticleSelected] = useState([]);
-  const [article_quantity, setArticleQuantity] = useState(1);
+  const [article_quantite, setArticleQuantite] = useState(1);
   const [articles_in_devis, setArticlesInDevis] = useState([]);
 
   const [form_submited, setFormSubmited] = useState(false);
@@ -37,6 +38,8 @@ function Devis() {
   const [isNewDevis, setIsNewDevis] = useState(false);
 
   const [DELETE, setDELETE] = useState(false);
+  const [article_MODIFY, setArticleMODIFY] = useState(false);
+  const [article_DELETE, setArticleDELETE] = useState(false);
 
   // ### User input validation ###
   const devisTitleVerif = (value) => {
@@ -89,7 +92,7 @@ function Devis() {
   // ### Go back button ###
 
   const goBack = () => {
-    if (location.state.from) {
+    if (location.state && location.state.from) {
       console.log(location.state.from)
       navigate(location.state.from);
     }else{
@@ -99,10 +102,10 @@ function Devis() {
 
   // ### Handle modal ###
   const showModal = () => {
-      const popup = document.getElementById("popup");
-      const modal = new bootstrap.Modal(popup, {});
-      modal.show();
-    }
+    const popup = document.getElementById("popup");
+    const modal = new bootstrap.Modal(popup, {});
+    modal.show();
+  }
 
   const handleAddArticle = () => {
     showModal();
@@ -113,21 +116,100 @@ function Devis() {
     showModal();
   }
 
+  const handleModifyArticle = (article) => {
+    setArticleSelected(article)
+    setArticleQuantite(article.quantite)
+    setArticleMODIFY(true);
+    showModal();
+  }
+
+  const handleDeleteArticle = (article) => {
+    setArticleDELETE(true);
+    setArticleSelected(article)
+    showModal();
+  }
+
   const handleClose = () => {
     const popup = document.getElementById("popup");
     const modal = bootstrap.Modal.getInstance(popup);
     modal.hide();
 
-    setArticleQuantity(1);
+    setArticleQuantite(1);
     setArticleSelected([]);
     setArticleQuantityError("");
     setDELETE(false);
+    setArticleMODIFY(false);
+    setArticleDELETE(false);
   }
+
+  // ### Modify selected article in devis
+  const modifyArticle = () => {
+    const isQuantityValid = articleQuantityVerif(article_quantite);
+    
+    if (isQuantityValid){
+      // Find the article to modify
+      const updatedArticles = articles_in_devis.map(article => {
+        if (article.id === article_selected.id) {
+          const updated = {
+            ...article,
+            quantite: Number(article_quantite),
+            montant_HT: (article.prix_vente_HT * article_quantite).toFixed(2),
+            montant_TVA: ((article.prix_vente_HT * article.taux_tva.taux) * article_quantite).toFixed(2),
+            montant_TTC: ((article.prix_vente_HT * (1 + article.taux_tva.taux)) * article_quantite).toFixed(2),
+          };
+          return updated;
+        }
+        return article;
+      });
+      setArticlesInDevis(updatedArticles);
+  
+      // Recalculate total amounts
+      const totalHT = updatedArticles.reduce((sum, a) => sum + parseFloat(a.montant_HT), 0).toFixed(2);
+      const totalTVA = updatedArticles.reduce((sum, a) => sum + parseFloat(a.montant_TVA), 0).toFixed(2);
+      const totalTTC = updatedArticles.reduce((sum, a) => sum + parseFloat(a.montant_TTC), 0).toFixed(2);
+  
+      setDevisMontantHT(totalHT);
+      setDevisMontantTVA(totalTVA);
+      setDevisMontantTTC(totalTTC);
+  
+      handleClose();
+    }
+  }
+
+  const deleteArticle = () => {
+  if (!article_selected || !article_selected.id) return;
+
+  // Filter out the selected article
+  const updatedArticles = articles_in_devis.filter(
+    (article) => article.id !== article_selected.id
+  );
+
+  // Recalculate totals
+  const totalHT = updatedArticles
+    .reduce((sum, a) => sum + parseFloat(a.montant_HT), 0)
+    .toFixed(2);
+  const totalTVA = updatedArticles
+    .reduce((sum, a) => sum + parseFloat(a.montant_TVA), 0)
+    .toFixed(2);
+  const totalTTC = updatedArticles
+    .reduce((sum, a) => sum + parseFloat(a.montant_TTC), 0)
+    .toFixed(2);
+
+  // Update state
+  setArticlesInDevis(updatedArticles);
+  setDevisMontantHT(totalHT);
+  setDevisMontantTVA(totalTVA);
+  setDevisMontantTTC(totalTTC);
+
+  // Close modal
+  handleClose();
+};
+
 
   // ### Add new article to devis ###
   
   const addNewArticle = async () => {
-    const isQuantityValid = articleQuantityVerif(article_quantity);
+    const isQuantityValid = articleQuantityVerif(article_quantite);
     console.log(article_selected)
     const isArticleSelected = article_selected.length !== 0;
 
@@ -141,10 +223,10 @@ function Devis() {
     if (isQuantityValid && isArticleSelected) {
       const newArticle = {
         ...article_selected,
-        quantite: article_quantity,
-        montant_HT: (article_selected.prix_vente_HT * article_quantity).toFixed(2),
-        montant_TVA: ((article_selected.prix_vente_HT * article_selected.taux_tva.taux) * article_quantity).toFixed(2),
-        montant_TTC: ((article_selected.prix_vente_HT * (1 + article_selected.taux_tva.taux)) * article_quantity).toFixed(2),
+        quantite: article_quantite,
+        montant_HT: (article_selected.prix_vente_HT * article_quantite).toFixed(2),
+        montant_TVA: ((article_selected.prix_vente_HT * article_selected.taux_tva.taux) * article_quantite).toFixed(2),
+        montant_TTC: ((article_selected.prix_vente_HT * (1 + article_selected.taux_tva.taux)) * article_quantite).toFixed(2),
       };
 
       // Update devis totals
@@ -189,7 +271,7 @@ function Devis() {
         .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
         .then((resp) => {
           console.log(resp);
-          navigate(`/client/${id_client}`);
+          setIsNewDevis(false);
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -293,7 +375,7 @@ function Devis() {
     getClientInfo();
     getAllArticles();
     getDevisInfo();
-  }, []);
+  }, [isNewDevis]);
 
   useEffect(() => {
   if (devis && !isNewDevis) {
@@ -332,34 +414,38 @@ function Devis() {
       <br/>
       <h3>Client: {client.nom} {client.prenom}</h3>
       <h3>Adresse: {client.street}, {client.postal_code} à {client.city}</h3>
-      <form className="row">
-        <div className="row">
-          <div className="form-outline col-xl-4 col-6">
-            <label className="form-label">Titre</label>
-            <input type="text" id="titre" value={devis_title} onChange={(e) => {setDevisTitle(e.target.value);devisTitleVerif(e.target.value);}}
-              className={`form-control form-control-lg ${devis_title_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un titre pour le devis."/>
-            <div className="invalid-feedback">{devis_title_error}</div>
+      <div className="row">
+        <form className="col-8">
+          <div className="row">
+            <div className="form-outline col-xl-4 col-6">
+              <label className="form-label">Titre</label>
+              <input type="text" id="titre" value={devis_title} onChange={(e) => {setDevisTitle(e.target.value);devisTitleVerif(e.target.value);}}
+                className={`form-control form-control-lg ${devis_title_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un titre pour le devis"/>
+              <div className="invalid-feedback">{devis_title_error}</div>
+            </div>
+            <div className="form-outline col-xl-3 col-6">
+              <label className="form-label">Date</label>
+              <input type="date" id="date" value={devis_date} onChange={(e) => {setDevisDate(e.target.value);devisDateVerif(e.target.value);}}
+                className={`form-control form-control-lg ${devis_date_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
+              <div
+              className="invalid-feedback">{devis_date_error}</div>
+            </div>
           </div>
-          <div className="form-outline col-xl-2 col-6">
-            <label className="form-label">Date</label>
-            <input type="date" id="date" value={devis_date} onChange={(e) => {setDevisDate(e.target.value);devisDateVerif(e.target.value);}}
-              className={`form-control form-control-lg ${devis_date_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
-            <div
-             className="invalid-feedback">{devis_date_error}</div>
+          <div className="row">
+            <div className="form-outline col-xl-7 mt-4">
+              <label className="form-label">Description</label>
+              <textarea rows={3} id="description" value={devis_description} onChange={(e) => {setDevisDescription(e.target.value);devisDescriptionVerif(e.target.value);}}
+                className={`form-control form-control-lg ${devis_description_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer une description pour le devis"/>
+              <div className="invalid-feedback">{devis_description_error}</div>
+            </div>
           </div>
+          {!isNewDevis && devis && <h3 className="mt-4">{devis.statut === "Non payé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
+        </form>
+        <div className="col-4 d-flex flex-column justify-content-end">
+          <h3 className="mt-4">Montant total HT: {devis_montant_HT} €</h3>
+          <h3 className="mt-4">Montant total TVA: {devis_montant_TVA} €</h3>
+          <h3 className="mt-4">Montant total TTC: {devis_montant_TTC} €</h3>
         </div>
-        <div className="row">
-          <div className="form-outline col-xl-6 mt-4">
-            <label className="form-label">Description</label>
-            <textarea rows={3} id="description" value={devis_description} onChange={(e) => {setDevisDescription(e.target.value);devisDescriptionVerif(e.target.value);}}
-              className={`form-control form-control-lg ${devis_description_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer une description pour le devis."/>
-            <div className="invalid-feedback">{devis_description_error}</div>
-          </div>
-        </div>
-      </form>
-      <div className="d-flex flex-row-reverse justify-content-between w-100">
-        <h3 className="text-end mt-4">Montant total TTC: {devis_montant_TTC} €</h3>
-        {!isNewDevis && <h3 className="text-end mt-4">{devis.statut === "Non payé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
       </div>
       <table className="table table-hover table-striped mt-4">
         <thead>
@@ -369,17 +455,19 @@ function Devis() {
             <th scope="col">Montant u. HT</th>
             <th scope="col">Montant u. TVA</th>
             <th scope="col">Montant u. TTC</th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody>
           {articles_in_devis.length > 0 ? (
             articles_in_devis.map((article) => (
               <tr key={article.id}>
-                <td>{article.nom}</td>
-                <td>{article.quantite}</td>
-                <td>{article.montant_HT} €</td>
-                <td>{article.montant_TVA} €</td>
-                <td>{article.montant_TTC} €</td>
+                <td onClick={() => handleModifyArticle(article)}>{article.nom}</td>
+                <td onClick={() => handleModifyArticle(article)}>{article.quantite}</td>
+                <td onClick={() => handleModifyArticle(article)}>{article.montant_HT} €</td>
+                <td onClick={() => handleModifyArticle(article)}>{article.montant_TVA} €</td>
+                <td onClick={() => handleModifyArticle(article)}>{article.montant_TTC} €</td>
+                <td onClick={() => handleDeleteArticle(article)}><img src={trashCan} alt="trashcan"></img></td>
               </tr>
             ))
           ) : (
@@ -397,14 +485,25 @@ function Devis() {
           <button className="btn btn-success" onClick={saveDevis}> Enregistrer le devis</button>
         </div>
       </div>
-      <div className="modal fade" id="popup" tabIndex="-1">
+      <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div className="modal-dialog modal-lg">
           <div className="modal-content">
             <div className="modal-header">
-              <h1 className="modal-title fs-5" id="popupLabel">{DELETE ? 'Supprimer le devis' : "Ajouter un article"}</h1>
+              <h1 className="modal-title fs-5" id="popupLabel">{DELETE ? 'Supprimer le devis' : article_DELETE ? 'Supprimer l\'article du devis'  : article_MODIFY ? "Modifier la quantité de l'article" : "Ajouter un article"}</h1>
             </div>
             <div className="modal-body">
-              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis.titre} de {client.nom} {client.prenom}?</h5> : (
+              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis.titre} de {client.nom} {client.prenom}?</h5> : 
+              article_DELETE ? <h5>Êtes-vous sur de vouloir supprimer l'article {article_selected.nom} du devis ?</h5> :
+              article_MODIFY ? (
+                <div className="d-flex flex-inline align-items-center">
+                  <p>Modifier le nombre de {article_selected.nom} :</p>
+                  <div className="form-outline col-2 ms-4">
+                    <input type="number" id="quantite" value={article_quantite} onChange={(e) => {setArticleQuantite(e.target.value);articleQuantityVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
+                    <div className="invalid-feedback">{article_quantity_error}</div>
+                  </div>
+                </div>
+              ) : (
                 <div>
                 <table className="table table-hover table-striped mt-4">
                   <thead>
@@ -417,7 +516,7 @@ function Devis() {
                   <tbody>
                     {articles !== null && articles !== undefined ? (
                       articles.data.map((article) => (
-                        <tr key={article.id} onClick={() => {setArticleSelected(article);}}>
+                        <tr key={article.id} className={article.id === article_selected.id ? 'table-active' : ''} onClick={() => {setArticleSelected(article);}}>
                           <td>{article.nom}</td>
                           <td>{article.description}</td>
                           <td>{article.prix_vente_HT}</td>
@@ -434,8 +533,8 @@ function Devis() {
                   <div className="col-5"/>
                   <div className="form-outline col-2">
                     <label className="form-label">Quantité</label>
-                    <input type="number" id="quantite" value={article_quantity} onChange={(e) => {setArticleQuantity(e.target.value);articleQuantityVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer une quantité."/>
+                    <input type="number" id="quantite" value={article_quantite} onChange={(e) => {setArticleQuantite(e.target.value);articleQuantityVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
                     <div className="invalid-feedback">{article_quantity_error}</div>
                   </div>
                   <div className="col-5"/>
@@ -449,12 +548,22 @@ function Devis() {
                   <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
                   <button className="btn btn-lg btn-primary" onClick={deleteDevis}>Oui</button>
                 </div>
-              ) : (
+              ) : article_DELETE ? (
                 <div>
-                  <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
+                  <button className="btn btn-lg btn-primary" onClick={deleteArticle}>Oui</button>
+                </div>
+              ) : article_MODIFY ? (
+                <div>
+                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Annuler</button>
+                  <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
+                </div>
+              ) : [
+                <div>
+                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Annuler</button>
                   <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
                 </div>
-              )}
+              ]}
               
             </div>
           </div>

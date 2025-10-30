@@ -8,25 +8,27 @@ function ListeClients() {
   const [loading, setLoading] = useState(true);
 
   const [clients, setclients] = useState();
-  const [new_prenom, setNewFirstName] = useState("");
-  const [new_nom, setNewLastName] = useState("");
-  const [new_street, setNewStreet] = useState("");
-  const [new_postal_code, setNewPostalCode] = useState("");
-  const [new_city, setNewCity] = useState("");
-  const [new_phone, setNewPhone] = useState("");
-  const [new_email, setNewEmail] = useState("");
+  const [prenom, setFirstName] = useState("");
+  const [nom, setLastName] = useState("");
+  const [rue, setRue] = useState("");
+  const [code_postal, setCodePostal] = useState("");
+  const [ville, setVille] = useState("");
+  const [tel, setTel] = useState("");
+  const [email, setEmail] = useState("");
 
   const [form_submited, setFormSubmited] = useState(false);
   const [first_name_error, setFirstNameError] = useState("");
   const [nom_error, setLastNameError] = useState("");
-  const [street_error, setStreetError] = useState("");
-  const [postal_code_error, setPostalCodeError] = useState("");
-  const [city_error, setCityError] = useState("");
-  const [phone_error, setPhoneError] = useState("");
+  const [rue_error, setRueError] = useState("");
+  const [code_postal_error, setCodePostalError] = useState("");
+  const [ville_error, setVilleError] = useState("");
+  const [tel_error, setTelError] = useState("");
   const [email_error, setEmailError] = useState("");
 
+  const [modeFORCE, setModeFORCE] = useState(false);
+
   // Automatically format French phone number as "01 23 45 67 89"
-  const formatFrenchPhone = (value) => {
+  const formatFrenchTel = (value) => {
     // Keep only digits
     const digits = value.replace(/\D/g, "").slice(0, 10);
     // Add spaces every 2 digits
@@ -52,35 +54,35 @@ function ListeClients() {
     return true;
   };
 
-  const streetVerif = (value) => {
+  const rueVerif = (value) => {
     if (value === "") {
-      setStreetError("Veuillez entrer une adresse");
+      setRueError("Veuillez entrer une adresse");
       return false;
     }
-    setStreetError("");
+    setRueError("");
     return true;
   };
 
-  const cityVerif = (value) => {
+  const villeVerif = (value) => {
     if (value === "") {
-      setCityError("Veuillez entrer une commune");
+      setVilleError("Veuillez entrer une commune");
       return false;
     }
-    setCityError("");
+    setVilleError("");
     return true;
   };
 
   const postalCodeVerif = (value) => {
     if (value === "") {
-      setPostalCodeError("Veuillez entrer un code postal");
+      setCodePostalError("Veuillez entrer un code postal");
       return false;
     }
     const postalCodeRegex = /^\d{5}$/;
     if (!postalCodeRegex.test(value)) {
-      setPostalCodeError("Format du code postal invalide");
+      setCodePostalError("Format du code postal invalide");
       return false;
     }
-    setPostalCodeError("");
+    setCodePostalError("");
     return true;
   };
 
@@ -98,17 +100,17 @@ function ListeClients() {
     return true;
   };
 
-  const phoneVerif = (value) => {
+  const telVerif = (value) => {
     if (value === "") {
-      setPhoneError("Veuillez entrer un email");
+      setTelError("Veuillez entrer un email");
       return false;
     }
-    const phoneRegex = /^0[1-9](?:\s\d{2}){4}$/;
-    if (!phoneRegex.test(value)) {
-      setPhoneError("Format du numéro de téléphone invalide");
+    const telRegex = /^0[1-9](?:\s\d{2}){4}$/;
+    if (!telRegex.test(value)) {
+      setTelError("Format du numéro de téléphone invalide");
       return false;
     }
-    setPhoneError("");
+    setTelError("");
     return true;
   };
 
@@ -131,30 +133,31 @@ function ListeClients() {
   };
 
   // ### Add a new client to the database ###
-  const addNewClient = async (e) => {
+  const addNewClient = async (e, forceValue = false) => {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isFirstNameValid = firstNameVerif(new_prenom);
-    const isLastNameValid = lastNameVerif(new_nom);
-    const isStreetValid = streetVerif(new_street);
-    const isCityValid = cityVerif(new_city);
-    const isPostalCodeValid = postalCodeVerif(new_postal_code);
-    const isEmailValid = emailVerif(new_email);
-    const isPhoneValid = phoneVerif(new_phone);
+    const isFirstNameValid = firstNameVerif(prenom);
+    const isLastNameValid = lastNameVerif(nom);
+    const isRueValid = rueVerif(rue);
+    const isVilleValid = villeVerif(ville);
+    const isCodePostalValid = postalCodeVerif(code_postal);
+    const isEmailValid = emailVerif(email);
+    const isTelValid = telVerif(tel);
 
-    const isFormValid = isFirstNameValid && isLastNameValid && isEmailValid && isStreetValid && isCityValid && isPostalCodeValid && isPhoneValid;
+    const isFormValid = isFirstNameValid && isLastNameValid && isEmailValid && isRueValid && isVilleValid && isCodePostalValid && isTelValid;
 
     if (isFormValid) {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/clients/create`, {
-          prenom: new_prenom,
-          nom: new_nom,
-          street: new_street,
-          city: new_city,
-          postal_code: new_postal_code,
-          email: new_email,
-          phone: new_phone,
+          prenom: prenom,
+          nom: nom,
+          rue: rue,
+          ville: ville,
+          code_postal: code_postal,
+          email: email,
+          telephone: tel,
+          force: forceValue,
         })
         .then((resp) => {
           console.log(resp);
@@ -163,13 +166,28 @@ function ListeClients() {
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
-            alert(error.response.data.error);
+            if (error.response.status === 409 && !forceValue){
+              handleForce();
+            }else{
+              alert(error.response.data.error);
+            }
           } else {
             alert("Une erreur est survenue.");
           }
         });
     }
   };
+
+  const forceCreate = async () => {
+    const fakeEvent = { preventDefault: () => {} };
+    await addNewClient(fakeEvent, true);  // <-- force=true
+    handleClose();
+  }
+
+  // ### Handle modal ###
+  const handleForce = () => {
+    setModeFORCE(true);
+  }
 
   const handleClose = () => {
     // Close modal
@@ -186,21 +204,21 @@ function ListeClients() {
     document.body.style.overflow = "";
     document.body.style.paddingRight = "";
     // Reset form
-    setNewFirstName("");
-    setNewLastName("");
-    setNewEmail("");
-    setNewStreet("");
-    setNewCity("");
-    setNewPostalCode("");
-    setNewPhone("");
+    setFirstName("");
+    setLastName("");
+    setEmail("");
+    setRue("");
+    setVille("");
+    setCodePostal("");
+    setTel("");
     setFormSubmited(false);
     setFirstNameError("");
     setLastNameError("");
     setEmailError("");
-    setStreetError("");
-    setCityError("");
-    setPostalCodeError("");
-    setPhoneError("");
+    setRueError("");
+    setVilleError("");
+    setCodePostalError("");
+    setTelError("");
   };
 
   useEffect(() => {
@@ -215,64 +233,75 @@ function ListeClients() {
       <h1>Liste des Clients</h1>
       <br/>
       <div>
-        <div className="modal fade" id="popup" tabIndex="-1">
+        <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
-                <h1 className="modal-title fs-5" id="popupLabel">Ajouter un nouveau client.</h1>
+                <h1 className="modal-title fs-5" id="popupLabel">{modeFORCE ? 'Attention' : 'Ajouter un nouveau client'}</h1>
               </div>
               <div className="modal-body">
+                {modeFORCE ? ("Un utilisateur à déja cet adresse email. Êtes vous sur de vouloir créer un client avec la même adresse mail ?") : (
                 <form className="row">
                   <div className="form-outline col-6">
                     <label className="form-label">Nom</label>
-                    <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom."/>
+                    <input type="text" id="nom" value={nom} onChange={(e) => {setLastName(e.target.value);lastNameVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom"/>
                     <div className="invalid-feedback">{nom_error}</div>
                   </div>
                   <div className="form-outline col-6">
                     <label className="form-label">Prénom</label>
-                    <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un prénom."/>
+                    <input type="text" id="prénom" value={prenom} onChange={(e) => {setFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un prénom"/>
                     <div className="invalid-feedback">{first_name_error}</div>
                   </div>
                   <div className="form-outline mt-4">
                     <label className="form-label">Adresse</label>
-                    <input type="text" id="adresse" value={new_street} onChange={(e) => {setNewStreet(e.target.value);streetVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${street_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="2 Av. Gustave Eiffel."/>
-                    <div className="invalid-feedback">{street_error}</div>
+                    <input type="text" id="adresse" value={rue} onChange={(e) => {setRue(e.target.value);rueVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${rue_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="2 Av. Gustave Eiffel"/>
+                    <div className="invalid-feedback">{rue_error}</div>
                   </div>
                   <div className="form-outline col-6 mt-4">
                     <label className="form-label">Ville</label>
-                    <input type="text" id="ville" value={new_city} onChange={(e) => {setNewCity(e.target.value);cityVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${city_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Paris"/>
-                    <div className="invalid-feedback">{city_error}</div>
+                    <input type="text" id="ville" value={ville} onChange={(e) => {setVille(e.target.value);villeVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${ville_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Paris"/>
+                    <div className="invalid-feedback">{ville_error}</div>
                   </div>
                   <div className="form-outline col-6 mt-4">
                     <label className="form-label">Code postal</label>
-                    <input type="text" id="code_postal" value={new_postal_code} onChange={(e) => {setNewPostalCode(e.target.value);postalCodeVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${postal_code_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="75007"/>
-                    <div className="invalid-feedback">{postal_code_error}</div>
+                    <input type="text" id="code_postal" value={code_postal} onChange={(e) => {setCodePostal(e.target.value);postalCodeVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${code_postal_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="75007"/>
+                    <div className="invalid-feedback">{code_postal_error}</div>
                   </div>
                   <div className="form-outline col-6 mt-4">
                     <label className="form-label">Adresse mail</label>
-                    <input type="email" id="email" value={new_email} onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail."/>
+                    <input type="email" id="email" value={email} onChange={(e) => {setEmail(e.target.value);emailVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail"/>
                     <div className="invalid-feedback">{email_error}</div>
                   </div>
                   <div className="form-outline col-6 mt-4">
                     <label className="form-label">Numéro de téléphone</label>
-                    <input type="tel" id="tel" value={new_phone} onChange={(e) => {
-                      const formatted = formatFrenchPhone(e.target.value);
-                      setNewPhone(formatted);
-                      phoneVerif(formatted);
-                    }}className={`form-control form-control-lg ${phone_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="01 23 45 67 89" maxLength={14}/>
-                    <div className="invalid-feedback">{phone_error}</div>
+                    <input type="tel" id="tel" value={tel} onChange={(e) => {
+                      const formatted = formatFrenchTel(e.target.value);
+                      setTel(formatted);
+                      telVerif(formatted);
+                    }}className={`form-control form-control-lg ${tel_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="01 23 45 67 89" maxLength={14}/>
+                    <div className="invalid-feedback">{tel_error}</div>
                   </div>
                 </form>
+                )}
               </div>
-              <div className="modal-footer d-flex justify-content-between">
-                <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Annuler</button>
-                <button className="btn btn-lg btn-success" onClick={addNewClient}>Enregistrer</button>
+              <div className="modal-footer ">
+                {modeFORCE ? (
+                    <div className="d-flex justify-content-between w-100">
+                      <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Non</button>
+                      <button className="btn btn-lg btn-success" onClick={forceCreate}>Oui</button>
+                    </div>
+                ) : (
+                  <div className="d-flex justify-content-between w-100">
+                    <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Annuler</button>
+                    <button className="btn btn-lg btn-success" onClick={addNewClient}>Enregistrer</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

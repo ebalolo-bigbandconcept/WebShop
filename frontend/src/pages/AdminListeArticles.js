@@ -290,13 +290,13 @@ function ListeArticles() {
                   <div className="form-outline col-12">
                     <label className="form-label">Article</label>
                     <input type="text" id="article" value={article_nom} onChange={(e) => {setArticleNom(e.target.value);articleNomVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${article_nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom d'article."/>
+                      className={`form-control form-control-lg ${article_nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom d'article"/>
                     <div className="invalid-feedback">{article_nom_error}</div>
                   </div>
                   <div className="form-outline col-12 mt-4">
                     <label className="form-label">Description</label>
                     <textarea id="prénom" value={article_description} onChange={(e) => {setArticleDescription(e.target.value);articleDescriptionVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${article_description_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une description."/>
+                      className={`form-control form-control-lg ${article_description_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une description"/>
                     <div className="invalid-feedback">{article_description_error}</div>
                   </div>
                   <div className="form-outline col-lg-5 col-4 mt-4">

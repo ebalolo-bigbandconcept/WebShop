@@ -182,14 +182,14 @@ function ManageUser() {
             <div className="form-outline col-4">
               <label className="form-label">Nom</label>
               <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
-                className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau nom."
+                className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau nom"
               />
               <div className="invalid-feedback">{last_name_error}</div>
             </div>
             <div className="form-outline col-4">
               <label className="form-label">Prénom</label>
               <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
-                className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom."
+                className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom"
               />
               <div className="invalid-feedback">{first_name_error}</div>
             </div>
@@ -205,7 +205,7 @@ function ManageUser() {
             <div className="form-outline mb-4">
               <label className="form-label">Adresse mail</label>
               <input type="email" id="email" value={new_email}onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
-                className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une nouvelle adresse  mail."
+                className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une nouvelle adresse mail"
               />
               <div className="invalid-feedback">{email_error}</div>
             </div>
@@ -213,7 +213,7 @@ function ManageUser() {
             <div className="form-outline mb-3">
               <label className="form-label">Mot de passe</label>
               <input type="password" id="mdp" value={new_password} onChange={(e) => {setNewPassword(e.target.value);passwordVerif(e.target.value);}}
-                className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau mot de passe."
+                className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau mot de passe"
               />
               <div className="invalid-feedback">{password_error}</div>
             </div>

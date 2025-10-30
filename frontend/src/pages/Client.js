@@ -30,8 +30,6 @@ function Client() {
   const [tel_error, setTelError] = useState("");
   const [email_error, setEmailError] = useState("");
 
-  const [force, setForce] = useState(false);
-
   // Automatically format French phone number as "01 23 45 67 89"
   const formatFrenchTel = (value) => {
     // Keep only digits
@@ -144,28 +142,34 @@ function Client() {
     document.body.classList.remove("modal-open");
     document.body.style.overflow = "";
     document.body.style.paddingRight = "";
-
-    setForce(false)
+    setPrenomError("");
+    setNomError("");
+    setRueError("");
+    setCodePostalError("");
+    setVilleError("");
+    setTelError("");
+    setEmailError("");
   }
 
   // ### Force the update if user wants duplicate email
   const forceUpdate = async () => {
-    setForce(true);
-    await modifyClient();
+    const fakeEvent = { preventDefault: () => {} };
+    await modifyClient(fakeEvent, true)
     handleClose();
   }
 
   // ### Modify the user ###
-  const modifyClient = async () => {
+  const modifyClient = async (e,forceValue = false) => {
+    e.preventDefault()
     setFormSubmited(true);
 
     const isNomValid = nomVerif(new_nom)
-    const isPrenomValid = nomVerif(new_prenom)
-    const isRueValid = nomVerif(new_rue)
-    const isVilleValid = nomVerif(new_ville)
-    const isCodePostalValid = nomVerif(new_code_postal)
-    const isEmailValid = nomVerif(new_email)
-    const isTelValid = nomVerif(new_tel)
+    const isPrenomValid = prenomVerif(new_prenom)
+    const isRueValid = rueVerif(new_rue)
+    const isVilleValid = villeVerif(new_ville)
+    const isCodePostalValid = codePostalVerif(new_code_postal)
+    const isEmailValid = emailVerif(new_email)
+    const isTelValid = telVerif(new_tel)
 
     const isFormValid = isNomValid && isPrenomValid && isRueValid && isVilleValid && isCodePostalValid && isEmailValid && isTelValid;
     if (isFormValid) {
@@ -177,8 +181,8 @@ function Client() {
         code_postal: new_code_postal,
         email: new_email,
         telephone: new_tel,
-        caduque: new_caduque === "on" || new_caduque === true, // convert checkbox value
-        force: force,
+        caduque: new_caduque,
+        force: forceValue,
       };
 
       httpClient
@@ -192,8 +196,10 @@ function Client() {
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
-            if (error.response.status === 409){
+            if (error.response.status === 409 && !forceValue){
               handleForce();
+            }else{
+              console.log(error.response.data.error)
             }
           } else {
             alert("Une erreur est survenue.");
@@ -323,7 +329,7 @@ function Client() {
           </div>
           <div className="form-outline col-6 mt-4">
             <label className="form-check-label me-2">Caduque :</label>
-            <input type="checkbox" value={client} onChange={(e) => {setNewCaduque(e.target.value)}} className="form-check-input" id="caduque"/>
+            <input type="checkbox" value={client} onChange={(e) => {setNewCaduque(e.target.checked)}} className="form-check-input" id="caduque"/>
           </div>
         </form>
         <div className="d-flex w-100 justify-content-end">
@@ -369,22 +375,22 @@ function Client() {
         <br/>
         <button className="btn btn-primary" onClick={() => handleNewDevis()}>+ Créer un devis</button>
       </div>
-      <div className="modal fade" id="popup" tabIndex="-1">
-          <div className="modal-dialog modal-xl">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h1 className="modal-title fs-5" id="popupLabel">Attention</h1>
-              </div>
-              <div className="modal-body">
-                <h5>Un client utilise déjà cet email, êtes vous sur de vouloir modifier le clients quand même ?</h5>
-              </div>
-              <div className="modal-footer d-flex justify-content-between">
-                <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Non</button>
-                <button className="btn btn-lg btn-success" onClick={forceUpdate}>Oui</button>
-              </div>
+      <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div className="modal-dialog modal-xl">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h1 className="modal-title fs-5" id="popupLabel">Attention</h1>
+            </div>
+            <div className="modal-body">
+              <h5>Un client utilise déjà cet email, êtes vous sur de vouloir modifier le clients quand même ?</h5>
+            </div>
+            <div className="modal-footer d-flex justify-content-between">
+              <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Non</button>
+              <button className="btn btn-lg btn-success" onClick={forceUpdate}>Oui</button>
             </div>
           </div>
         </div>
+      </div>
     </div>
   );
   }
