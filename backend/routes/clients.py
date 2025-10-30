@@ -70,11 +70,11 @@ def modify_client(client_id):
     error = validate_client_fields(new_nom, new_prenom, new_rue, new_ville, new_code_postal, new_telephone, new_email)
     if error:
         return jsonify({"error": error}), 400
-    
-    # Email already used by someone else?
-    existing = Clients.query.filter(Clients.email == new_email, Clients.id != client_id).first()
-    if existing and not force:
-        return jsonify({"error": "Cette adresse email est déjà utilisée par un autre client.",}), 409
+    if new_email != client.email :
+        # Email already used by someone else?
+        existing = Clients.query.filter(Clients.email == new_email, Clients.id != client_id).first()
+        if existing and not force:
+            return jsonify({"error": "Cette adresse email est déjà utilisée par un autre client.",}), 409
 
     # Update client data
     client.nom = new_nom

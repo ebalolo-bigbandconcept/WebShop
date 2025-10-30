@@ -329,7 +329,7 @@ function Client() {
           </div>
           <div className="form-outline col-6 mt-4">
             <label className="form-check-label me-2">Caduque :</label>
-            <input type="checkbox" value={client} onChange={(e) => {setNewCaduque(e.target.checked)}} className="form-check-input" id="caduque"/>
+            <input type="checkbox" checked={!!new_caduque} onChange={(e) => {setNewCaduque(e.target.checked)}} className="form-check-input" id="caduque"/>
           </div>
         </form>
         <div className="d-flex w-100 justify-content-end">

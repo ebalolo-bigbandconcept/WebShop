@@ -316,6 +316,7 @@ function ListeClients() {
             <th scope="col">Adresse</th>
             <th scope="col">Numéro de téléphone</th>
             <th scope="col">Adresse email</th>
+            <th scope="col">Caduque</th>
           </tr>
         </thead>
         <tbody>
@@ -328,6 +329,7 @@ function ListeClients() {
                 <td>{client.rue}, {client.code_postal} <br/> {client.ville}</td>
                 <td>{client.telephone}</td>
                 <td>{client.email}</td>
+                <td><input type="checkbox" disabled checked={!!client.caduque} className="form-check-input" id="caduque"/></td>
               </tr>
             ))
           ) : (
