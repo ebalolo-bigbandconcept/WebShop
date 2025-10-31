@@ -413,7 +413,7 @@ function Devis() {
       </div>
       <br/>
       <h3>Client: {client.nom} {client.prenom}</h3>
-      <h3>Adresse: {client.street}, {client.postal_code} à {client.city}</h3>
+      <h3>Adresse: {client.rue}, {client.code_postal} à {client.ville}</h3>
       <div className="row">
         <form className="col-8">
           <div className="row">
