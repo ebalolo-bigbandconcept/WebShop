@@ -5,6 +5,7 @@ import './App.css';
 
 // Component imports
 const Header = lazy(() => import('./components/Header'));
+const Footer = lazy(() => import('./components/Footer'));
 const PrivateRoute = lazy(() => import ('./components/PrivateRoute'));
 
 // Page imports
@@ -46,9 +47,9 @@ function App() {
   if (loading) return <div>Chargement...</div>;
 
   return (
-    <div>
+    <div className="d-flex flex-column min-vh-100">
       <Header user={user} setUser={setUser}/>
-      <div className='container mt-4'>
+      <div className='container mt-4 min-vh-100'>
         <Suspense fallback={<div>Chargement...</div>}>
           <Routes>
             <Route path="/" element={<Login setUser={setUser}/>}/>
@@ -96,6 +97,7 @@ function App() {
           </Routes>
         </Suspense>
       </div>
+      <Footer />
     </div>
   );
 }
