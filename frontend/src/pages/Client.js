@@ -94,7 +94,7 @@ function Client() {
       setEmailError("Veuillez entrer un email");
       return false;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
       setEmailError("Format d'email invalide");
       return false;
@@ -277,122 +277,145 @@ function Client() {
 
   return (
     <div>
-      <div>
-        <div className="d-flex justify-content-between align-items-center">
-          <h1 className="col-lg-11 col-10">Client - {client.nom} {client.prenom}</h1>
-          <button className="btn btn-danger col-lg-1 col-2" onClick={() => navigate('/liste-clients')}>Retour</button>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1>Client - {client.nom} {client.prenom}</h1>
+          <button className="btn btn-danger" onClick={() => navigate('/liste-clients')}>Retour</button>
         </div>
-        <br/>
-        <form className="row">
-          <div className="form-outline col-6">
-            <label className="form-label">Nom</label>
-            <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewNom(e.target.value);nomVerif(e.target.value);}}
-              className={`form-control form-control-lg ${nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom"/>
-            <div className="invalid-feedback">{nom_error}</div>
-          </div>
-          <div className="form-outline col-6">
-            <label className="form-label">Prénom</label>
-            <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewPrenom(e.target.value);prenomVerif(e.target.value);}}
-              className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un prénom"/>
-            <div className="invalid-feedback">{first_name_error}</div>
-          </div>
-          <div className="form-outline mt-4">
-            <label className="form-label">Adresse</label>
-            <input type="text" id="adresse" value={new_rue} onChange={(e) => {setNewRue(e.target.value);rueVerif(e.target.value);}}
-              className={`form-control form-control-lg ${rue_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="2 Av. Gustave Eiffel"/>
-            <div className="invalid-feedback">{rue_error}</div>
-          </div>
-          <div className="form-outline col-6 mt-4">
-            <label className="form-label">Ville</label>
-            <input type="text" id="ville" value={new_ville} onChange={(e) => {setNewVille(e.target.value);villeVerif(e.target.value);}}
-              className={`form-control form-control-lg ${ville_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Paris"/>
-            <div className="invalid-feedback">{ville_error}</div>
-          </div>
-          <div className="form-outline col-6 mt-4">
-            <label className="form-label">Code postal</label>
-            <input type="text" id="code_postal" value={new_code_postal} onChange={(e) => {setNewCodePostal(e.target.value);codePostalVerif(e.target.value);}}
-              className={`form-control form-control-lg ${code_postal_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="75007"/>
-            <div className="invalid-feedback">{code_postal_error}</div>
-          </div>
-          <div className="form-outline col-6 mt-4">
-            <label className="form-label">Adresse mail</label>
-            <input type="email" id="email" value={new_email} onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
-              className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail"/>
-            <div className="invalid-feedback">{email_error}</div>
-          </div>
-          <div className="form-outline col-6 mt-4">
-            <label className="form-label">Numéro de téléphone</label>
-            <input type="tel" id="tel" value={new_tel} onChange={(e) => {
-              const formatted = formatFrenchTel(e.target.value);setNewTel(formatted);telVerif(formatted);}}
-              className={`form-control form-control-lg ${tel_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="01 23 45 67 89" maxLength={14}/>
-            <div className="invalid-feedback">{tel_error}</div>
-          </div>
-          <div className="form-outline col-6 mt-4">
-            <label className="form-check-label me-2">Caduque :</label>
-            <input type="checkbox" checked={!!new_caduque} onChange={(e) => {setNewCaduque(e.target.checked)}} className="form-check-input" id="caduque"/>
-          </div>
-          <div className="d-flex justify-content-end col-6">
-            <button className="btn btn-lg btn-success mt-4" onClick={modifyClient}>Modifier</button>
-          </div>
-        </form>
-        <br/>
-        <h2>Devis</h2>
-        <div className="w-100 d-flex justify-content-end">
-          <button className="btn btn-lg btn-success" onClick={() => handleNewDevis()}>+ Créer un devis</button>
+
+        <div className="accordion" id="clientPageAccordion">
+            {/* Accordion Item 1: Modify Client Form */}
+            <div className="accordion-item">
+                <h2 className="accordion-header" id="headingOne">
+                <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                    Modifier les informations du client
+                </button>
+                </h2>
+                <div id="collapseOne" className="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#clientPageAccordion">
+                    <div className="accordion-body">
+                        <form className="row">
+                            <div className="form-outline col-6">
+                            <label className="form-label">Nom</label>
+                            <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewNom(e.target.value);nomVerif(e.target.value);}}
+                                className={`form-control form-control-lg ${nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom"/>
+                            <div className="invalid-feedback">{nom_error}</div>
+                            </div>
+                            <div className="form-outline col-6">
+                            <label className="form-label">Prénom</label>
+                            <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewPrenom(e.target.value);prenomVerif(e.target.value);}}
+                                className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un prénom"/>
+                            <div className="invalid-feedback">{first_name_error}</div>
+                            </div>
+                            <div className="form-outline mt-4">
+                            <label className="form-label">Adresse</label>
+                            <input type="text" id="adresse" value={new_rue} onChange={(e) => {setNewRue(e.target.value);rueVerif(e.target.value);}}
+                                className={`form-control form-control-lg ${rue_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="2 Av. Gustave Eiffel"/>
+                            <div className="invalid-feedback">{rue_error}</div>
+                            </div>
+                            <div className="form-outline col-6 mt-4">
+                            <label className="form-label">Ville</label>
+                            <input type="text" id="ville" value={new_ville} onChange={(e) => {setNewVille(e.target.value);villeVerif(e.target.value);}}
+                                className={`form-control form-control-lg ${ville_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Paris"/>
+                            <div className="invalid-feedback">{ville_error}</div>
+                            </div>
+                            <div className="form-outline col-6 mt-4">
+                            <label className="form-label">Code postal</label>
+                            <input type="text" id="code_postal" value={new_code_postal} onChange={(e) => {setNewCodePostal(e.target.value);codePostalVerif(e.target.value);}}
+                                className={`form-control form-control-lg ${code_postal_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="75007"/>
+                            <div className="invalid-feedback">{code_postal_error}</div>
+                            </div>
+                            <div className="form-outline col-6 mt-4">
+                            <label className="form-label">Adresse mail</label>
+                            <input type="email" id="email" value={new_email} onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
+                                className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail"/>
+                            <div className="invalid-feedback">{email_error}</div>
+                            </div>
+                            <div className="form-outline col-6 mt-4">
+                            <label className="form-label">Numéro de téléphone</label>
+                            <input type="tel" id="tel" value={new_tel} onChange={(e) => {
+                                const formatted = formatFrenchTel(e.target.value);setNewTel(formatted);telVerif(formatted);}}
+                                className={`form-control form-control-lg ${tel_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="01 23 45 67 89" maxLength={14}/>
+                            <div className="invalid-feedback">{tel_error}</div>
+                            </div>
+                            <div className="form-outline col-6 mt-4">
+                            <label className="form-check-label me-2">Caduque :</label>
+                            <input type="checkbox" checked={!!new_caduque} onChange={(e) => {setNewCaduque(e.target.checked)}} className="form-check-input" id="caduque"/>
+                            </div>
+                        </form>
+                        <div className="d-flex w-100 justify-content-end">
+                            <button className="btn btn-lg btn-success mt-4" onClick={modifyClient}>Enregistrer les modifications</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Accordion Item 2: Devis List */}
+            <div className="accordion-item">
+                <h2 className="accordion-header" id="headingTwo">
+                <button className="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                    Liste des devis ({devis.length})
+                </button>
+                </h2>
+                <div id="collapseTwo" className="accordion-collapse collapse show" aria-labelledby="headingTwo" data-bs-parent="#clientPageAccordion">
+                    <div className="accordion-body">
+                        <table className="table table-hover table-striped">
+                            <thead>
+                                <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Titre</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Montant HT</th>
+                                <th scope="col">Montant TVA</th>
+                                <th scope="col">Montant TTC</th>
+                                <th scope="col">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {devis.length > 0 ? (
+                                devis.map((devis) => (
+                                    <tr key={devis.id} onClick={() => {navigate(`/devis/${client.id}/${devis.id}`, {state : {from: `/client/${client.id}`}});}}>
+                                    <td>{devis.id}</td>
+                                    <td>{devis.titre}</td>
+                                    <td>{devis.description}</td>
+                                    <td>{devis.date}</td>
+                                    <td>{devis.montant_HT} €</td>
+                                    <td>{devis.montant_TVA} €</td>
+                                    <td>{devis.montant_TTC} €</td>
+                                    <td>{devis.statut}</td>
+                                    </tr>
+                                ))
+                                ) : (
+                                <tr>
+                                    <td colSpan={8}>Aucun devis trouvé</td>
+                                </tr>
+                                )}
+                            </tbody>
+                        </table>
+                        <br/>
+                        <button className="btn btn-primary" onClick={() => handleNewDevis()}>+ Créer un devis</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <table className="table table-hover table-striped mt-4">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">Titre</th>
-              <th scope="col">Description</th>
-              <th scope="col">Date</th>
-              <th scope="col">Montant HT</th>
-              <th scope="col">Montant TVA</th>
-              <th scope="col">Montant TTC</th>
-              <th scope="col">Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            {devis.length > 0 ? (
-              devis.map((devis) => (
-                <tr key={devis.id} onClick={() => {navigate(`/devis/${client.id}/${devis.id}`, {state : {from: `/client/${client.id}`}});}}>
-                  <td>{devis.id}</td>
-                  <td>{devis.titre}</td>
-                  <td>{devis.description}</td>
-                  <td>{devis.date}</td>
-                  <td>{devis.montant_HT} €</td>
-                  <td>{devis.montant_TVA} €</td>
-                  <td>{devis.montant_TTC} €</td>
-                  <td>{devis.statut}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8}>Aucun devis trouvé</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        <br/>
-      </div>
-      <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div className="modal-dialog modal-xl">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h1 className="modal-title fs-5" id="popupLabel">Attention</h1>
+
+        {/* Modal for force update */}
+        <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div className="modal-dialog modal-xl">
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h1 className="modal-title fs-5" id="popupLabel">Attention</h1>
+                    </div>
+                    <div className="modal-body">
+                        <h5>Un client utilise déjà cet email, êtes vous sur de vouloir modifier le clients quand même ?</h5>
+                    </div>
+                    <div className="modal-footer d-flex justify-content-between">
+                        <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Non</button>
+                        <button className="btn btn-lg btn-success" onClick={forceUpdate}>Oui</button>
+                    </div>
+                </div>
             </div>
-            <div className="modal-body">
-              <h5>Un client utilise déjà cet email, êtes vous sur de vouloir modifier le clients quand même ?</h5>
-            </div>
-            <div className="modal-footer d-flex justify-content-between">
-              <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Non</button>
-              <button className="btn btn-lg btn-success" onClick={forceUpdate}>Oui</button>
-            </div>
-          </div>
         </div>
-      </div>
     </div>
   );
-  }
+}
 export default Client;
