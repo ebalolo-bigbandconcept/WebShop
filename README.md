@@ -56,7 +56,7 @@ Créer ensuite un fichier .env à la racine du dossier du site et créer les var
 SECRET_KEY=your_key
 ADMIN_MAIL=your_admin_mail
 ADMIN_PASSWORD=your_admin_password
-REACT_APP_BACKEND_URL=http:127.0.0.1
+REACT_APP_BACKEND_URL=http://localhost:5000
 ```
 
 Remplacer les 'your_...' par vos identifiant et votre clée secrète.
