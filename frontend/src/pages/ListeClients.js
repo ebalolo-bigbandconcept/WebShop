@@ -27,6 +27,12 @@ function ListeClients() {
 
   const [modeFORCE, setModeFORCE] = useState(false);
 
+  // Filter state
+  const [filteredClients, setFilteredClients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [caduqueFilter, setCaduqueFilter] = useState("active"); // 'all', 'caduque', 'active'
+
+
   // Automatically format French phone number as "01 23 45 67 89"
   const formatFrenchTel = (value) => {
     // Keep only digits
@@ -91,7 +97,7 @@ function ListeClients() {
       setEmailError("Veuillez entrer un email");
       return false;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
     if (!emailRegex.test(value)) {
       setEmailError("Format d'email invalide");
       return false;
@@ -120,11 +126,15 @@ function ListeClients() {
       .get(`${process.env.REACT_APP_BACKEND_URL}/clients/all`)
       .then((resp) => {
         setclients(resp.data);
+        setFilteredClients(resp.data.data || []);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
           if (error.response.data.error !== "Aucun clients trouvé") {
             alert(error.response.data.error);
+          } else {
+            setclients({ data: [] }); // Ensure clients.data is not undefined
+            setFilteredClients([]);
           }
         } else {
           alert("Une erreur est survenue.");
@@ -219,12 +229,39 @@ function ListeClients() {
     setVilleError("");
     setCodePostalError("");
     setTelError("");
+    setModeFORCE(false);
   };
 
   useEffect(() => {
     getAllUsersInfo();
     setLoading(false);
   }, []);
+
+  // ### Filter logic ###
+  useEffect(() => {
+    if (clients && clients.data) {
+      let currentClients = clients.data;
+
+      // Search term filter
+      if (searchTerm) {
+        currentClients = currentClients.filter(client =>
+          client.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          client.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          client.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Caduque filter
+      if (caduqueFilter === 'caduque') {
+        currentClients = currentClients.filter(client => client.caduque);
+      } else if (caduqueFilter === 'active') {
+        currentClients = currentClients.filter(client => !client.caduque);
+      }
+
+      setFilteredClients(currentClients);
+    }
+  }, [clients, searchTerm, caduqueFilter]);
+
 
   if (loading) return <div>Chargement...</div>;
 
@@ -307,6 +344,22 @@ function ListeClients() {
           </div>
         </div>
       </div>
+
+      <div className="row mb-3">
+        <div className="col-md-8">
+          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, prénom, email..."
+            value={searchTerm}onChange={(e) => setSearchTerm(e.target.value)}/>
+        </div>
+        <div className="col-md-4">
+          <select
+            className="form-select form-select-lg" value={caduqueFilter} onChange={(e) => setCaduqueFilter(e.target.value)}>
+            <option value="active">Actif</option>
+            <option value="all">Tous les clients</option>
+            <option value="caduque">Caduque</option>
+          </select>
+        </div>
+      </div>
+
       <table className="table table-hover table-striped">
         <thead>
           <tr>
@@ -320,8 +373,8 @@ function ListeClients() {
           </tr>
         </thead>
         <tbody>
-          {clients !== undefined ? (
-            clients.data.map((client) => (
+          {filteredClients.length > 0 ? (
+            filteredClients.map((client) => (
               <tr key={client.id} onClick={() => {navigate({ pathname: `/client/` + client.id });}}>
                 <td>{client.id}</td>
                 <td>{client.nom}</td>
@@ -334,7 +387,7 @@ function ListeClients() {
             ))
           ) : (
             <tr>
-              <td colSpan={6}>Aucun client trouvé</td>
+              <td colSpan="7">Aucun client trouvé</td>
             </tr>
             )}
         </tbody>
