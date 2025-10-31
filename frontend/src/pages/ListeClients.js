@@ -30,7 +30,12 @@ function ListeClients() {
   // Filter state
   const [filteredClients, setFilteredClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [caduqueFilter, setCaduqueFilter] = useState("active"); // 'all', 'caduque', 'active'
+  const [caduqueFilter, setCaduqueFilter] = useState("all");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Items to display per page
+  const [paginatedClients, setPaginatedClients] = useState([]);
 
 
   // Automatically format French phone number as "01 23 45 67 89"
@@ -97,7 +102,7 @@ function ListeClients() {
       setEmailError("Veuillez entrer un email");
       return false;
     }
-    const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
+    const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
       setEmailError("Format d'email invalide");
       return false;
@@ -259,8 +264,23 @@ function ListeClients() {
       }
 
       setFilteredClients(currentClients);
+      setCurrentPage(1); // Reset to first page on new filter
     }
   }, [clients, searchTerm, caduqueFilter]);
+
+  // ### Pagination Logic ###
+  useEffect(() => {
+    if (filteredClients) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      setPaginatedClients(filteredClients.slice(startIndex, endIndex));
+    }
+  }, [filteredClients, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when itemsPerPage changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [itemsPerPage]);
 
 
   if (loading) return <div>Chargement...</div>;
@@ -345,18 +365,29 @@ function ListeClients() {
         </div>
       </div>
 
-      <div className="row mb-3">
-        <div className="col-md-8">
+      <div className="row mb-3 align-items-center">
+        <div className="col-md-6">
           <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, prénom, email..."
-            value={searchTerm}onChange={(e) => setSearchTerm(e.target.value)}/>
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
         </div>
-        <div className="col-md-4">
-          <select
-            className="form-select form-select-lg" value={caduqueFilter} onChange={(e) => setCaduqueFilter(e.target.value)}>
-            <option value="active">Actif</option>
+        <div className="col-md-3">
+          <select className="form-select form-select-lg" value={caduqueFilter} onChange={(e) => setCaduqueFilter(e.target.value)}>
             <option value="all">Tous les clients</option>
             <option value="caduque">Caduque</option>
+            <option value="active">Actif</option>
           </select>
+        </div>
+        <div className="col-md-3">
+            <div className="d-flex align-items-center justify-content-end">
+                <label htmlFor="itemsPerPage" className="form-label me-2 mb-0">Clients par page:</label>
+                <select id="itemsPerPage" className="form-select form-select-lg w-auto" value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                </select>
+            </div>
         </div>
       </div>
 
@@ -373,8 +404,8 @@ function ListeClients() {
           </tr>
         </thead>
         <tbody>
-          {filteredClients.length > 0 ? (
-            filteredClients.map((client) => (
+          {paginatedClients.length > 0 ? (
+            paginatedClients.map((client) => (
               <tr key={client.id} onClick={() => {navigate({ pathname: `/client/` + client.id });}}>
                 <td>{client.id}</td>
                 <td>{client.nom}</td>
@@ -392,6 +423,33 @@ function ListeClients() {
             )}
         </tbody>
       </table>
+      
+      {/* START: Pagination Controls */}
+      {filteredClients.length > itemsPerPage && (
+        <nav>
+          <ul className="pagination justify-content-center">
+            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage - 1); }}>
+                Précédent
+              </a>
+            </li>
+            {Array.from({ length: Math.ceil(filteredClients.length / itemsPerPage) }, (_, i) => i + 1).map(number => (
+              <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
+                <a onClick={(e) => { e.preventDefault(); setCurrentPage(number); }} href="!#" className='page-link'>
+                  {number}
+                </a>
+              </li>
+            ))}
+            <li className={`page-item ${currentPage >= Math.ceil(filteredClients.length / itemsPerPage) ? 'disabled' : ''}`}>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage + 1); }}>
+                Suivant
+              </a>
+            </li>
+          </ul>
+        </nav>
+      )}
+      {/* END: Pagination Controls */}
+
       <br/>
       <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouveau client</button>
     </div>
