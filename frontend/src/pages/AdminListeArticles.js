@@ -1,5 +1,3 @@
-import { useParams } from "react-router";
-import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import httpClient from "../components/httpClient";
 import bootstrap from "bootstrap/dist/js/bootstrap.js";
@@ -22,10 +20,17 @@ function ListeArticles() {
   const [article_prix_achat_HT_error, setArticlePrixAchatHTError] = useState("");
   const [article_prix_vente_HT_error, setArticlePrixVenteHTError] = useState("");
 
-  // Set modal mode
+  // Modal state
   const [MODIFY, setMODIFY] = useState(false);
   const [DELETE, setDELETE] = useState(false);
   const [CREATE, setCREATE] = useState(false);
+
+  // Filter and Pagination state
+  const [filteredArticles, setFilteredArticles] = useState([]);
+  const [paginatedArticles, setPaginatedArticles] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // ### User input validation ###
   const articleNomVerif = async (value) => {
@@ -91,15 +96,14 @@ function ListeArticles() {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isArticleNomValid = articleNomVerif(article_nom);
-    const isArticleDescriptionValid = articleDescriptionVerif(article_description);
-    const isArticlePrixAchatHTValid = articlePrixAchatHTVerif(article_prix_achat_HT);
-    const isArticlePrixVenteHTValid = articlePrixVenteHTVerif(article_prix_vente_HT);
+    const isArticleNomValid = await articleNomVerif(article_nom);
+    const isArticleDescriptionValid = await articleDescriptionVerif(article_description);
+    const isArticlePrixAchatHTValid = await articlePrixAchatHTVerif(article_prix_achat_HT);
+    const isArticlePrixVenteHTValid = await articlePrixVenteHTVerif(article_prix_vente_HT);
 
     const isFormValid = isArticleNomValid && isArticleDescriptionValid && isArticlePrixAchatHTValid && isArticlePrixVenteHTValid;
 
     if (isFormValid) {
-      console.log(article_taux_tva);
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/articles/create`, {
           nom: article_nom,
@@ -138,7 +142,6 @@ function ListeArticles() {
         setArticlePrixAchatHT(resp.data.prix_achat_HT);
         setArticlePrixVenteHT(resp.data.prix_vente_HT);
         setArticleTauxTVA(resp.data.taux_tva.taux);
-        console.log(resp.data);
         showModal();
       })
       .catch((error) => {
@@ -153,10 +156,10 @@ function ListeArticles() {
   const modifyArticle = async () => {
     setFormSubmited(true);
 
-    const isArticleNomValid = articleNomVerif(article_nom);
-    const isArticleDescriptionValid = articleDescriptionVerif(article_description);
-    const isArticlePrixAchatHTValid = articlePrixAchatHTVerif(article_prix_achat_HT);
-    const isArticlePrixVenteHTValid = articlePrixVenteHTVerif(article_prix_vente_HT);
+    const isArticleNomValid = await articleNomVerif(article_nom);
+    const isArticleDescriptionValid = await articleDescriptionVerif(article_description);
+    const isArticlePrixAchatHTValid = await articlePrixAchatHTVerif(article_prix_achat_HT);
+    const isArticlePrixVenteHTValid = await articlePrixVenteHTVerif(article_prix_vente_HT);
 
     const isFormValid = isArticleNomValid && isArticleDescriptionValid && isArticlePrixAchatHTValid && isArticlePrixVenteHTValid;
 
@@ -186,10 +189,13 @@ function ListeArticles() {
     }
   }
 
-  const handleDeleteArticle = async (article_id) => {
+  const handleDeleteArticle = async (article) => {
     setDELETE(true);
     setCREATE(false);
     setMODIFY(false);
+    setArticleId(article.id);
+    setArticleNom(article.nom);
+    showModal();
   }
 
   const deleteArticle = async () => {
@@ -212,20 +218,24 @@ function ListeArticles() {
   }
 
   const getAllArticles = async () => {
-    httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/articles/all`)
-      .then((resp) => {
-        setArticles(resp.data.data);
-        console.log(resp.data.data);
-      })
-      .catch((error) => {
+    try {
+        const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/articles/all`);
+        setArticles(resp.data.data || []);
+        setFilteredArticles(resp.data.data || []);
+    } catch (error) {
         if (error.response && error.response.data && error.response.data.error) {
-          if (error.response.data.error === "Aucuns articles trouvé") {
-          }
+            if (error.response.data.error === "Aucuns articles trouvé") {
+                setArticles([]);
+                setFilteredArticles([]);
+            } else {
+                alert("Une erreur est survenue.");
+            }
         } else {
-          alert("Une erreur est survenue.");
+            alert("Une erreur est survenue.");
         }
-      });
+    } finally {
+        setLoading(false);
+    }
   }
 
   const handleClose = () => {
@@ -263,8 +273,36 @@ function ListeArticles() {
   // ### Fetch all articles on page load ###
   useEffect(() => {
     getAllArticles();
-    setLoading(false);
   }, []);
+
+  // ### Filter Logic ###
+  useEffect(() => {
+    let currentArticles = articles;
+
+    if (searchTerm) {
+        currentArticles = currentArticles.filter(art => 
+            art.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            art.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+
+    setFilteredArticles(currentArticles);
+    setCurrentPage(1);
+  }, [articles, searchTerm]);
+
+  // ### Pagination Logic ###
+  useEffect(() => {
+    if (filteredArticles) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      setPaginatedArticles(filteredArticles.slice(startIndex, endIndex));
+    }
+  }, [filteredArticles, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when itemsPerPage changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [itemsPerPage]);
 
   if (loading) return <div>Chargement...</div>;
   
@@ -313,7 +351,7 @@ function ListeArticles() {
                     <input type="text" id="ville" value={article_prix_vente_HT} onChange={(e) => {
                       const value = e.target.value.replace(',', '.');
                       setArticlePrixVenteHT(value);
-                      articlePrixVenteHTVerif(value);}}
+                      articlePrixVenteHTVerif(value);}} 
                       className={`form-control form-control-lg ${article_prix_vente_HT_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="20,00€"/>
                     <div className="invalid-feedback">{article_prix_vente_HT_error}</div>
                   </div>
@@ -334,7 +372,7 @@ function ListeArticles() {
                   </div>
                 : MODIFY ?
                   <div className="d-flex justify-content-between w-100">
-                    <button className="btn btn-lg btn-danger" onClick={handleDeleteArticle}>Supprimer</button>
+                    <button className="btn btn-lg btn-danger" onClick={() => handleDeleteArticle({id: article_id, nom: article_nom})}>Supprimer</button>
                     <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
                   </div>
                 : DELETE ? 
@@ -348,7 +386,29 @@ function ListeArticles() {
           </div>
         </div>
       </div>
-      <table className="table table-hover table-striped">
+
+      <div className="row mb-3 align-items-center">
+        <div className="col-md-9">
+          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, description..."
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+        </div>
+        <div className="col-md-3">
+            <div className="d-flex align-items-center justify-content-end">
+                <label htmlFor="itemsPerPage" className="form-label me-2 mb-0">Par page:</label>
+                <select id="itemsPerPage" className="form-select form-select-lg w-auto" value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                </select>
+            </div>
+        </div>
+      </div>
+      <div className="d-flex justify-content-end w-100">
+        <button className="btn btn-lg btn-success mt-4" onClick={handleCreateArticle}>+ Ajouter un nouvel article</button>
+      </div>
+      <table className="table table-hover table-striped mt-4">
         <thead>
           <tr>
             <th scope="col">#</th>
@@ -360,8 +420,8 @@ function ListeArticles() {
           </tr>
         </thead>
         <tbody>
-          {articles.length > 0 ? (
-            articles.map((article) => (
+          {paginatedArticles.length > 0 ? (
+            paginatedArticles.map((article) => (
               <tr key={article.id} onClick={() => {handleModifyArticle(article.id)}}>
                 <td>{article.id}</td>
                 <td>{article.nom}</td>
@@ -378,8 +438,30 @@ function ListeArticles() {
           )}
         </tbody>
       </table>
-      <br/>
-      <button className="btn btn-primary" onClick={handleCreateArticle}>+ Ajouter un nouvel article</button>
+
+      {filteredArticles.length > itemsPerPage && (
+        <nav>
+          <ul className="pagination justify-content-center">
+            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage - 1); }}>
+                Précédent
+              </a>
+            </li>
+            {Array.from({ length: Math.ceil(filteredArticles.length / itemsPerPage) }, (_, i) => i + 1).map(number => (
+              <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
+                <a onClick={(e) => { e.preventDefault(); setCurrentPage(number); }} href="!#" className='page-link'>
+                  {number}
+                </a>
+              </li>
+            ))}
+            <li className={`page-item ${currentPage >= Math.ceil(filteredArticles.length / itemsPerPage) ? 'disabled' : ''}`}>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage + 1); }}>
+                Suivant
+              </a>
+            </li>
+          </ul>
+        </nav>
+      )}
     </div>
   );
 }

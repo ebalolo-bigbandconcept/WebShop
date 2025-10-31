@@ -30,7 +30,7 @@ function ListeClients() {
   // Filter state
   const [filteredClients, setFilteredClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [caduqueFilter, setCaduqueFilter] = useState("all");
+  const [caduqueFilter, setCaduqueFilter] = useState("active");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -390,8 +390,10 @@ function ListeClients() {
             </div>
         </div>
       </div>
-
-      <table className="table table-hover table-striped">
+      <div className="w-100 d-flex justify-content-end">
+        <button className="btn btn-lg btn-success mt-4" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouveau client</button>
+      </div>
+      <table className="table table-hover table-striped mt-4">
         <thead>
           <tr>
             <th scope="col">#</th>
@@ -429,9 +431,7 @@ function ListeClients() {
         <nav>
           <ul className="pagination justify-content-center">
             <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage - 1); }}>
-                Précédent
-              </a>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage - 1); }}>Précédent</a>
             </li>
             {Array.from({ length: Math.ceil(filteredClients.length / itemsPerPage) }, (_, i) => i + 1).map(number => (
               <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
@@ -441,17 +441,12 @@ function ListeClients() {
               </li>
             ))}
             <li className={`page-item ${currentPage >= Math.ceil(filteredClients.length / itemsPerPage) ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage + 1); }}>
-                Suivant
-              </a>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage + 1); }}>Suivant</a>
             </li>
           </ul>
         </nav>
       )}
       {/* END: Pagination Controls */}
-
-      <br/>
-      <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouveau client</button>
     </div>
   );
 }

@@ -331,14 +331,16 @@ function Client() {
             <label className="form-check-label me-2">Caduque :</label>
             <input type="checkbox" checked={!!new_caduque} onChange={(e) => {setNewCaduque(e.target.checked)}} className="form-check-input" id="caduque"/>
           </div>
+          <div className="d-flex justify-content-end col-6">
+            <button className="btn btn-lg btn-success mt-4" onClick={modifyClient}>Modifier</button>
+          </div>
         </form>
-        <div className="d-flex w-100 justify-content-end">
-          <button className="btn btn-lg btn-success mt-4" onClick={modifyClient}>Modifier</button>
-        </div>
         <br/>
         <h2>Devis</h2>
-        <br/>
-        <table className="table table-hover table-striped">
+        <div className="w-100 d-flex justify-content-end">
+          <button className="btn btn-lg btn-success" onClick={() => handleNewDevis()}>+ Créer un devis</button>
+        </div>
+        <table className="table table-hover table-striped mt-4">
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -373,7 +375,6 @@ function Client() {
           </tbody>
         </table>
         <br/>
-        <button className="btn btn-primary" onClick={() => handleNewDevis()}>+ Créer un devis</button>
       </div>
       <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div className="modal-dialog modal-xl">
