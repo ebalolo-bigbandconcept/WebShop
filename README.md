@@ -56,9 +56,9 @@ sudo docker run hello-world   # Test rapide
     - Copiez la clé privée dans `private.pem.`
     - Ajoutez le fichier `private.pem` dans `backend/`
   7. Dans **Additional settings**, ajoutez une **Redirect URI** :
-    ``` bash
-    http://localhost:3000/consent-complete
-    ```
+  ``` bash
+  http://localhost:3000/consent-complete
+  ```
   8. Autorisez la méthode HTTP **POST**.
   9. Enregistrez votre application.
 
@@ -71,7 +71,10 @@ openssl rand -base64 32
 ```
 
 Exemple de clé générée :
-``0rnd5wsmCJYz9wucw4OCl3uOP3FxbRC+nV6pptA07KE=``
+
+```bash
+0rnd5wsmCJYz9wucw4OCl3uOP3FxbRC+nV6pptA07KE=
+```
 
 ### Créez le fichier `.env` à la racine du site
 
