@@ -2,18 +2,25 @@
 
 Application WebShop contenant :
 
-- Frontend : React, Bootstrap
-- Backend : Flask, Redis, DocuSign
-- Docker
+[![React](https://img.shields.io/badge/Frontend-React-blue?logo=react)](https://reactjs.org/)
+[![Flask](https://img.shields.io/badge/Backend-Flask-lightgrey?logo=flask)](https://flask.palletsprojects.com/)
+[![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker)](https://www.docker.com/)
+[![Redis](https://img.shields.io/badge/Redis-Cache-red?logo=redis)](https://redis.io/)
+[![DocuSign](https://img.shields.io/badge/DocuSign-eSign-orange?logo=docusign)](https://www.docusign.com/)
 
-## 1. Setup
+Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour cache, et intégration DocuSign.
 
-Tout d'abord mettez a jour votre VPS :
-``sudo apt update && apt upgrade -y``
+---
+
+## 1. Mise à jour de VPS
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
 
 ## 2. Installation de docker
 
-Tout d'abord il faut installer le repo apt de Docker.
+### Ajouter le repo Docker
 
 ``` bash
 sudo apt-get install ca-certificates curl
@@ -28,46 +35,45 @@ echo \
 sudo apt-get update
 ```
 
-Ensuite on peut l'installer.
-``sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y``
+### Installer Docker
 
-Une fois installer vérifions si docker fonctionne correctement.
-``sudo systemctl status docker``
+``` bash
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+sudo systemctl status docker  # Vérifier le statut
+sudo systemctl start docker   # Démarrer si nécessaire
+sudo docker run hello-world   # Test rapide
+```
 
-Si ce n'est pas le cas faites.
-``sudo systemctl start docker``
+## 3. Initialisation DocuSign eSign
 
-Enfin pour voir si tout fonctionne bien faites.
-``sudo docker run hello-world``
-
-## 3. Initialisation de DocuSign eSign
-
-Créer une application intégrée dans DocuSign (Integrator Key)
-
-- Connectez-vous sur [DocuSign Developer](https://developers.docusign.com/).  
-- Allez dans **My Apps & Keys** > **Add App and Integration Key**.  
-- Nommez votre application.
-- Dans **Integration Type** cocher **Private custom integration**.
-- Dans **Authentication** cocher **Yes**.
-- Dans **Service Integration** générer une paire de clée RSA.
-  - Copier la clée publique dans un fichier public.pem.
-  - Copier la clée privée dans un fichier private.pem.
-- Dans **Additional settings** Ajoutez une **Redirect URI** : ``http://localhost:3000/consent-complete``.
-- Dans **Allowed HTTP Methods** cocher **POST**.
-- Enregistrer.
+  1. Créez une application intégrée sur [DocuSign Developer](https://developers.docusign.com/).  
+  2. Allez dans **My Apps & Keys** -> **Add App and Integration Key**.  
+  3. Donnez un nom à votre application.
+  4. Choisissez **Private custom integration**.
+  5. Dans **Is your application able to securely store a client secret?** cocher **Yes**.
+  6. Dans **Service Integration**, générez une paire de clés RSA :
+    - Copiez la clé publique dans `public.pem.`
+    - Copiez la clé privée dans `private.pem.`
+    - Ajoutez le fichier `private.pem` dans `backend/`
+  7. Dans **Additional settings**, ajoutez une **Redirect URI** :
+    ``` bash
+    http://localhost:3000/consent-complete
+    ```
+  8. Autorisez la méthode HTTP **POST**.
+  9. Enregistrez votre application.
 
 ## 4. Initialisation de site
 
-Tout d'abord allez à la racine du dossier du site.
+### Générer une clé secrète
 
-Vous aurez besoin d'une clée secrète pour faire fonctionné l'application.
-Pour la générer faite dans votre terminal linux :
-``openssl rand -base64 32``
+``` bash
+openssl rand -base64 32
+```
 
-Copier ensuite cette la clée qui devrais resemblé à quelque chose comme ça :
+Exemple de clé générée :
 ``0rnd5wsmCJYz9wucw4OCl3uOP3FxbRC+nV6pptA07KE=``
 
-Créer ensuite un fichier .env à la racine du dossier du site et créer les variable d'environement suivantes :
+### Créez le fichier `.env` à la racine du site
 
 ``` bash
 SECRET_KEY=your_key
@@ -84,16 +90,27 @@ DOCUSIGN_AUTH_SERVER=https://account-d.docusign.com
 DOCUSIGN_PRIVATE_KEY_PATH=/app/private.pem
 ```
 
-Penser à bien remplacer les **'your_...'** par vos identifiants.
+> Remplacer tous les `your_...` par vos identifiants.
 
-## 5. Démarrage du site web
+### Build et lancement avec Docker
 
-On peut lancer le site web
-``sudo docker compose up --build``
+``` bash
+sudo docker compose build
+sudo docker compose up
+```
 
-Une fois le site démarrer il faut finir d'initialiser DocuSign en acceptant le consentement en remplacant **{your_integration_id}** par l'id d'intégration dans **DocuSign** > **Apps & Keys** que vous avez créer dans l'URL suivant: 
-``https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id={your_integration_id}&redirect_uri=http://localhost:3000/consent-complete).``
+## 5. Consentement DocuSign
 
-Puis cliquer dessus et suivre les instructions.
+Pour finaliser l’intégration DocuSign, vous devez accepter le consentement OAuth :
 
-Une fois tout cela fait le site et prêt à l'emploie.
+  1. Remplacez {your_integration_id} par l’ID d’intégration DocuSign que vous avez créé dans l'URl suivante.
+    ```bash
+    https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id={your_integration_id}&redirect_uri=http://localhost:3000/consent-complete).
+    ```
+  2. Ouvrez cette URL dans votre navigateur et suivez les instructions pour accepter le consentement.
+    > Le consentement DocuSign n'est à faire **qu'une seule fois** pour initialiser l'accès via votre compte.
+
+## 6. Accès à l'application
+
+* Frontend : [http://localhost:3000](http://localhost:3000)
+* Backend : [http://localhost:5000](http://localhost:5000)
