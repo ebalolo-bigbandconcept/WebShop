@@ -5,12 +5,12 @@ Application web basic fullstack
 - Frontend : Flask
 - Backend : Nodejs
 
-## Setup
+## 1. Setup
 
 Tout d'abord mettez a jour votre VPS :
 ``sudo apt update && apt upgrade -y``
 
-### Installation de docker
+## 2. Installation de docker
 
 Tout d'abord il faut installer le repo apt de Docker
 
@@ -39,7 +39,23 @@ Si ce n'est pas le cas faites
 Enfin pour voir si tout fonctionne bien faites
 ``sudo docker run hello-world``
 
-### Initialisation de site
+### 3. Initialisation de DocuSign eSign
+
+Créer une application intégrée dans DocuSign (Integrator Key)
+
+- Connectez-vous sur [DocuSign Developer](https://developers.docusign.com/).  
+- Allez dans **My Apps & Keys** > **Add App and Integration Key**.  
+- Nommez votre application
+- Dans **Integration Type** cocher **Private custom integration**
+- Dans **Authentication** cocher **Yes**
+- Dans **Service Integration** générer une paire de clée RSA
+  - Copier la clée publique dans un fichier public.pem
+  - Copier la clée privée dans un fichier private.pem
+- Dans **Additional settings** Ajoutez une **Redirect URI** : ``http://localhost:3000/consent-complete``
+- Dans **Allowed HTTP Methods** cocher **POST**
+- Enregistrer
+
+### 4. Initialisation de site
 
 Tout d'abord allez à la racine du dossier du site.
 
@@ -57,12 +73,19 @@ SECRET_KEY=your_key
 ADMIN_MAIL=your_admin_mail
 ADMIN_PASSWORD=your_admin_password
 REACT_APP_BACKEND_URL=http://localhost:5000
+
+# Variables pour DocuSign trouvable sur docusign dans l'onglet Apps & Keys
+DOCUSIGN_ACCOUNT_ID=your_docusign_account_id
+DOCUSIGN_USER_ID=your_docusign_user_id
+DOCUSIGN_INTEGRATION_KEY=your_docusign_integration_id
+DOCUSIGN_BASE_PATH=https://demo.docusign.net/restapi
+DOCUSIGN_AUTH_SERVER=https://account-d.docusign.com
+DOCUSIGN_PRIVATE_KEY_PATH=/app/private.pem
 ```
 
-Remplacer les 'your_...' par vos identifiant et votre clée secrète.
+Penser à bien remplacer les **'your_...'** par vos identifiants.
 
-Ensuite il faut initialiser l'application
-``sudo docker compose build``
+### 5. Démarrage du site web
 
-Enfin on peut lance le site web
-``sudo docker compose up``
+Enfin on peut lancer le site web
+``sudo docker compose up --build``
