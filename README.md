@@ -22,7 +22,7 @@ sudo apt update && sudo apt upgrade -y
 
 ### Ajouter le repo Docker
 
-``` bash
+```bash
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -37,7 +37,7 @@ sudo apt-get update
 
 ### Installer Docker
 
-``` bash
+```bash
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 sudo systemctl status docker  # Vérifier le statut
 sudo systemctl start docker   # Démarrer si nécessaire
@@ -46,36 +46,41 @@ sudo docker run hello-world   # Test rapide
 
 ## 3. Initialisation DocuSign eSign
 
-  1. Créez une application intégrée sur [DocuSign Developer](https://developers.docusign.com/).  
-  2. Allez dans **My Apps & Keys** -> **Add App and Integration Key**.  
-  3. Donnez un nom à votre application.
-  4. Choisissez **Private custom integration**.
-  5. Dans **Is your application able to securely store a client secret?** cocher **Yes**.
-  6. Dans **Service Integration**, générez une paire de clés RSA :
-    - Copiez la clé publique dans `public.pem.`
-    - Copiez la clé privée dans `private.pem.`
-    - Ajoutez le fichier `private.pem` dans `backend/`
-  7. Dans **Additional settings**, ajoutez une **Redirect URI** :
-    ``` bash
-    http://localhost:3000/consent-complete
-    ```
-  8. Autorisez la méthode HTTP **POST**.
-  9. Enregistrez votre application.
+1. Créez une application intégrée sur [DocuSign Developer](https://developers.docusign.com/).  
+2. Allez dans **My Apps & Keys** -> **Add App and Integration Key**.  
+3. Donnez un nom à votre application.
+4. Choisissez **Private custom integration**.
+5. Dans **Is your application able to securely store a client secret?** cocher **Yes**.
+6. Dans **Service Integration**, générez une paire de clés RSA :
+   - Copiez la clé publique dans `public.pem`
+   - Copiez la clé privée dans `private.pem`
+   - Ajoutez le fichier `private.pem` dans `backend/`
+7. Dans **Additional settings**, ajoutez une **Redirect URI** :
+
+   ``` bash
+   http://localhost:3000/consent-complete
+   ```
+
+8. Autorisez la méthode HTTP **POST**.
+9. Enregistrez votre application.
 
 ## 4. Initialisation de site
 
 ### Générer une clé secrète
 
-``` bash
+```bash
 openssl rand -base64 32
 ```
 
 Exemple de clé générée :
-``0rnd5wsmCJYz9wucw4OCl3uOP3FxbRC+nV6pptA07KE=``
+
+```bash
+0rnd5wsmCJYz9wucw4OCl3uOP3FxbRC+nV6pptA07KE=
+```
 
 ### Créez le fichier `.env` à la racine du site
 
-``` bash
+```bash
 SECRET_KEY=your_key
 ADMIN_MAIL=your_admin_mail
 ADMIN_PASSWORD=your_admin_password
@@ -94,7 +99,7 @@ DOCUSIGN_PRIVATE_KEY_PATH=/app/private.pem
 
 ### Build et lancement avec Docker
 
-``` bash
+```bash
 sudo docker compose build
 sudo docker compose up
 ```
@@ -103,14 +108,16 @@ sudo docker compose up
 
 Pour finaliser l’intégration DocuSign, vous devez accepter le consentement OAuth :
 
-  1. Remplacez {your_integration_id} par l’ID d’intégration DocuSign que vous avez créé dans l'URl suivante.
-    ```bash
-    https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id={your_integration_id}&redirect_uri=http://localhost:3000/consent-complete).
-    ```
-  2. Ouvrez cette URL dans votre navigateur et suivez les instructions pour accepter le consentement.
-    > Le consentement DocuSign n'est à faire **qu'une seule fois** pour initialiser l'accès via votre compte.
+1. Remplacez {your_integration_id} par l’ID d’intégration DocuSign que vous avez créé dans l'URl suivante.
+
+   ``` bash
+   https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id={your_integration_id}&redirect_uri=http://localhost:3000/consent-complete).
+   ```
+
+2. Ouvrez cette URL dans votre navigateur et suivez les instructions pour accepter le consentement.
+   > Le consentement DocuSign n'est à faire **qu'une seule fois** pour initialiser l'accès via votre compte.
 
 ## 6. Accès à l'application
 
-* Frontend : [http://localhost:3000](http://localhost:3000)
-* Backend : [http://localhost:5000](http://localhost:5000)
+- Frontend : [http://localhost:3000](http://localhost:3000)
+- Backend : [http://localhost:5000](http://localhost:5000)
