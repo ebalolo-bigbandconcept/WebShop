@@ -52,10 +52,10 @@ sudo docker run hello-world   # Test rapide
   4. Choisissez **Private custom integration**.
   5. Dans **Is your application able to securely store a client secret?** cocher **Yes**.
   6. Dans **Service Integration**, générez une paire de clés RSA :
-    - Copiez la clé publique dans `public.pem.`
-    - Copiez la clé privée dans `private.pem.`
-    - Ajoutez le fichier `private.pem` dans `backend/`
-  7. Dans **Additional settings**, ajoutez une **Redirect URI** :
+    * Copiez la clé publique dans `public.pem.`
+    * Copiez la clé privée dans `private.pem.`
+    * Ajoutez le fichier `private.pem` dans `backend/`
+  8. Dans **Additional settings**, ajoutez une **Redirect URI** :
   ``` bash
   http://localhost:3000/consent-complete
   ```
