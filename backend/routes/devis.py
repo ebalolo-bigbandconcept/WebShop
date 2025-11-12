@@ -265,14 +265,3 @@ def send_pdf_sign(client_id):
             return jsonify({"error": "consent_required"}), 403
         logging.exception("Erreur lors de l'envoi du PDF à DocuSign:")
         return jsonify({"error": str(e)}), 500
-    
-# Docusign consent
-@devis_bp.route("/docusign/consent/<client_id>/<devis_id>")
-def docusign_consent(client_id, devis_id):
-    docusign_client_id = os.environ["DOCUSIGN_CLIENT_ID"]
-    redirect_uri = "http://localhost:3000/devis/"+client_id+"/"+devis_id+"/pdf"
-    consent_url = (
-        f"https://account-d.docusign.com/oauth/auth?"
-        f"response_type=code&scope=signature%20impersonation&client_id={docusign_client_id}&redirect_uri={redirect_uri}"
-    )
-    return redirect(consent_url)

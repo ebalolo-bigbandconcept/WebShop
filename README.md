@@ -1,9 +1,10 @@
-# PythonWebApp
+# WebShop
 
-Application web basic fullstack
+Application WebShop contenant :
 
-- Frontend : Flask
-- Backend : Nodejs
+- Frontend : React, Bootstrap
+- Backend : Flask, Redis, DocuSign
+- Docker
 
 ## 1. Setup
 
@@ -12,7 +13,7 @@ Tout d'abord mettez a jour votre VPS :
 
 ## 2. Installation de docker
 
-Tout d'abord il faut installer le repo apt de Docker
+Tout d'abord il faut installer le repo apt de Docker.
 
 ``` bash
 sudo apt-get install ca-certificates curl
@@ -27,16 +28,16 @@ echo \
 sudo apt-get update
 ```
 
-Ensuite on peut l'installer
+Ensuite on peut l'installer.
 ``sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y``
 
-Une fois installer vérifions si docker fonctionne correctement
+Une fois installer vérifions si docker fonctionne correctement.
 ``sudo systemctl status docker``
 
-Si ce n'est pas le cas faites
+Si ce n'est pas le cas faites.
 ``sudo systemctl start docker``
 
-Enfin pour voir si tout fonctionne bien faites
+Enfin pour voir si tout fonctionne bien faites.
 ``sudo docker run hello-world``
 
 ## 3. Initialisation de DocuSign eSign
@@ -45,15 +46,15 @@ Créer une application intégrée dans DocuSign (Integrator Key)
 
 - Connectez-vous sur [DocuSign Developer](https://developers.docusign.com/).  
 - Allez dans **My Apps & Keys** > **Add App and Integration Key**.  
-- Nommez votre application
-- Dans **Integration Type** cocher **Private custom integration**
-- Dans **Authentication** cocher **Yes**
-- Dans **Service Integration** générer une paire de clée RSA
-  - Copier la clée publique dans un fichier public.pem
-  - Copier la clée privée dans un fichier private.pem
-- Dans **Additional settings** Ajoutez une **Redirect URI** : ``http://localhost:3000/consent-complete``
-- Dans **Allowed HTTP Methods** cocher **POST**
-- Enregistrer
+- Nommez votre application.
+- Dans **Integration Type** cocher **Private custom integration**.
+- Dans **Authentication** cocher **Yes**.
+- Dans **Service Integration** générer une paire de clée RSA.
+  - Copier la clée publique dans un fichier public.pem.
+  - Copier la clée privée dans un fichier private.pem.
+- Dans **Additional settings** Ajoutez une **Redirect URI** : ``http://localhost:3000/consent-complete``.
+- Dans **Allowed HTTP Methods** cocher **POST**.
+- Enregistrer.
 
 ## 4. Initialisation de site
 
@@ -87,5 +88,12 @@ Penser à bien remplacer les **'your_...'** par vos identifiants.
 
 ## 5. Démarrage du site web
 
-Enfin on peut lancer le site web
+On peut lancer le site web
 ``sudo docker compose up --build``
+
+Une fois le site démarrer il faut finir d'initialiser DocuSign en acceptant le consentement en remplacant **{your_integration_id}** par l'id d'intégration dans **DocuSign** > **Apps & Keys** que vous avez créer dans l'URL suivant: 
+``https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id={your_integration_id}&redirect_uri=http://localhost:3000/consent-complete).``
+
+Puis cliquer dessus et suivre les instructions.
+
+Une fois tout cela fait le site et prêt à l'emploie.

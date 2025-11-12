@@ -56,7 +56,7 @@ function App() {
             <Route path="/" element={<Login setUser={setUser}/>}/>
             <Route path="/*" element={<NotFound/>}/>
             <Route path="/consent_complete" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+              <PrivateRoute user={user} requiredRole={['Administrateur']}>
                 <ConsentComplete/>
               </PrivateRoute>
             }/>

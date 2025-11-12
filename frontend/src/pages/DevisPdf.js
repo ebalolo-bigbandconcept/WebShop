@@ -42,23 +42,11 @@ function DevisPdfPreview() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          if (error.response.data.error === "consent_required"){
-            handleConsent()
-          }else{
-            console.log(error.response.data.error);
-          }
+          console.log(error.response.data.error);
         } else {
           alert("Une erreur est survenue lors de l'envoie du pdf.");
         }
       });
-  }
-
-  const handleConsent = () => {
-    const clientId = process.env.REACT_APP_DOCUSIGN_CLIENT_ID;
-    const redirectUri = `http://localhost:3000/consent-complete`
-    const consentUrl = `https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id=${clientId}&redirect_uri=${redirectUri}`;
-    
-    window.open(consentUrl, "_blank");
   }
 
   useEffect(() => {
