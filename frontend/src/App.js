@@ -19,6 +19,7 @@ const ListeArticles = lazy(() => import ('./pages/AdminListeArticles'));
 const ListeDevis = lazy(() => import ('./pages/ListeDevis'));
 const Devis = lazy(() => import ('./pages/Devis'));
 const DevisPdf = lazy(() => import ('./pages/DevisPdf'));
+const ConsentComplete = lazy(() => import ('./pages/ConsentComplete'));
 
 function App() {
   const [user, setUser] = useState(null);
@@ -54,6 +55,11 @@ function App() {
           <Routes>
             <Route path="/" element={<Login setUser={setUser}/>}/>
             <Route path="/*" element={<NotFound/>}/>
+            <Route path="/consent_complete" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <ConsentComplete/>
+              </PrivateRoute>
+            }/>
             <Route path="/liste-clients" element={
               <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
                 <ListeClients/>

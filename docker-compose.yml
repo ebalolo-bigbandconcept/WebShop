@@ -8,6 +8,12 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ADMIN_MAIL: ${ADMIN_MAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DOCUSIGN_ACCOUNT_ID: ${DOCUSIGN_ACCOUNT_ID}
+      DOCUSIGN_USER_ID: ${DOCUSIGN_USER_ID}
+      DOCUSIGN_INTEGRATION_KEY: ${DOCUSIGN_INTEGRATION_KEY}
+      DOCUSIGN_BASE_PATH: ${DOCUSIGN_BASE_PATH}
+      DOCUSIGN_AUTH_SERVER: ${DOCUSIGN_AUTH_SERVER}
+      DOCUSIGN_PRIVATE_KEY_PATH: ${DOCUSIGN_PRIVATE_KEY_PATH}
     ports:
       - "5000:5000"
     depends_on:
@@ -17,6 +23,7 @@ services:
     volumes:
       - ./backend:/app # Mount backend code for development
       - db_data:/app/instance
+      - ./backend/private.pem:/app/private.pem:ro # Mount private key as read-only
 
   frontend:
     build:
@@ -24,6 +31,7 @@ services:
       dockerfile: frontend/Dockerfile
     environment:
       REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL}
+      REACT_APP_DOCUSIGN_CLIENT_ID : ${DOCUSIGN_INTEGRATION_KEY}
     ports:
       - "3000:3000"
     depends_on:

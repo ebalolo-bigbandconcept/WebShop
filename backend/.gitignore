@@ -58,3 +58,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+
+# RSA Keys
+*.pem
+private.pem

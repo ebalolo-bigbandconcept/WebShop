@@ -1,8 +1,15 @@
-from flask import Blueprint, request, jsonify, session, render_template, make_response
-from models import db, Devis, DevisSchema, DevisArticles
+from flask import Blueprint, request, jsonify, session, render_template, make_response, redirect
+from models import db, Devis, DevisSchema, DevisArticles, Clients
 from datetime import datetime
 from weasyprint import HTML
-import logging, os
+from docusign_esign import ApiClient, EnvelopesApi, EnvelopeDefinition, Document, Signer, SignHere, Tabs, Recipients, ApiClient
+from docusign_esign.client.api_exception import ApiException
+import logging, os, base64, time
+
+# Docusign credentials
+DOCUSIGN_BASE_PATH = "https://demo.docusign.net/restapi" # Only for dev
+DOCUSIGN_ACCOUNT_ID = os.getenv("DOCUSIGN_ACCOUNT_ID")
+DOCUSIGN_ACCESS_TOKEN = os.getenv("DOCUSIGN_ACCOUNT_TOKEN")
 
 # Create a Blueprint for authentication-related routes
 devis_bp = Blueprint('devis_bp', __name__, url_prefix='/devis')
@@ -157,3 +164,115 @@ def get_devis_pdf(devis_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=devis_{devis_id}.pdf"
     return response
+
+### DocuSign routes ###
+
+# Cache the token globally so we don’t request it every time
+DOCUSIGN_TOKEN_CACHE = {
+    "access_token": None,
+    "expires_at": 0
+}
+
+def get_docusign_token():
+    # Reuse cached token if valid
+    if DOCUSIGN_TOKEN_CACHE["access_token"] and DOCUSIGN_TOKEN_CACHE["expires_at"] > time.time():
+        return DOCUSIGN_TOKEN_CACHE["access_token"]
+    
+    private_key_path = os.getenv("DOCUSIGN_PRIVATE_KEY_PATH")
+    with open(private_key_path, "r") as key_file:
+        private_key = key_file.read()
+
+    integration_key = os.getenv("DOCUSIGN_INTEGRATION_KEY")
+    user_id = os.getenv("DOCUSIGN_USER_ID")
+    auth_server = os.getenv("DOCUSIGN_AUTH_SERVER")
+
+    api_client = ApiClient()
+    api_client.set_oauth_host_name(auth_server.replace("https://", ""))
+
+    try:
+        token_response = api_client.request_jwt_user_token(
+            client_id=integration_key,
+            user_id=user_id,
+            oauth_host_name=auth_server.replace("https://", ""),
+            private_key_bytes=private_key.encode("utf-8"),
+            expires_in=3600,
+            scopes=["signature", "impersonation"]
+        )
+        access_token = token_response.access_token
+        
+        logging.info("Nouveau token JWT DocuSign obtenu.")
+        return access_token
+    except ApiException as e:
+        logging.error("Erreur lors de l'obtention du token JWT: %s", e)
+        raise e
+
+# Send PDF for sign by email
+@devis_bp.route('/pdf/send/<client_id>', methods=['POST'])
+def send_pdf_sign(client_id):
+    try:
+        file = request.files['file']
+        client = Clients.query.filter_by(id=client_id).first()
+        if not client:
+            return jsonify({"error": "Client non trouvé."}), 404
+        
+        signer_email = client.email
+        signer_nom = client.nom
+        signer_prenom = client.prenom
+        
+        # Convert PDF to base64
+        file_content = base64.b64encode(file.read()).decode('utf-8')
+        
+        # Create DocuSign document
+        document = Document(
+            document_base64=file_content,
+            name='Devis à signer',
+            file_extension='pdf',
+            document_id='1'
+        )
+        
+        # Create signer and tabs
+        sign_here = SignHere(anchor_string='SIGN_HERE', anchor_units='pixels', anchor_x_offset='100', anchor_y_offset='100')
+        tabs = Tabs(sign_here_tabs=[sign_here])
+        signer = Signer(email=signer_email, name=f"{signer_nom} {signer_prenom}", recipient_id='1', routing_order='1', tabs=tabs)
+
+        recipients = Recipients(signers=[signer])
+
+        # Create envelope definition
+        envelope_definition = EnvelopeDefinition(
+            email_subject='Please sign this document',
+            documents=[document],
+            recipients=recipients,
+            status='sent'
+        )
+        
+        # Get JWT access token
+        access_token = get_docusign_token()
+        account_id = os.getenv("DOCUSIGN_ACCOUNT_ID")
+        base_path = os.getenv("DOCUSIGN_BASE_PATH", "https://demo.docusign.net/restapi")
+
+        # Use the DocuSign API client
+        api_client = ApiClient()
+        api_client.host = base_path
+        api_client.set_default_header("Authorization", f"Bearer {access_token}")
+
+        envelope_api = EnvelopesApi(api_client)
+        results = envelope_api.create_envelope(account_id, envelope_definition=envelope_definition)
+        
+        logging.info(f"Envelope envoyé avec ID: {results.envelope_id}")
+        return jsonify({'envelope_id': results.envelope_id}), 200
+    except ApiException as e:
+        if "consent_required" in str(e):
+            return jsonify({"error": "consent_required"}), 403
+        logging.exception("Erreur lors de l'envoi du PDF à DocuSign:")
+        return jsonify({"error": str(e)}), 500
+    
+# Docusign consent
+@devis_bp.route("/docusign/consent/<client_id>/<devis_id>")
+def docusign_consent(client_id, devis_id):
+    docusign_client_id = os.environ["DOCUSIGN_CLIENT_ID"]
+    redirect_uri = "http://localhost:3000/devis/"+client_id+"/"+devis_id+"/pdf"
+    consent_url = (
+        f"https://account-d.docusign.com/oauth/auth?"
+        f"response_type=code&scope=signature%20impersonation&client_id={docusign_client_id}&redirect_uri={redirect_uri}"
+    )
+    return redirect(consent_url)
