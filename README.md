@@ -39,7 +39,7 @@ Si ce n'est pas le cas faites
 Enfin pour voir si tout fonctionne bien faites
 ``sudo docker run hello-world``
 
-### 3. Initialisation de DocuSign eSign
+## 3. Initialisation de DocuSign eSign
 
 Créer une application intégrée dans DocuSign (Integrator Key)
 
@@ -55,7 +55,7 @@ Créer une application intégrée dans DocuSign (Integrator Key)
 - Dans **Allowed HTTP Methods** cocher **POST**
 - Enregistrer
 
-### 4. Initialisation de site
+## 4. Initialisation de site
 
 Tout d'abord allez à la racine du dossier du site.
 
@@ -85,7 +85,7 @@ DOCUSIGN_PRIVATE_KEY_PATH=/app/private.pem
 
 Penser à bien remplacer les **'your_...'** par vos identifiants.
 
-### 5. Démarrage du site web
+## 5. Démarrage du site web
 
 Enfin on peut lancer le site web
 ``sudo docker compose up --build``
