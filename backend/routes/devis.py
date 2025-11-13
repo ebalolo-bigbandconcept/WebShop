@@ -281,8 +281,8 @@ def external_send_pdf_sign(client_id):
         
         # Read private key content from path
         private_key_path = os.getenv("DOCUSIGN_PRIVATE_KEY_PATH")
-        with open(private_key_path, "r") as key_file:
-            private_key_content = key_file.read()
+        with open(private_key_path, "rb") as key_file:
+            private_key_content = base64.b64encode(key_file.read()).decode("utf-8")
 
         # Get other Docusign credentials from environment variables
         integrator_key = os.getenv("DOCUSIGN_INTEGRATION_KEY")
@@ -295,13 +295,13 @@ def external_send_pdf_sign(client_id):
             'integrator_key': integrator_key,
             'account_id': account_id,
             'user_id': user_id,
-            'private_key': private_key_content,
+            'private_key_b64': private_key_content,
             'email': email,
             'name': f"{nom} {prenom}"
         }
 
         # Make the POST request to the external service
-        target_url = "http://172.20.0.2:5001/api/send-pdf"
+        target_url = "http://192.168.10.117:5001/api/send-pdf"
         response = requests.post(target_url,files=files,data=data)
         response.raise_for_status() # Raise an exception for HTTP errors (4xx or 5xx)
         logging.info(response)
@@ -316,4 +316,3 @@ def external_send_pdf_sign(client_id):
     except Exception as e:
         logging.exception("Erreur lors de l'envoi du PDF via le service externe:")
         return jsonify({"error": str(e)}), 500
-

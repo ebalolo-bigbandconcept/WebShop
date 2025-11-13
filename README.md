@@ -12,7 +12,7 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour cac
 
 ---
 
-## 1. Mise à jour de VPS
+## 1. Mise à jour du VPS
 
 ```bash
 sudo apt update && sudo apt upgrade -y
