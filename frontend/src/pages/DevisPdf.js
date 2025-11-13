@@ -29,14 +29,11 @@ function DevisPdfPreview() {
   const handleSendToDocuSign = () => {
     if(!pdfBlob) return alert("PDF non disponible.");
 
-    // Stocker la page actuelle pour revenir après consentement
-    sessionStorage.setItem("redirectAfterConsent", window.location.pathname);
-
     const formData = new FormData();
     formData.append("file", pdfBlob, `devis_${id_devis}.pdf`)
     
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/${id_client}`,formData)
+      .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/external/${id_client}`,formData)
       .then((resp) => {
         alert(`Document envoyé ! Envelope ID: ${resp.data.envelope_id}`);
       })

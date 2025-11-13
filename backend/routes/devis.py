@@ -4,7 +4,7 @@ from datetime import datetime
 from weasyprint import HTML
 from docusign_esign import ApiClient, EnvelopesApi, EnvelopeDefinition, Document, Signer, SignHere, Tabs, Recipients, ApiClient
 from docusign_esign.client.api_exception import ApiException
-import logging, os, base64, time
+import logging, os, base64, time, requests
 
 # Docusign credentials
 DOCUSIGN_BASE_PATH = "https://demo.docusign.net/restapi" # Only for dev
@@ -265,3 +265,55 @@ def send_pdf_sign(client_id):
             return jsonify({"error": "consent_required"}), 403
         logging.exception("Erreur lors de l'envoi du PDF à DocuSign:")
         return jsonify({"error": str(e)}), 500
+
+# Send PDF to external service for signing
+@devis_bp.route('/pdf/send/external/<client_id>', methods=['POST'])
+def external_send_pdf_sign(client_id):
+    try:
+        file = request.files['file']
+        client = Clients.query.filter_by(id=client_id).first()
+        if not client:
+            return jsonify({"error": "Client non trouvé."}), 404
+        
+        email = client.email
+        nom = client.nom
+        prenom = client.prenom
+        
+        # Read private key content from path
+        private_key_path = os.getenv("DOCUSIGN_PRIVATE_KEY_PATH")
+        with open(private_key_path, "r") as key_file:
+            private_key_content = key_file.read()
+
+        # Get other Docusign credentials from environment variables
+        integrator_key = os.getenv("DOCUSIGN_INTEGRATION_KEY")
+        account_id = os.getenv("DOCUSIGN_ACCOUNT_ID")
+        user_id = os.getenv("DOCUSIGN_USER_ID")
+
+        # Prepare files and data for the external service
+        files = {'file': (file.filename, file.read(), file.content_type)}
+        data = {
+            'integrator_key': integrator_key,
+            'account_id': account_id,
+            'user_id': user_id,
+            'private_key': private_key_content,
+            'email': email,
+            'name': f"{nom} {prenom}"
+        }
+
+        # Make the POST request to the external service
+        target_url = "http://172.20.0.2:5001/api/send-pdf"
+        response = requests.post(target_url,files=files,data=data)
+        response.raise_for_status() # Raise an exception for HTTP errors (4xx or 5xx)
+        logging.info(response)
+        
+        # Return the JSON response from the external service
+        return jsonify(response.json()), response.status_code
+    
+    except requests.exceptions.RequestException as e:
+        logging.exception(f"Erreur lors de l'appel au service externe: {e}")
+        return jsonify({"error": f"Erreur lors de l'appel au service externe: {e}"}), 500
+    
+    except Exception as e:
+        logging.exception("Erreur lors de l'envoi du PDF via le service externe:")
+        return jsonify({"error": str(e)}), 500
+
