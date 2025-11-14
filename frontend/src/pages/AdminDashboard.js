@@ -113,7 +113,11 @@ function AdminDashboard() {
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
-            alert(error.response.data.error);
+            if (error.response.status === 409){
+              setEmailError(error.response.data.error)
+            }else{
+              alert(error.response.data.error);
+            }
           } else {
             alert("Une erreur est survenue.");
           }
@@ -158,7 +162,7 @@ function AdminDashboard() {
         <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouvel utilisateur</button>
         <br />
         <br />
-        <div className="modal fade" id="popup" tabIndex="-1">
+        <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">

@@ -110,6 +110,8 @@ function ManageUser() {
               setRoleError("Impossible de modifier le rôle du dernier compte administrateur.");
             }else if (error.response.data.error === "Impossible de modifier votre propre rôle administrateur.") {
               setRoleError("Impossible de modifier votre propre rôle administrateur.");
+            }else if (error.response.status === 409){
+              setEmailError(error.response.data.error)
             }else{
               alert(error.response.data.error);
             }
@@ -223,7 +225,7 @@ function ManageUser() {
                 <button type="button" onClick={(e) => setMODIFY(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-primary btn-lg">Modifier le compte</button>
                 <button type="button" onClick={(e) => setDELETE(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-danger btn-lg"> Supprimer le compte</button>
               </div>
-              <div className="modal fade" id="popup" tabIndex="-1">
+              <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
                 <div className="modal-dialog">
                   <div className="modal-content">
                     <div className="modal-header">
