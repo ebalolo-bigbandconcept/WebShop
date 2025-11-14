@@ -394,7 +394,7 @@ function ListeArticles() {
         </div>
         <div className="col-md-3">
             <div className="d-flex align-items-center justify-content-end">
-                <label htmlFor="itemsPerPage" className="form-label me-2 mb-0">Par page:</label>
+                <label htmlFor="itemsPerPage" className="form-label me-2 mb-0">Articles par page:</label>
                 <select id="itemsPerPage" className="form-select form-select-lg w-auto" value={itemsPerPage}
                     onChange={(e) => setItemsPerPage(Number(e.target.value))}>
                     <option value={10}>10</option>

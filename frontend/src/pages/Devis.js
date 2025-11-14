@@ -210,7 +210,6 @@ function Devis() {
   
   const addNewArticle = async () => {
     const isQuantityValid = articleQuantityVerif(article_quantite);
-    console.log(article_selected)
     const isArticleSelected = article_selected.length !== 0;
 
     // If article is not already in the devis
@@ -270,7 +269,6 @@ function Devis() {
         httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
         .then((resp) => {
-          console.log(resp);
           setIsNewDevis(false);
         })
         .catch((error) => {
@@ -285,7 +283,6 @@ function Devis() {
         httpClient
         .put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData)
         .then((resp) => {
-          console.log(resp);
           navigate(`/client/${id_client}`);
         })
         .catch((error) => {
@@ -306,7 +303,6 @@ function Devis() {
       .then((resp) => {
         handleClose()
         navigate(`/client/${id_client}`);
-        console.log(resp.data);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -323,7 +319,6 @@ function Devis() {
       .get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${id_devis}`)
       .then((resp) => {
         setDevis(resp.data);
-        console.log(resp.data);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {

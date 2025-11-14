@@ -89,7 +89,7 @@ const Register = ({ setUser }) => {
         })
         .then((resp) => {
           setUser(resp.data);
-          console.log(resp.data);
+          console.log("Création du compte réussie");
           navigate("/liste-clients");
         })
         .catch((error) => {
