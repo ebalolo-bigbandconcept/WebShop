@@ -46,23 +46,9 @@ sudo docker run hello-world   # Test rapide
 
 ## 3. Initialisation DocuSign eSign
 
-1. Créez une application intégrée sur [DocuSign Developer](https://developers.docusign.com/).  
-2. Allez dans **My Apps & Keys** -> **Add App and Integration Key**.  
-3. Donnez un nom à votre application.
-4. Choisissez **Private custom integration**.
-5. Dans **Is your application able to securely store a client secret?** cocher **Yes**.
-6. Dans **Service Integration**, générez une paire de clés RSA :
-   - Copiez la clé publique dans `public.pem`
-   - Copiez la clé privée dans `private.pem`
-   - Ajoutez le fichier `private.pem` dans `backend/`
-7. Dans **Additional settings**, ajoutez une **Redirect URI** :
+Copiez la clé privée `private.pem` de votre intégration DocuSign dans **backend/**
 
-   ``` bash
-   http://localhost:3000/consent-complete
-   ```
-
-8. Autorisez la méthode HTTP **POST**.
-9. Enregistrez votre application.
+> Attention la clée doit être copier `tel quel` aucuns changement ne doit être apporter a cette clée.
 
 ## 4. Initialisation de site
 
@@ -90,8 +76,6 @@ REACT_APP_BACKEND_URL=http://localhost:5000
 DOCUSIGN_ACCOUNT_ID=your_docusign_account_id
 DOCUSIGN_USER_ID=your_docusign_user_id
 DOCUSIGN_INTEGRATION_KEY=your_docusign_integration_id
-DOCUSIGN_BASE_PATH=https://demo.docusign.net/restapi
-DOCUSIGN_AUTH_SERVER=https://account-d.docusign.com
 DOCUSIGN_PRIVATE_KEY_PATH=/app/private.pem
 ```
 
@@ -104,20 +88,7 @@ sudo docker compose build
 sudo docker compose up
 ```
 
-## 5. Consentement DocuSign
-
-Pour finaliser l’intégration DocuSign, vous devez accepter le consentement OAuth :
-
-1. Remplacez {your_integration_id} par l’ID d’intégration DocuSign que vous avez créé dans l'URl suivante.
-
-   ``` bash
-   https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id={your_integration_id}&redirect_uri=http://localhost:3000/consent-complete).
-   ```
-
-2. Ouvrez cette URL dans votre navigateur et suivez les instructions pour accepter le consentement.
-   > Le consentement DocuSign n'est à faire **qu'une seule fois** pour initialiser l'accès via votre compte.
-
-## 6. Accès à l'application
+## 5. Accès à l'application
 
 - Frontend : [http://localhost:3000](http://localhost:3000)
 - Backend : [http://localhost:5000](http://localhost:5000)
