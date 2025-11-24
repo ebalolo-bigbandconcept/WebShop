@@ -202,7 +202,7 @@ def external_send_pdf_sign(client_id):
         }
 
         # Make the POST request to the external service
-        target_url = "http://192.168.177.128:5001/api/send-pdf"
+        target_url = "http://" + os.getenv("DOCUSIGN_SERVER_IP") + ":5001/api/send-pdf"
         response = requests.post(target_url,files=files,data=data)
         response.raise_for_status() # Raise an exception for HTTP errors (4xx or 5xx)
         logging.info(response)

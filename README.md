@@ -70,13 +70,14 @@ Exemple de clé générée :
 SECRET_KEY=your_key
 ADMIN_MAIL=your_admin_mail
 ADMIN_PASSWORD=your_admin_password
+
 REACT_APP_BACKEND_URL=http://localhost:5000
 
-# Variables pour DocuSign trouvable sur docusign dans l'onglet Apps & Keys
 DOCUSIGN_ACCOUNT_ID=your_docusign_account_id
 DOCUSIGN_USER_ID=your_docusign_user_id
 DOCUSIGN_INTEGRATION_KEY=your_docusign_integration_id
 DOCUSIGN_PRIVATE_KEY_PATH=/app/private.pem
+DOCUSIGN_SERVER_IP=123.456.789.10
 ```
 
 > Remplacer tous les `your_...` par vos identifiants.
