@@ -44,13 +44,7 @@ sudo systemctl start docker   # Démarrer si nécessaire
 sudo docker run hello-world   # Test rapide
 ```
 
-## 3. Initialisation DocuSign eSign
-
-Copiez la clé privée `private.pem` de votre intégration DocuSign dans **backend/**
-
-> Attention la clée doit être copier `tel quel` aucuns changement ne doit être apporter a cette clée.
-
-## 4. Initialisation de site
+## 3. Initialisation de site
 
 ### Générer une clé secrète
 
@@ -76,7 +70,6 @@ REACT_APP_BACKEND_URL=http://localhost:5000
 DOCUSIGN_ACCOUNT_ID=your_docusign_account_id
 DOCUSIGN_USER_ID=your_docusign_user_id
 DOCUSIGN_INTEGRATION_KEY=your_docusign_integration_id
-DOCUSIGN_PRIVATE_KEY_PATH=/app/private.pem
 DOCUSIGN_SERVER_IP=123.456.789.10
 ```
 
@@ -89,7 +82,7 @@ sudo docker compose build
 sudo docker compose up
 ```
 
-## 5. Accès à l'application
+## 4. Accès à l'application
 
 - Frontend : [http://localhost:3000](http://localhost:3000)
 - Backend : [http://localhost:5000](http://localhost:5000)
