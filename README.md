@@ -189,7 +189,15 @@ backend:
   environment:
     - DATABASE_URL=postgresql://user:password@db:5432/users_db # À CHANGER
     - DOCUSIGN_SERVER_IP=http://195.110.34.168:5001/api # À CHANGER
-    - DOCUSIGN_BASE_PATH=https://demo.docusign.net/restapi # À CHANGER
+    - FRONTEND_URL=http://votre_domaine_ou_ip # À CHANGER
+```
+
+Changez les variables d'environnement du frontend dans `docker-compose.prod.yml` :
+
+```yaml
+frontend:
+  args:
+    - REACT_APP_BACKEND_URL=http://votre_domaine_ou_ip:5000/api # À CHANGER
 ```
 
 ⚠️ **Important**: Changez les identifiants de base de données dans `docker-compose.prod.yml` :
