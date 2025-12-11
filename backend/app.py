@@ -14,13 +14,19 @@ from routes.devis import devis_bp
 
 # CONSTANTS
 load_dotenv()
-ADMIN_MAIL = os.getenv('ADMIN_MAIL')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+
+ADMIN_MAIL = open("/run/secrets/ADMIN_MAIL").read().strip() if os.path.exists("/run/secrets/ADMIN_MAIL") else os.getenv('ADMIN_MAIL')
+ADMIN_PASSWORD = open("/run/secrets/ADMIN_PASSWORD").read().strip() if os.path.exists("/run/secrets/ADMIN_PASSWORD") else os.getenv('ADMIN_PASSWORD')
+FRONTEND_URL = os.getenv('FRONTEND_URL')
+
+if not ADMIN_MAIL or not ADMIN_PASSWORD:
+    logging.error("ADMIN_MAIL et ADMIN_PASSWORD doivent être définis dans les variables d'environnement ou les secrets Docker.")
+    raise ValueError("ADMIN_MAIL et ADMIN_PASSWORD doivent être définis dans les variables d'environnement ou les secrets Docker.")
 
 # Config App
 app = Flask(__name__,template_folder="pdf")
 app.config.from_object(ApplicationConfig)
-CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+CORS(app, origins=[FRONTEND_URL], supports_credentials=True)
 bcrypt = Bcrypt()
 bcrypt.init_app(app)
 server_session = Session(app)
@@ -49,7 +55,7 @@ with app.app_context():
     table_empty_user = User.query.filter_by(email=ADMIN_MAIL).first() is None
 
     if table_empty_user:
-        hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD)
+        hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode('utf-8')
         admin_user = User(nom='Admin',prenom='Admin',email=ADMIN_MAIL,mdp=hashed_admin_password,role='Administrateur')
         db.session.add(admin_user)
         db.session.commit()

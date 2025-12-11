@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import httpClient from "./components/httpClient";
 import './App.css';
 
@@ -22,6 +22,7 @@ const DevisPdf = lazy(() => import ('./pages/DevisPdf'));
 const ConsentComplete = lazy(() => import ('./pages/ConsentComplete'));
 
 function App() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +35,12 @@ function App() {
         const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/user/me`);
         if (isMounted) setUser(resp.data);
       } catch (error) {
-        console.error("Error fetching user:", error);
+        if (error.response && error.response.data.error === "Unauthorized") {
+          console.log("No user logged in.");
+          navigate("/");
+        }else{
+          console.error("Error fetching user:", error);
+        }
         if (isMounted) setUser(null);
       } finally {
         if (isMounted) setLoading(false);

@@ -4,15 +4,10 @@ from datetime import datetime
 from weasyprint import HTML
 from docusign_esign import ApiClient, EnvelopesApi, EnvelopeDefinition, Document, Signer, SignHere, Tabs, Recipients, ApiClient
 from docusign_esign.client.api_exception import ApiException
-import logging, os, base64, time, requests
-
-# Docusign credentials
-DOCUSIGN_BASE_PATH = "https://demo.docusign.net/restapi" # Only for dev
-DOCUSIGN_ACCOUNT_ID = os.getenv("DOCUSIGN_ACCOUNT_ID")
-DOCUSIGN_ACCESS_TOKEN = os.getenv("DOCUSIGN_ACCOUNT_TOKEN")
+import logging, os, requests, json
 
 # Create a Blueprint for authentication-related routes
-devis_bp = Blueprint('devis_bp', __name__, url_prefix='/devis')
+devis_bp = Blueprint('devis_bp', __name__, url_prefix='/api/devis')
 
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
@@ -181,9 +176,9 @@ def external_send_pdf_sign(client_id):
         prenom = client.prenom
 
         # Get other Docusign credentials from environment variables
-        integrator_key = os.getenv("DOCUSIGN_INTEGRATION_KEY")
-        account_id = os.getenv("DOCUSIGN_ACCOUNT_ID")
-        user_id = os.getenv("DOCUSIGN_USER_ID")
+        integrator_key = open("/run/secrets/DOCUSIGN_INTEGRATION_KEY").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_INTEGRATION_KEY") else os.getenv("DOCUSIGN_INTEGRATION_KEY")
+        account_id = open("/run/secrets/DOCUSIGN_ACCOUNT_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_ACCOUNT_ID") else os.getenv("DOCUSIGN_ACCOUNT_ID")
+        user_id = open("/run/secrets/DOCUSIGN_USER_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_USER_ID") else os.getenv("DOCUSIGN_USER_ID")
 
         # Prepare files and data for the external service
         files = {'file': (file.filename, file.read(), file.content_type)}
@@ -191,12 +186,15 @@ def external_send_pdf_sign(client_id):
             'integrator_key': integrator_key,
             'account_id': account_id,
             'user_id': user_id,
-            'email': email,
-            'name': f"{nom} {prenom}",
+            'signers': json.dumps([{
+                'email': email,
+                'name': f"{prenom} {nom}"
+            }])
         }
+            
 
         # Make the POST request to the external service
-        target_url = "http://" + os.getenv("DOCUSIGN_SERVER_IP") + ":5001/api/send-pdf"
+        target_url = os.getenv("DOCUSIGN_SERVER_IP") + "/send-pdf"
         response = requests.post(target_url,files=files,data=data)
         response.raise_for_status()
         logging.info(response)

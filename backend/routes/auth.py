@@ -5,7 +5,7 @@ from utils import validate_user_fields
 import logging
 
 # Create a Blueprint for authentication-related routes
-auth_bp = Blueprint('auth_bp', __name__,url_prefix='/user')
+auth_bp = Blueprint('auth_bp', __name__,url_prefix='/api/user')
 
 bcrypt = Bcrypt()
 
@@ -43,7 +43,7 @@ def register():
         return jsonify({"error": error}), 400
     
     # Création du nouvel utilisateur du mot de passe.
-    hashed_password = bcrypt.generate_password_hash(mdp)
+    hashed_password = bcrypt.generate_password_hash(mdp).decode('utf-8')
     new_user = User(email=email,prenom=prenom,nom=nom,mdp=hashed_password)
     db.session.add(new_user)
     db.session.commit()

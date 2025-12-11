@@ -5,7 +5,7 @@ from .admin import admin_required
 from utils import validate_article_fields
 
 # Create a Blueprint for articles-related routes
-articles_bp = Blueprint('articles_bp', __name__, url_prefix='/articles')
+articles_bp = Blueprint('articles_bp', __name__, url_prefix='/api/articles')
 
 
 ### Articles routes ###
