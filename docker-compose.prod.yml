@@ -5,7 +5,6 @@ services:
       dockerfile: backend/Dockerfile.prod
     environment:
       - FLASK_ENV=production
-      - REACT_APP_BACKEND_URL=http://localhost:5000
       - FRONTEND_URL=http://localhost:80
       - DATABASE_URL=postgresql://user:password@db:5432/users_db
       - DOCUSIGN_SERVER_IP=http://195.110.34.168:5001/api
@@ -30,8 +29,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile.prod
-    environment:
-      REACT_APP_BACKEND_URL: "http://localhost:5000"
+      args:
+        - REACT_APP_BACKEND_URL=http://backend:5000
     ports:
       - "80:80"
     depends_on:
