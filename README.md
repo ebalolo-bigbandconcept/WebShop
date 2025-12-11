@@ -230,10 +230,6 @@ sudo docker compose -f docker-compose.prod.yml up -d
 sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
 
-# Initialiser la base de données (première fois uniquement)
-sudo docker compose -f docker-compose.prod.yml exec backend flask db upgrade
-```
-
 ### 5. Accès à l'Application
 
 - Frontend : [http://votre_domaine_ou_ip](http://votre_domaine_ou_ip)
