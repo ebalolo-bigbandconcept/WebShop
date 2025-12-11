@@ -234,6 +234,16 @@ server {
 
 #### 4. Configurer le Pare-feu
 
+Configurez le pare-feu pour autoriser le trafic HTTP (port 80) et HTTPS (port 443 si utilisé) :
+
+```bash
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp  # Si vous utilisez HTTPS
+sudo ufw allow OpenSSH  # Pour garder l'accès SSH
+sudo ufw enable
+sudo ufw status
+```
+
 #### 5. Déployer en Production
 
 ```bash
