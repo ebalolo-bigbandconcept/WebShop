@@ -4,14 +4,10 @@ from datetime import datetime
 from weasyprint import HTML
 from docusign_esign import ApiClient, EnvelopesApi, EnvelopeDefinition, Document, Signer, SignHere, Tabs, Recipients, ApiClient
 from docusign_esign.client.api_exception import ApiException
-import logging, os, base64, time, requests
-
-# Docusign credentials
-DOCUSIGN_BASE_PATH = os.getenv('DOCUSIGN_BASE_PATH', 'https://demo.docusign.net/restapi')
-DOCUSIGN_ACCOUNT_ID = open("/run/secrets/DOCUSIGN_ACCOUNT_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_ACCOUNT_ID") else os.getenv('DOCUSIGN_ACCOUNT_ID')
+import logging, os, requests, json
 
 # Create a Blueprint for authentication-related routes
-devis_bp = Blueprint('devis_bp', __name__, url_prefix='/devis')
+devis_bp = Blueprint('devis_bp', __name__, url_prefix='/api/devis')
 
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
@@ -190,9 +186,12 @@ def external_send_pdf_sign(client_id):
             'integrator_key': integrator_key,
             'account_id': account_id,
             'user_id': user_id,
-            'email': email,
-            'name': f"{nom} {prenom}",
+            'signers': json.dumps([{
+                'email': email,
+                'name': f"{prenom} {nom}"
+            }])
         }
+            
 
         # Make the POST request to the external service
         target_url = os.getenv("DOCUSIGN_SERVER_IP") + "/send-pdf"

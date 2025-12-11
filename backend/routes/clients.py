@@ -4,7 +4,7 @@ from utils import validate_client_fields
 import logging
 
 # Create a Blueprint for clients-related routes
-clients_bp = Blueprint('clients_bp', __name__, url_prefix='/clients')
+clients_bp = Blueprint('clients_bp', __name__, url_prefix='/api/clients')
 
 # Get all clients info route
 @clients_bp.route("/all", methods=['GET'])

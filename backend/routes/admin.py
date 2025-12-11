@@ -6,7 +6,7 @@ import logging
 from utils import validate_user_fields
 
 # Create a Blueprint for admin-related routes
-admin_bp = Blueprint('admin_bp', __name__, url_prefix='/admin')
+admin_bp = Blueprint('admin_bp', __name__, url_prefix='/api/admin')
 
 bcrypt = Bcrypt()
 
