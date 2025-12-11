@@ -9,12 +9,9 @@ services:
       - "5000:5000"
     depends_on:
       - redis
-    networks:
-      - main
     volumes:
       - ./backend:/app # Mount backend code for development
       - db_data:/app/instance
-      - ./backend/private.pem:/app/private.pem:ro # Mount private key as read-only
 
   frontend:
     build:
@@ -26,8 +23,6 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    networks:
-      - main
     volumes:
       - ./frontend:/app # Mount frontend code for development
 
@@ -35,12 +30,10 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
-    networks:
-      - main
 
 volumes:
   db_data:
 
 networks:
-  main:
+  default:
     driver: bridge

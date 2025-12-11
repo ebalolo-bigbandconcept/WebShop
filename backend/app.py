@@ -14,13 +14,14 @@ from routes.devis import devis_bp
 
 # CONSTANTS
 load_dotenv()
-ADMIN_MAIL = os.getenv('ADMIN_MAIL')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+ADMIN_MAIL = open("/run/secrets/ADMIN_MAIL").read().strip() if os.path.exists("/run/secrets/ADMIN_MAIL") else os.getenv('ADMIN_MAIL')
+ADMIN_PASSWORD = open("/run/secrets/ADMIN_PASSWORD").read().strip() if os.path.exists("/run/secrets/ADMIN_PASSWORD") else os.getenv('ADMIN_PASSWORD')
+FRONTEND_URL = open("/run/secrets/FRONTEND_URL").read().strip() if os.path.exists("/run/secrets/FRONTEND_URL") else os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 # Config App
 app = Flask(__name__,template_folder="pdf")
 app.config.from_object(ApplicationConfig)
-CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+CORS(app, origins=[FRONTEND_URL], supports_credentials=True)
 bcrypt = Bcrypt()
 bcrypt.init_app(app)
 server_session = Session(app)
