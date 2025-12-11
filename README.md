@@ -176,6 +176,7 @@ echo "votre_docusign_integration_key" > DOCUSIGN_INTEGRATION_KEY
 **Important**: Sécurisez ces fichiers !
 
 ```bash
+cd ../
 chmod 600 .env_prod_secrets/*
 ```
 
