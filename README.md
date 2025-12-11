@@ -180,7 +180,7 @@ cd ../
 chmod 600 .env_prod_secrets/*
 ```
 
-#### 3. Configurer les Variables d'Environnement
+#### 3. Configurer les Variables d'Environnement et nginx
 
 Changez les variables d'environnement du backend dans `docker-compose.prod.yml` :
 
@@ -217,7 +217,24 @@ backend:
     DATABASE_URL: postgresql://votre_utilisateur_secure:votre_mot_de_passe_secure@db:5432/users_db
 ```
 
-#### 4. Déployer en Production
+Dans `frontend/nginx.conf`, mettez à jour l'URL du backend et le server_name :
+
+```nginx
+server {
+    listen 80;
+    server_name http://votre_domaine_ou_ip;  # À CHANGER
+
+    location /api/ {
+        proxy_pass http://votre_domaine_ou_ip:5000;  # À CHANGER
+    }
+}
+```
+
+> `Optionnel`: Vous pouvez changer le port 80 si nécessaire, mais il faudra le faire aussi dans `docker-compose.prod.yml`.
+
+#### 4. Configurer le Pare-feu
+
+#### 5. Déployer en Production
 
 ```bash
 # Build les images de production
