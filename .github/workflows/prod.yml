@@ -3,12 +3,12 @@ name: Test Production Deployment
 on:
   push:
     branches:
-      - main
-      - dev
+      - "main"
+      - "dev"
   pull_request:
     branches:
-      - main
-      - dev
+      - "main"
+      - "dev"
 
 jobs:
   build:
