@@ -197,8 +197,8 @@ backend:
 ```yaml
 db:
   environment:
-    POSTGRES_USER: votre_utilisateur_secure  # À CHANGER
-    POSTGRES_PASSWORD: votre_mot_de_passe_secure  # À CHANGER
+    POSTGRES_USER: user  # À CHANGER
+    POSTGRES_PASSWORD: password  # À CHANGER
 ```
 
 Et mettez à jour `DATABASE_URL` dans la section backend :
