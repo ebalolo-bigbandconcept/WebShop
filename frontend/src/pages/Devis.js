@@ -30,7 +30,6 @@ function Devis() {
   const [devis_status, setDevisStatus] = useState("Non signé");
 
   const [devis_title_error, setDevisTitleError] = useState("");
-  const [devis_description_error, setDevisDescriptionError] = useState("");
   const [devis_date_error, setDevisDateError] = useState("");
 
   const [article_quantity_error, setArticleQuantityError] = useState("");
@@ -48,15 +47,6 @@ function Devis() {
       return false;
     }
     setDevisTitleError("");
-    return true;
-  }
-
-  const devisDescriptionVerif = (value) => {
-    if (value === "") {
-      setDevisDescriptionError("Veuillez entrer une description");
-      return false;
-    }
-    setDevisDescriptionError("");
     return true;
   }
 
@@ -242,11 +232,10 @@ function Devis() {
   const saveDevis = async () => {
     setFormSubmited(true);
     const isTitleValid = devisTitleVerif(devis_title);
-    const isDescriptionValid = devisDescriptionVerif(devis_description);
     const isDateValid = devisDateVerif(devis_date);
     const isContentValid = devisContentVerif(articles_in_devis);
 
-    const isformValid = isTitleValid && isDescriptionValid && isDateValid && isContentValid;
+    const isformValid = isTitleValid && isDateValid && isContentValid;
 
     if (isformValid){
       const devisData = {
@@ -407,8 +396,12 @@ function Devis() {
         <button className="btn btn-danger col-lg-1 col-2" onClick={goBack}>Retour</button>
       </div>
       <br/>
-      <h3>Client: {client.nom} {client.prenom}</h3>
-      <h3>Adresse: {client.rue}, {client.code_postal} à {client.ville}</h3>
+      {client && (
+        <>
+          <h3>Client: {client.nom} {client.prenom}</h3>
+          <h3>Adresse: {client.rue}, {client.code_postal} à {client.ville}</h3>
+        </>
+      )}
       <div className="row">
         <form className="col-8">
           <div className="row">
@@ -429,9 +422,8 @@ function Devis() {
           <div className="row">
             <div className="form-outline col-xl-7 mt-4">
               <label className="form-label">Description</label>
-              <textarea rows={3} id="description" value={devis_description} onChange={(e) => {setDevisDescription(e.target.value);devisDescriptionVerif(e.target.value);}}
-                className={`form-control form-control-lg ${devis_description_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer une description pour le devis"/>
-              <div className="invalid-feedback">{devis_description_error}</div>
+              <textarea rows={3} id="description" value={devis_description} onChange={(e) => setDevisDescription(e.target.value)}
+                className={`form-control form-control-lg`} placeholder="Entrer une description pour le devis"/>
             </div>
           </div>
           {!isNewDevis && devis && <h3 className="mt-4">{devis.statut === "Non signé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
@@ -487,7 +479,7 @@ function Devis() {
               <h1 className="modal-title fs-5" id="popupLabel">{DELETE ? 'Supprimer le devis' : article_DELETE ? 'Supprimer l\'article du devis'  : article_MODIFY ? "Modifier la quantité de l'article" : "Ajouter un article"}</h1>
             </div>
             <div className="modal-body">
-              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis.titre} de {client.nom} {client.prenom}?</h5> : 
+              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis && devis.titre} {client && `de ${client.nom} ${client.prenom}`}?</h5> : 
               article_DELETE ? <h5>Êtes-vous sur de vouloir supprimer l'article {article_selected.nom} du devis ?</h5> :
               article_MODIFY ? (
                 <div className="d-flex flex-inline align-items-center">
