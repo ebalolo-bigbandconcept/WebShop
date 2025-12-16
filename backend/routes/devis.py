@@ -125,8 +125,9 @@ def delete_devis(devis_id):
         return jsonify({"error": "Article non trouvé"}), 404
     
     devis_nom = devis.titre
-    Devis.query.filter_by(id=devis_id).delete()
+    # Delete devis articles first to avoid foreign key constraint violation
     DevisArticles.query.filter_by(devis_id=devis.id).delete()
+    Devis.query.filter_by(id=devis_id).delete()
     db.session.commit()
     logging.info(f"Devis supprimé: {devis_nom} (id: {devis_id}) par l'utilisateur {session.get('user_id')}")
     
