@@ -1,20 +1,28 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import httpClient from "./components/httpClient";
+import './App.css';
 
 // Component imports
 const Header = lazy(() => import('./components/Header'));
+const Footer = lazy(() => import('./components/Footer'));
 const PrivateRoute = lazy(() => import ('./components/PrivateRoute'));
 
 // Page imports
-const Home = lazy(() => import ('./pages/Home'));
 const Login = lazy(() => import ('./pages/Login'));
-const Register = lazy(() => import ('./pages/Register'));
 const NotFound = lazy(() => import ('./pages/NotFound'));
 const AdminDashboard = lazy(() => import ('./pages/AdminDashboard'));
-const ManageUser = lazy(() => import ('./pages/ManageUser'));
+const ManageUser = lazy(() => import ('./pages/AdminManageUser'));
+const ListeClients = lazy(() => import ('./pages/ListeClients'));
+const Client = lazy(() => import ('./pages/Client'));
+const ListeArticles = lazy(() => import ('./pages/AdminListeArticles'));
+const ListeDevis = lazy(() => import ('./pages/ListeDevis'));
+const Devis = lazy(() => import ('./pages/Devis'));
+const DevisPdf = lazy(() => import ('./pages/DevisPdf'));
+const ConsentComplete = lazy(() => import ('./pages/ConsentComplete'));
 
 function App() {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,10 +32,15 @@ function App() {
 
     const fetchUser = async () => {
       try {
-        const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/@me`);
+        const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/user/me`);
         if (isMounted) setUser(resp.data);
       } catch (error) {
-        console.error("Error fetching user:", error);
+        if (error.response && error.response.data.error === "Unauthorized") {
+          console.log("No user logged in.");
+          navigate("/");
+        }else{
+          console.error("Error fetching user:", error);
+        }
         if (isMounted) setUser(null);
       } finally {
         if (isMounted) setLoading(false);
@@ -41,17 +54,51 @@ function App() {
   if (loading) return <div>Chargement...</div>;
 
   return (
-    <div>
+    <div className="d-flex flex-column min-vh-100">
       <Header user={user} setUser={setUser}/>
-      <div className='container mt-4'>
+      <div className='container mt-4 min-vh-100'>
         <Suspense fallback={<div>Chargement...</div>}>
           <Routes>
-            <Route path="/" element={<Home user={user}/>}/>
-            <Route path="/login" element={<Login setUser={setUser}/>}/>
-            <Route path="/register" element={<Register setUser={setUser}/>}/>
+            <Route path="/" element={<Login setUser={setUser}/>}/>
+            <Route path="/*" element={<NotFound/>}/>
+            <Route path="/consent_complete" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur']}>
+                <ConsentComplete/>
+              </PrivateRoute>
+            }/>
+            <Route path="/liste-clients" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <ListeClients/>
+              </PrivateRoute>
+            }/>
+            <Route path="/client/:id" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <Client/>
+              </PrivateRoute>
+            }/>
+            <Route path="/liste-devis" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <ListeDevis/>
+              </PrivateRoute>
+            }/>
+            <Route path="/devis/:id_client/:id_devis" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <Devis/>
+              </PrivateRoute>
+            }/>
+            <Route path="/devis/:id_client/:id_devis/pdf" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <DevisPdf/>
+              </PrivateRoute>
+            }/>
             <Route path="/admin/dashboard" element={
               <PrivateRoute user={user} requiredRole={'Administrateur'}>
                 <AdminDashboard setUser={setUser}/>
+              </PrivateRoute>
+            }/>
+            <Route path="/admin/liste-articles" element={
+              <PrivateRoute user={user} requiredRole={'Administrateur'}>
+                <ListeArticles/>
               </PrivateRoute>
             }/>
             <Route path="/admin/manage-user/:id" element={
@@ -59,10 +106,10 @@ function App() {
                 <ManageUser/>
               </PrivateRoute>
             }/>
-            <Route path="/*" element={<NotFound/>}/>
           </Routes>
         </Suspense>
       </div>
+      <Footer />
     </div>
   );
 }

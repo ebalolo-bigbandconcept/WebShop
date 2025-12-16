@@ -1,23 +1,106 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from uuid import uuid4
 
 db = SQLAlchemy()
 ma = Marshmallow()
 
-def get_uuid():
-    return uuid4().hex
-
 class User(db.Model):
     __tablename__ = "users"
-    id = db.Column(db.String(32), primary_key=True, unique=True, default=get_uuid)
-    first_name = db.Column(db.String(50), nullable=False)
-    last_name = db.Column(db.String(50), nullable=False)
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    nom = db.Column(db.String(50), nullable=False)
+    prenom = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(345), nullable=False, unique=True)
-    password = db.Column(db.Text, nullable=False)
+    mdp = db.Column(db.Text, nullable=False)
     role = db.Column(db.String(50), nullable=False, default="Utilisateur")
+
+class Clients(db.Model):
+    __tablename__ = "clients"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    nom = db.Column(db.String(100), nullable=False)
+    prenom = db.Column(db.String(100), nullable=False)
+    rue = db.Column(db.String(200), nullable=False)
+    ville = db.Column(db.String(100), nullable=False)
+    code_postal = db.Column(db.String(20), nullable=False)
+    telephone = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(345), nullable=False)
+    caduque = db.Column(db.Boolean, nullable=False, default=False)
+
+class Devis(db.Model):
+    __tablename__ = "devis"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    client_id = db.Column(db.Integer(), db.ForeignKey('clients.id'), nullable=False)
+    titre = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    date = db.Column(db.Date(), nullable=False)
+    montant_HT = db.Column(db.Float(), nullable=False)
+    montant_TVA = db.Column(db.Float(), nullable=False)
+    montant_TTC = db.Column(db.Float(), nullable=False)
+    statut = db.Column(db.String(50), nullable=False)
+    date_paiement = db.Column(db.Date(), nullable=True)
+    envelope_id = db.Column(db.String(255), nullable=True)  # DocuSign envelope ID
+    
+    client = db.relationship('Clients', backref='devis', lazy=True)
+    articles = db.relationship('DevisArticles', backref='devis', lazy=True)
+
+class Articles(db.Model):
+    __tablename__ = "articles"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    nom = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    prix_achat_HT = db.Column(db.Float(), nullable=False)
+    prix_vente_HT = db.Column(db.Float(), nullable=False)
+    taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)
+    
+    taux_tva = db.relationship('TauxTVA', backref='articles', lazy=True)
+
+class DevisArticles(db.Model):
+    __tablename__ = "devis_articles"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=False)
+    article_id = db.Column(db.Integer(), db.ForeignKey('articles.id'), nullable=False)
+    quantite = db.Column(db.Integer(), nullable=False)
+    
+    article = db.relationship('Articles', backref='devis_articles', lazy=True)
+
+class TauxTVA(db.Model):
+    __tablename__ = "taux_tva"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    taux = db.Column(db.Float(), nullable=False, default=0.20)
 
 # Marshmallow Schema to strucuture the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
+        load_instance = True
+
+class ClientsSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Clients
+        load_instance = True
+
+class TauxTVASchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = TauxTVA
+        load_instance = True
+
+class ArticlesSchema(ma.SQLAlchemyAutoSchema):
+    taux_tva = ma.Nested('TauxTVASchema')
+    
+    class Meta:
+        model = Articles
+        load_instance = True
+
+class DevisArticlesSchema(ma.SQLAlchemyAutoSchema):
+    article = ma.Nested('ArticlesSchema')
+    
+    class Meta:
+        model = DevisArticles
+        load_instance = True
+
+class DevisSchema(ma.SQLAlchemyAutoSchema):
+    client = ma.Nested('ClientsSchema')
+    articles = ma.Nested('DevisArticlesSchema', many=True)
+    
+    class Meta:
+        model = Devis
+        load_instance = True

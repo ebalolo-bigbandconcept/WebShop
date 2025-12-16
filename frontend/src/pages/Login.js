@@ -6,7 +6,7 @@ function Login({ setUser }) {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mdp, setPassword] = useState("");
 
   const [form_submited, setFormSubmited] = useState(false);
   const [email_error, setEmailError] = useState("");
@@ -36,19 +36,19 @@ function Login({ setUser }) {
     setFormSubmited(true);
 
     const isEmailValid = emailVerif(email);
-    const isPasswordValid = passwordVerif(password);
+    const isPasswordValid = passwordVerif(mdp);
 
     const isFormValid = isEmailValid && isPasswordValid;
 
     if (isFormValid){
-      await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/login`, {
+      await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/user/login`, {
         email: email,
-        password: password,
+        mdp: mdp,
       })
       .then(function (response) {
         setUser(response.data);
-        console.log(response.data);
-        navigate("/");
+        console.log("Connexion réussie.");
+        navigate("/liste-clients");
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -75,22 +75,19 @@ function Login({ setUser }) {
             <div data-mdb-input-init className="form-outline mb-4">
               <label className="form-label">Adresse mail</label>
               <input type="email" id="email" value={email} onChange={(e) => {setEmail(e.target.value);emailVerif(e.target.value)}}
-              className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail valide."/>
+              className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail valide"/>
               <div className="invalid-feedback">{email_error}</div>
             </div>
 
             <div data-mdb-input-init className="form-outline mb-3">
               <label className="form-label">Mot de passe</label>
-              <input type="password" id="password" value={password} onChange={(e) => {setPassword(e.target.value);passwordVerif(e.target.value)}} 
+              <input type="password" id="mdp" value={mdp} onChange={(e) => {setPassword(e.target.value);passwordVerif(e.target.value)}} 
               className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un mot de passe valide"/>
               <div className="invalid-feedback">{password_error}</div>
             </div>
 
             <div className="text-center text-lg-start mt-4 pt-2">
               <button type="button" onClick={logUserIn} data-mdb-button-init data-mdb-ripple-init className="btn btn-primary btn-lg">Se connecter</button>
-              <p className="small fw-bold mt-2 pt-1 mb-0">
-                Vous n'avez pas de compte?{" "}<a href="./register" className="link-danger">Créer un compte</a>
-              </p>
             </div>
           </form>
         </div>

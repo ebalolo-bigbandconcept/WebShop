@@ -7,8 +7,8 @@ function AdminDashboard() {
   const navigate = useNavigate();
 
   const [users, setUsers] = useState();
-  const [new_first_name, setNewFirstName] = useState("");
-  const [new_last_name, setNewLastName] = useState("");
+  const [new_prenom, setNewFirstName] = useState("");
+  const [new_nom, setNewLastName] = useState("");
   const [new_email, setNewEmail] = useState("");
   const [new_password, setNewPassword] = useState("");
   const [new_role, setNewRole] = useState("Utilisateur");
@@ -71,7 +71,7 @@ function AdminDashboard() {
   // ### Fetch all users from the backend ###
   const getAllUsersInfo = async () => {
     httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/@all`)
+      .get(`${process.env.REACT_APP_BACKEND_URL}/admin/all-user`)
       .then((resp) => {
         setUsers(resp.data);
       })
@@ -89,8 +89,8 @@ function AdminDashboard() {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isFirstNameValid = firstNameVerif(new_first_name);
-    const isLastNameValid = lastNameVerif(new_last_name);
+    const isFirstNameValid = firstNameVerif(new_prenom);
+    const isLastNameValid = lastNameVerif(new_nom);
     const isEmailValid = emailVerif(new_email);
     const isPasswordValid = passwordVerif(new_password);
 
@@ -99,11 +99,11 @@ function AdminDashboard() {
 
     if (isFormValid) {
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/add-user`, {
-          first_name: new_first_name,
-          last_name: new_last_name,
+        .post(`${process.env.REACT_APP_BACKEND_URL}/admin/create-user`, {
+          prenom: new_prenom,
+          nom: new_nom,
           email: new_email,
-          password: new_password,
+          mdp: new_password,
           role: new_role,
         })
         .then((resp) => {
@@ -113,7 +113,11 @@ function AdminDashboard() {
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
-            alert(error.response.data.error);
+            if (error.response.status === 409){
+              setEmailError(error.response.data.error)
+            }else{
+              alert(error.response.data.error);
+            }
           } else {
             alert("Une erreur est survenue.");
           }
@@ -122,9 +126,19 @@ function AdminDashboard() {
   };
 
   const handleClose = () => {
+    // Close modal
     const popup = document.getElementById("popup");
     const modal = bootstrap.Modal.getInstance(popup);
-    modal.hide();
+    if (modal){
+      modal.hide();
+    }
+    // Close modal residues
+    const backdrops = document.querySelectorAll(".modal-backdrop");
+    backdrops.forEach((b) => b.remove());
+
+    document.body.classList.remove("modal-open");
+    document.body.style.overflow = "";
+    document.body.style.paddingRight = "";
     // Reset form
     setNewFirstName("");
     setNewLastName("");
@@ -148,7 +162,7 @@ function AdminDashboard() {
         <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouvel utilisateur</button>
         <br />
         <br />
-        <div className="modal fade" id="popup" tabIndex="-1">
+        <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
           <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
@@ -158,15 +172,14 @@ function AdminDashboard() {
                 <form className="row">
                   <div className="form-outline col-4">
                     <label className="form-label">Nom</label>
-                    <input type="text" id="nom" value={new_last_name} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nouveau nom."/>
+                    <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nouveau nom"/>
                     <div className="invalid-feedback">{last_name_error}</div>
                   </div>
                   <div className="form-outline col-4">
                     <label className="form-label">Prénom</label>
-                    <input type="text" id="prénom" value={new_first_name} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
-                      placeholder="Entrer un nouveau prénom."
+                    <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom"
                     />
                     <div className="invalid-feedback">{first_name_error}</div>
                   </div>
@@ -180,13 +193,13 @@ function AdminDashboard() {
                   <div className="form-outline mt-4">
                     <label className="form-label">Adresse mail</label>
                     <input type="email" id="email" value={new_email} onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer une nouvelle adresse  mail."/>
+                      className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer une nouvelle adresse  mail"/>
                     <div className="invalid-feedback">{email_error}</div>
                   </div>
                   <div className="form-outline mt-4">
                     <label className="form-label">Mot de passe</label>
-                    <input type="password" id="password" value={new_password} onChange={(e) => { setNewPassword(e.target.value); passwordVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer un nouveau mot de passe."/>
+                    <input type="password" id="mdp" value={new_password} onChange={(e) => { setNewPassword(e.target.value); passwordVerif(e.target.value);}}
+                      className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer un nouveau mot de passe"/>
                     <div className="invalid-feedback">{password_error}</div>
                   </div>
                 </form>
@@ -216,8 +229,8 @@ function AdminDashboard() {
                 navigate({ pathname: `/admin/manage-user/` + user.id });
               }}>
                 <td>{user.id}</td>
-                <td>{user.last_name}</td>
-                <td>{user.first_name}</td>
+                <td>{user.nom}</td>
+                <td>{user.prenom}</td>
                 <td>{user.email}</td>
                 <td>{user.role}</td>
               </tr>

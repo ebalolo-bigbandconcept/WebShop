@@ -9,8 +9,8 @@ function ManageUser() {
 
   const [user, setUser] = useState();
 
-  const [new_first_name, setNewFirstName] = useState(null);
-  const [new_last_name, setNewLastName] = useState(null);
+  const [new_prenom, setNewFirstName] = useState(null);
+  const [new_nom, setNewLastName] = useState(null);
   const [new_email, setNewEmail] = useState(null);
   const [new_password, setNewPassword] = useState(null);
   const [new_role, setNewRole] = useState(null);
@@ -57,7 +57,7 @@ function ManageUser() {
 
   const passwordVerif = (value) => {
     if (value) {
-      // Only check password if it's provided
+      // Only check mdp if it's provided
       const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
       if (!passwordRegex.test(value)) {
         setPasswordError(
@@ -75,8 +75,8 @@ function ManageUser() {
     e.preventDefault();
     setFormSubmited(true);
 
-    const isFirstNameValid = firstNameVerif(new_first_name);
-    const isLastNameValid = lastNameVerif(new_last_name);
+    const isFirstNameValid = firstNameVerif(new_prenom);
+    const isLastNameValid = lastNameVerif(new_nom);
     const isEmailValid = emailVerif(new_email);
     const isPasswordValid = passwordVerif(new_password);
 
@@ -84,20 +84,20 @@ function ManageUser() {
       isFirstNameValid && isLastNameValid && isEmailValid && isPasswordValid;
     if (isFormValid) {
       const payload = {
-        first_name: new_first_name ?? user.first_name,
-        last_name: new_last_name ?? user.last_name,
+        prenom: new_prenom ?? user.prenom,
+        nom: new_nom ?? user.nom,
         email: new_email ?? user.email,
         role: new_role ?? user.role,
       };
 
       if (new_password) {
-        payload.password = new_password;
+        payload.mdp = new_password;
       } else {
-        payload.password = user.password;
+        payload.mdp = user.mdp;
       }
 
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/modify-user/${user_id.id}`, payload, {
+        .post(`${process.env.REACT_APP_BACKEND_URL}/admin/update-user/${user_id.id}`, payload, {
           headers: {"Content-Type": "application/json"},
         })
         .then((resp) => {
@@ -110,6 +110,8 @@ function ManageUser() {
               setRoleError("Impossible de modifier le rôle du dernier compte administrateur.");
             }else if (error.response.data.error === "Impossible de modifier votre propre rôle administrateur.") {
               setRoleError("Impossible de modifier votre propre rôle administrateur.");
+            }else if (error.response.status === 409){
+              setEmailError(error.response.data.error)
             }else{
               alert(error.response.data.error);
             }
@@ -124,7 +126,7 @@ function ManageUser() {
   const delete_account = async () => {
     setFormSubmited(true);
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/delete-user/${user_id.id}`)
+      .post(`${process.env.REACT_APP_BACKEND_URL}/admin/delete-user/${user_id.id}`)
       .then((resp) => {
         navigate("/admin/dashboard");
         console.log(resp.data);
@@ -150,7 +152,7 @@ function ManageUser() {
   // ### Fetch user info on page load ###
   useEffect(() => {
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/user-info/${user_id.id}`)
+      .post(`${process.env.REACT_APP_BACKEND_URL}/admin/info-user/${user_id.id}`)
       .then((resp) => {
         setUser(resp.data);
       })
@@ -166,8 +168,8 @@ function ManageUser() {
   // ### Pre-fill form with current user info ###
   useEffect(() => {
     if (user) {
-      setNewFirstName(user.first_name);
-      setNewLastName(user.last_name);
+      setNewFirstName(user.prenom);
+      setNewLastName(user.nom);
       setNewEmail(user.email);
       setNewRole(user.role);
     }
@@ -177,27 +179,26 @@ function ManageUser() {
     <div>
       {user !== undefined ? (
         <div className="">
-          <h1>Modifier les informations de {user.first_name} {user.last_name}</h1>
+          <h1>Modifier les informations de {user.prenom} {user.nom}</h1>
           <form className="row mt-4">
             <div className="form-outline col-4">
               <label className="form-label">Nom</label>
-              <input type="text" id="nom" value={new_last_name} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
-                className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau nom."
+              <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
+                className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau nom"
               />
               <div className="invalid-feedback">{last_name_error}</div>
             </div>
             <div className="form-outline col-4">
               <label className="form-label">Prénom</label>
-              <input type="text" id="prénom" value={new_first_name} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
-                className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom."
+              <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom"
               />
               <div className="invalid-feedback">{first_name_error}</div>
             </div>
             <div className="form-outline col-4">
               <label className="form-label">Rôle</label>
               <select value={new_role} onChange={(e) => setNewRole(e.target.value)}
-                className={`form-control form-control-lg ${role_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} 
-              >
+                className={`form-control form-control-lg ${role_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}>
                 <option value="Utilisateur">Utilisateur</option>
                 <option value="Administrateur">Administrateur</option>
               </select>
@@ -206,15 +207,15 @@ function ManageUser() {
             <div className="form-outline mb-4">
               <label className="form-label">Adresse mail</label>
               <input type="email" id="email" value={new_email}onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
-                className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une nouvelle adresse  mail."
+                className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une nouvelle adresse mail"
               />
               <div className="invalid-feedback">{email_error}</div>
             </div>
 
             <div className="form-outline mb-3">
               <label className="form-label">Mot de passe</label>
-              <input type="password" id="password" value={new_password} onChange={(e) => {setNewPassword(e.target.value);passwordVerif(e.target.value);}}
-                className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau mot de passe."
+              <input type="password" id="mdp" value={new_password} onChange={(e) => {setNewPassword(e.target.value);passwordVerif(e.target.value);}}
+                className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau mot de passe"
               />
               <div className="invalid-feedback">{password_error}</div>
             </div>
@@ -224,7 +225,7 @@ function ManageUser() {
                 <button type="button" onClick={(e) => setMODIFY(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-primary btn-lg">Modifier le compte</button>
                 <button type="button" onClick={(e) => setDELETE(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-danger btn-lg"> Supprimer le compte</button>
               </div>
-              <div className="modal fade" id="popup" tabIndex="-1">
+              <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
                 <div className="modal-dialog">
                   <div className="modal-content">
                     <div className="modal-header">
@@ -232,21 +233,21 @@ function ManageUser() {
                     </div>
                     <div className="modal-body">
                       {MODIFY === true
-                        ? "Êtes vous sur de vouloir modifier le compte de " + user.first_name + " " + user.last_name + " ?"
+                        ? "Êtes vous sur de vouloir modifier le compte de " + user.prenom + " " + user.nom + " ?"
                         : DELETE === true
-                        ? "Êtes vous sur de vouloir supprimer le compte de " + user.first_name + " " + user.last_name + " ?"
+                        ? "Êtes vous sur de vouloir supprimer le compte de " + user.prenom + " " + user.nom + " ?"
                         : ""}
                     </div>
                     <div className="modal-footer d-flex justify-content-center">
                       {MODIFY === true ? (
                         <div>
+                          <button type="button" className="btn btn-danger me-4" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                           <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={modify_account}>Oui</button>
-                          <button type="button" className="btn btn-danger" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                         </div>
                       ) : DELETE === true ? (
                         <div>
+                          <button type="button" className="btn btn-danger me-4" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                           <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={delete_account}>Oui</button>
-                          <button type="button" className="btn btn-danger" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
                         </div>
                       ) : (
                         ""
