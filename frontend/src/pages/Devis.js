@@ -20,6 +20,13 @@ function Devis() {
   const [article_quantite, setArticleQuantite] = useState(1);
   const [articles_in_devis, setArticlesInDevis] = useState([]);
 
+  // Article modal pagination and filter state
+  const [filteredArticles, setFilteredArticles] = useState([]);
+  const [paginatedArticles, setPaginatedArticles] = useState([]);
+  const [articleSearchTerm, setArticleSearchTerm] = useState("");
+  const [articleCurrentPage, setArticleCurrentPage] = useState(1);
+  const [articleItemsPerPage, setArticleItemsPerPage] = useState(10);
+
   const [form_submited, setFormSubmited] = useState(false);
   const [devis_title, setDevisTitle] = useState("");
   const [devis_description, setDevisDescription] = useState("");
@@ -127,6 +134,8 @@ function Devis() {
     setArticleQuantite(1);
     setArticleSelected([]);
     setArticleQuantityError("");
+    setArticleSearchTerm("");
+    setArticleCurrentPage(1);
     setDELETE(false);
     setArticleMODIFY(false);
     setArticleDELETE(false);
@@ -361,6 +370,37 @@ function Devis() {
     getDevisInfo();
   }, [isNewDevis]);
 
+  // ### Filter articles logic ###
+  useEffect(() => {
+    if (articles && articles.data) {
+      let currentArticles = articles.data;
+
+      if (articleSearchTerm) {
+        currentArticles = currentArticles.filter(art =>
+          art.nom.toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
+          art.description.toLowerCase().includes(articleSearchTerm.toLowerCase())
+        );
+      }
+
+      setFilteredArticles(currentArticles);
+      setArticleCurrentPage(1);
+    }
+  }, [articles, articleSearchTerm]);
+
+  // ### Pagination articles logic ###
+  useEffect(() => {
+    if (filteredArticles) {
+      const startIndex = (articleCurrentPage - 1) * articleItemsPerPage;
+      const endIndex = startIndex + articleItemsPerPage;
+      setPaginatedArticles(filteredArticles.slice(startIndex, endIndex));
+    }
+  }, [filteredArticles, articleCurrentPage, articleItemsPerPage]);
+
+  // Reset to page 1 when itemsPerPage changes
+  useEffect(() => {
+    setArticleCurrentPage(1);
+  }, [articleItemsPerPage]);
+
   useEffect(() => {
   if (devis && !isNewDevis) {
     console.log("Update devis")
@@ -492,7 +532,24 @@ function Devis() {
                 </div>
               ) : (
                 <div>
-                <table className="table table-hover table-striped mt-4">
+                <div className="row mb-3 align-items-center">
+                  <div className="col-md-9">
+                    <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, description..."
+                      value={articleSearchTerm} onChange={(e) => setArticleSearchTerm(e.target.value)}/>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="d-flex align-items-center justify-content-end">
+                      <label htmlFor="articleItemsPerPage" className="form-label me-2 mb-0">Articles:</label>
+                      <select id="articleItemsPerPage" className="form-select form-select-lg w-auto" value={articleItemsPerPage}
+                        onChange={(e) => setArticleItemsPerPage(Number(e.target.value))}>
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <table className="table table-hover table-striped">
                   <thead>
                     <tr>
                       <th scope="col">Article</th>
@@ -501,22 +558,45 @@ function Devis() {
                     </tr>
                   </thead>
                   <tbody>
-                    {articles !== null && articles !== undefined ? (
-                      articles.data.map((article) => (
+                    {paginatedArticles.length > 0 ? (
+                      paginatedArticles.map((article) => (
                         <tr key={article.id} className={article.id === article_selected.id ? 'table-active' : ''} onClick={() => {setArticleSelected(article);}}>
                           <td>{article.nom}</td>
                           <td>{article.description}</td>
-                          <td>{article.prix_vente_HT}</td>
+                          <td>{article.prix_vente_HT} €</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6}>Aucun articles</td>
+                        <td colSpan={3}>Aucun articles trouvé</td>
                       </tr>
                       )}
                   </tbody>
                 </table>
-                <form className="row">
+                {filteredArticles.length > articleItemsPerPage && (
+                  <nav>
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${articleCurrentPage === 1 ? 'disabled' : ''}`}>
+                        <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage - 1); }}>
+                          Précédent
+                        </a>
+                      </li>
+                      {Array.from({ length: Math.ceil(filteredArticles.length / articleItemsPerPage) }, (_, i) => i + 1).map(number => (
+                        <li key={number} className={`page-item ${articleCurrentPage === number ? 'active' : ''}`}>
+                          <a onClick={(e) => { e.preventDefault(); setArticleCurrentPage(number); }} href="!#" className='page-link'>
+                            {number}
+                          </a>
+                        </li>
+                      ))}
+                      <li className={`page-item ${articleCurrentPage >= Math.ceil(filteredArticles.length / articleItemsPerPage) ? 'disabled' : ''}`}>
+                        <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage + 1); }}>
+                          Suivant
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                )}
+                <form className="row mt-3">
                   <div className="col-5"/>
                   <div className="form-outline col-2">
                     <label className="form-label">Quantité</label>
