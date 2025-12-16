@@ -443,7 +443,7 @@ function Devis() {
         </>
       )}
       <div className="row">
-        <form className="col-8">
+        <form className="col-lg-8 col-12">
           <div className="row">
             <div className="form-outline col-xl-4 col-6">
               <label className="form-label">Titre</label>
@@ -468,10 +468,19 @@ function Devis() {
           </div>
           {!isNewDevis && devis && <h3 className="mt-4">{devis.statut === "Non signé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
         </form>
-        <div className="col-4 d-flex flex-column justify-content-end">
-          <h3 className="mt-4">Montant total HT: {devis_montant_HT} €</h3>
-          <h3 className="mt-4">Montant total TVA: {devis_montant_TVA} €</h3>
-          <h3 className="mt-4">Montant total TTC: {devis_montant_TTC} €</h3>
+        <div className="col-lg-4 col-12 d-flex flex-column justify-content-end mt-lg-0 mt-4">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-bold">Montant total HT:</span>
+            <span className="ms-2">{devis_montant_HT} €</span>
+          </div>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-bold">Montant total TVA:</span>
+            <span className="ms-2">{devis_montant_TVA} €</span>
+          </div>
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="fw-bold fs-5">Montant total TTC:</span>
+            <span className="ms-2 fs-5 fw-bold">{devis_montant_TTC} €</span>
+          </div>
         </div>
       </div>
       <table className="table table-hover table-striped mt-4">
