@@ -33,9 +33,9 @@ function DevisPdfPreview() {
     formData.append("file", pdfBlob, `devis_${id_devis}.pdf`)
     
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/external/${id_client}`,formData)
+      .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/external/${id_client}/${id_devis}`,formData)
       .then((resp) => {
-        alert(`Document envoyé ! Envelope ID: ${resp.data.envelope_id}`);
+        alert(`Document envoyé pour signature ! Envelope ID: ${resp.data.envelope_id}`);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {

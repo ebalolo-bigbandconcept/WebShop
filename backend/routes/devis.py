@@ -164,13 +164,17 @@ def get_devis_pdf(devis_id):
 ### DocuSign routes ###
 
 # Send PDF to external service for signing
-@devis_bp.route('/pdf/send/external/<client_id>', methods=['POST'])
-def external_send_pdf_sign(client_id):
+@devis_bp.route('/pdf/send/external/<client_id>/<devis_id>', methods=['POST'])
+def external_send_pdf_sign(client_id, devis_id):
     try:
         file = request.files['file']
         client = Clients.query.filter_by(id=client_id).first()
         if not client:
             return jsonify({"error": "Client non trouvé."}), 404
+        
+        devis = Devis.query.filter_by(id=devis_id).first()
+        if not devis:
+            return jsonify({"error": "Devis non trouvé."}), 404
         
         email = client.email
         nom = client.nom
@@ -180,6 +184,10 @@ def external_send_pdf_sign(client_id):
         integrator_key = open("/run/secrets/DOCUSIGN_INTEGRATION_KEY").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_INTEGRATION_KEY") else os.getenv("DOCUSIGN_INTEGRATION_KEY")
         account_id = open("/run/secrets/DOCUSIGN_ACCOUNT_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_ACCOUNT_ID") else os.getenv("DOCUSIGN_ACCOUNT_ID")
         user_id = open("/run/secrets/DOCUSIGN_USER_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_USER_ID") else os.getenv("DOCUSIGN_USER_ID")
+        
+        # Build callback URL for webhook notifications
+        backend_url = os.getenv("BACKEND_URL", "http://backend:5000")
+        callback_url = f"{backend_url}/api/devis/docusign/webhook"
 
         # Prepare files and data for the external service
         files = {'file': (file.filename, file.read(), file.content_type)}
@@ -187,6 +195,7 @@ def external_send_pdf_sign(client_id):
             'integrator_key': integrator_key,
             'account_id': account_id,
             'user_id': user_id,
+            'callback_url': callback_url,
             'signers': json.dumps([{
                 'email': email,
                 'name': f"{prenom} {nom}"
@@ -196,12 +205,23 @@ def external_send_pdf_sign(client_id):
 
         # Make the POST request to the external service
         target_url = os.getenv("DOCUSIGN_SERVER_IP") + "/send-pdf"
-        response = requests.post(target_url,files=files,data=data)
+        response = requests.post(target_url, files=files, data=data)
         response.raise_for_status()
-        logging.info(response)
+        
+        response_data = response.json()
+        envelope_id = response_data.get('envelope_id')
+        
+        # Store envelope_id in the devis and update status
+        if envelope_id:
+            devis.envelope_id = envelope_id
+            devis.statut = "En attente de signature"
+            db.session.commit()
+            logging.info(f"Devis {devis_id} envoyé pour signature. Envelope ID: {envelope_id}")
+        
+        logging.info(response_data)
         
         # Return the JSON response from the external service
-        return jsonify(response.json()), response.status_code
+        return jsonify(response_data), response.status_code
     
     except requests.exceptions.RequestException as e:
         logging.exception(f"Erreur lors de l'appel au service externe: {e}")
@@ -209,4 +229,66 @@ def external_send_pdf_sign(client_id):
     
     except Exception as e:
         logging.exception("Erreur lors de l'envoi du PDF via le service externe:")
+        return jsonify({"error": str(e)}), 500
+
+# Webhook endpoint to receive DocuSign status updates
+@devis_bp.route('/docusign/webhook', methods=['POST'])
+def docusign_webhook():
+    """
+    Receive webhook notifications from the external DocuSign server
+    when envelope status changes (completed, declined, voided)
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            logging.error("Webhook reçu sans données")
+            return jsonify({"error": "No data received"}), 400
+        
+        envelope_id = data.get('envelope_id')
+        status = data.get('status')
+        signed_at = data.get('signed_at')
+        
+        if not envelope_id or not status:
+            logging.error(f"Webhook incomplet: {data}")
+            return jsonify({"error": "Missing envelope_id or status"}), 400
+        
+        # Find the devis with this envelope_id
+        devis = Devis.query.filter_by(envelope_id=envelope_id).first()
+        
+        if not devis:
+            logging.warning(f"Devis non trouvé pour envelope_id: {envelope_id}")
+            return jsonify({"error": "Devis not found"}), 404
+        
+        # Update devis status based on DocuSign status
+        if status == "completed":
+            devis.statut = "Signé"
+            if signed_at:
+                try:
+                    devis.date_paiement = datetime.fromisoformat(signed_at.replace('Z', '+00:00')).date()
+                except:
+                    devis.date_paiement = datetime.now().date()
+            else:
+                devis.date_paiement = datetime.now().date()
+            logging.info(f"Devis {devis.id} ({devis.titre}) marqué comme Signé via webhook DocuSign")
+            
+        elif status == "declined":
+            devis.statut = "Refusé"
+            logging.info(f"Devis {devis.id} ({devis.titre}) marqué comme Refusé via webhook DocuSign")
+            
+        elif status == "voided":
+            devis.statut = "Annulé"
+            logging.info(f"Devis {devis.id} ({devis.titre}) marqué comme Annulé via webhook DocuSign")
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "devis_id": devis.id,
+            "new_status": devis.statut
+        }), 200
+        
+    except Exception as e:
+        logging.exception(f"Erreur lors du traitement du webhook DocuSign: {e}")
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500

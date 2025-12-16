@@ -37,6 +37,7 @@ class Devis(db.Model):
     montant_TTC = db.Column(db.Float(), nullable=False)
     statut = db.Column(db.String(50), nullable=False)
     date_paiement = db.Column(db.Date(), nullable=True)
+    envelope_id = db.Column(db.String(255), nullable=True)  # DocuSign envelope ID
     
     client = db.relationship('Clients', backref='devis', lazy=True)
     articles = db.relationship('DevisArticles', backref='devis', lazy=True)
