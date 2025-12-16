@@ -88,7 +88,7 @@ function ListeDevis() {
         <div className="col-md-3">
           <select className="form-select form-select-lg" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">Tous</option>
-            <option value="Non payé">Non payé</option>
+            <option value="Non signé">Non signé</option>
             <option value="Payé">Payé</option>
           </select>
         </div>

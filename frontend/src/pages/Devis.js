@@ -27,7 +27,7 @@ function Devis() {
   const [devis_montant_HT, setDevisMontantHT] = useState(0);
   const [devis_montant_TVA, setDevisMontantTVA] = useState(0);
   const [devis_montant_TTC, setDevisMontantTTC] = useState(0);
-  const [devis_status, setDevisStatus] = useState("Non payé");
+  const [devis_status, setDevisStatus] = useState("Non signé");
 
   const [devis_title_error, setDevisTitleError] = useState("");
   const [devis_description_error, setDevisDescriptionError] = useState("");
@@ -434,7 +434,7 @@ function Devis() {
               <div className="invalid-feedback">{devis_description_error}</div>
             </div>
           </div>
-          {!isNewDevis && devis && <h3 className="mt-4">{devis.statut === "Non payé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
+          {!isNewDevis && devis && <h3 className="mt-4">{devis.statut === "Non signé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
         </form>
         <div className="col-4 d-flex flex-column justify-content-end">
           <h3 className="mt-4">Montant total HT: {devis_montant_HT} €</h3>
