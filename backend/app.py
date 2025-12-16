@@ -2,6 +2,7 @@ from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_session import Session
+from flask_migrate import Migrate
 from config import ApplicationConfig
 from models import db, ma, User, TauxTVA
 from dotenv import load_dotenv
@@ -41,6 +42,7 @@ logging.basicConfig(
 # Config BDD
 db.init_app(app)
 ma.init_app(app)
+migrate = Migrate(app, db)
 
 # Register blueprints
 app.register_blueprint(admin_bp)
