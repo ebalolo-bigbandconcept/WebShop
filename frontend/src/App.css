@@ -40,3 +40,14 @@
 textarea {
   resize: none;
 }
+
+/* Improved hover effect for article list */
+.table-hover tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #0d6efd !important;
+  color: white !important;
+}
