@@ -34,7 +34,7 @@ services:
       args:
         - REACT_APP_BACKEND_URL=http://195.110.34.168:5000/api
     ports:
-      - "80:80"
+      - "801:801"
     depends_on:
       - backend
     restart: always
