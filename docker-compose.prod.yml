@@ -29,7 +29,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile.prod
       args:
-        - REACT_APP_BACKEND_URL=http://localhost:5000/api
+        - REACT_APP_BACKEND_URL=http://195.110.34.168:5000/api
     ports:
       - "80:80"
     depends_on:
