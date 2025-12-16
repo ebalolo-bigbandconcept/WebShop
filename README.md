@@ -97,7 +97,7 @@ Cette application utilise Flask-Migrate (Alembic) pour gérer les modifications 
 
 ```bash
 # Entrer dans le conteneur backend
-sudo docker compose exec backend bash
+sudo docker compose -f docker-compose.prod.yml exec backend bash
 
 # Initialiser les migrations (crée le dossier migrations/)
 flask db init
@@ -115,7 +115,7 @@ exit
 
 ```bash
 # Entrer dans le conteneur backend
-sudo docker compose exec backend bash
+sudo docker compose -f docker-compose.prod.yml exec backend bash
 
 # Créer une migration automatique
 flask db migrate -m "Description de vos changements"
