@@ -58,7 +58,7 @@ function Header({ user, setUser }) {
               </ul>
             ) : (
               <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
-                <li className="nav-item"><h3>Connection</h3>
+                <li className="nav-item"><h3>Connexion</h3>
                 </li>
               </ul>
             )}
