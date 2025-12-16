@@ -30,7 +30,7 @@ class Devis(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     client_id = db.Column(db.Integer(), db.ForeignKey('clients.id'), nullable=False)
     titre = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=True)
     date = db.Column(db.Date(), nullable=False)
     montant_HT = db.Column(db.Float(), nullable=False)
     montant_TVA = db.Column(db.Float(), nullable=False)
