@@ -466,7 +466,30 @@ function Devis() {
                 className={`form-control form-control-lg`} placeholder="Entrer une description pour le devis"/>
             </div>
           </div>
-          {!isNewDevis && devis && <h3 className="mt-4">{devis.statut === "Non signé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
+          {!isNewDevis && devis && (
+            <div className="mt-4">
+              <h3>{devis.statut === "Non signé" || devis.statut === "En attente de signature" ? <p className="text-danger">{devis.statut}</p> : devis.statut === "Signé" ? <p className="text-success">{devis.statut}</p> : <p className="text-warning">{devis.statut}</p>}</h3>
+              {(devis.statut === "Non signé" || devis.statut === "En attente de signature") && (
+                <div className="form-check">
+                  <input 
+                    className="form-check-input" 
+                    type="checkbox" 
+                    id="marquerSigne" 
+                    onChange={(e) => {
+                      if (e.target.checked && window.confirm("Voulez-vous marquer ce devis comme signé ?")) {
+                        setDevisStatus("Signé");
+                      } else {
+                        e.target.checked = false;
+                      }
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="marquerSigne">
+                    Marquer comme signé
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
         </form>
         <div className="col-lg-4 col-12 d-flex flex-column justify-content-end mt-lg-0 mt-4">
           <div className="d-flex justify-content-between align-items-center mb-2">
