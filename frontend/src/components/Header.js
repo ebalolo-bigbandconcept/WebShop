@@ -41,7 +41,7 @@ function Header({ user, setUser }) {
                   <a className="nav-link" href="/liste-devis">{location.pathname.includes("devis") ? <u>Devis</u> : "Devis"}</a>
                 </li>
                 <li className="nav-item">
-                  <a className="nav-link" href="/admin/liste-articles">{location.pathname.includes("article") ? (<u>Articles</u>) : ("Articles")}</a>
+                  <a className="nav-link" href="/liste-articles">{location.pathname.includes("article") ? (<u>Articles</u>) : ("Articles")}</a>
                 </li>
               </ul>
             ) : user !==null && user.role === "Utilisateur" ? (
@@ -53,7 +53,7 @@ function Header({ user, setUser }) {
                   <a className="nav-link" href="/liste-devis">{location.pathname.includes("devis") ? <u>Devis</u> : "Devis"}</a>
                 </li>
                 <li className="nav-item">
-                  <a className="nav-link" href="/admin/liste-articles">{location.pathname.includes("article") ? (<u>Articles</u>) : ("Articles")}</a>
+                  <a className="nav-link" href="/liste-articles">{location.pathname.includes("article") ? (<u>Articles</u>) : ("Articles")}</a>
                 </li>
               </ul>
             ) : (
