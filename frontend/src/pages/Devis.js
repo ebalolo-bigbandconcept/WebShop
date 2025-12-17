@@ -267,11 +267,17 @@ function Devis() {
         httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
         .then((resp) => {
-          const newDevisId = resp.data.id;
+          const newDevisId = resp.data && resp.data.id;
+          if (!newDevisId) {
+            alert('Erreur: id du devis manquant après création.');
+            return;
+          }
           // Update URL to reflect the new devis ID
           navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
-          // immediately fetch and initialize the newly created devis
-          fetchDevisById(newDevisId);
+          // fetch the newly created devis after a short delay to avoid race conditions
+          setTimeout(() => {
+            fetchDevisById(newDevisId);
+          }, 300);
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -328,6 +334,7 @@ function Devis() {
   }
 
   const fetchDevisById = async (targetId) => {
+    setLoading(true);
     if (!targetId) {
       setIsNewDevis(true);
       setLoading(false);
