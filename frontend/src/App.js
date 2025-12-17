@@ -91,6 +91,11 @@ function App() {
                 <DevisPdf/>
               </PrivateRoute>
             }/>
+            <Route path="/liste-articles" element={
+              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                <ListeArticles/>
+              </PrivateRoute>
+            }/>
             <Route path="/admin/dashboard" element={
               <PrivateRoute user={user} requiredRole={'Administrateur'}>
                 <AdminDashboard setUser={setUser}/>
