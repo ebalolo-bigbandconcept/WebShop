@@ -270,6 +270,8 @@ function Devis() {
           const newDevisId = resp.data.id;
           // Update URL to reflect the new devis ID
           navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
+          // immediately fetch and initialize the newly created devis
+          fetchDevisById(newDevisId);
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -298,8 +300,14 @@ function Devis() {
 
   // ### Delete devis
   const deleteDevis = async () => {
+    const targetId = (devis && devis.id) ? devis.id : id_devis;
+    if (!targetId) {
+      alert('Impossible de supprimer: aucun id de devis valide.');
+      return;
+    }
+
     httpClient
-    .delete(`${process.env.REACT_APP_BACKEND_URL}/devis/delete/${id_devis}`)
+    .delete(`${process.env.REACT_APP_BACKEND_URL}/devis/delete/${targetId}`)
       .then((resp) => {
         handleClose()
         navigate(`/client/${id_client}`);
@@ -315,25 +323,59 @@ function Devis() {
 
   // ### Fetch devis, client info and every articles on page load ###
   const getDevisInfo = async () => {
-    httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${id_devis}`)
-      .then((resp) => {
-        setDevis(resp.data);
-        setIsNewDevis(false);
+    // kept for backwards compatibility, delegates to fetchDevisById
+    return fetchDevisById(id_devis);
+  }
+
+  const fetchDevisById = async (targetId) => {
+    if (!targetId) {
+      setIsNewDevis(true);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${targetId}`);
+      const data = resp.data;
+      setDevis(data);
+      setIsNewDevis(false);
+
+      // initialize form fields from fetched devis
+      setDevisTitle(data.titre);
+      setDevisDescription(data.description);
+      setDevisDate(data.date);
+      setDevisMontantHT(data.montant_HT);
+      setDevisMontantTVA(data.montant_TVA);
+      setDevisMontantTTC(data.montant_TTC);
+      setDevisStatus(data.statut);
+
+      if (Array.isArray(data.articles)) {
+        setArticlesInDevis(
+          data.articles.map((da) => ({
+            ...da.article,
+            quantite: da.quantite,
+            montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
+            montant_TVA: ((da.article.prix_vente_HT * da.article.taux_tva.taux) * da.quantite).toFixed(2),
+            montant_TTC: ((da.article.prix_vente_HT * (1 + da.article.taux_tva.taux)) * da.quantite).toFixed(2),
+          }))
+        );
+      } else {
+        setArticlesInDevis([]);
+      }
+
+      setLoading(false);
+      return data;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setIsNewDevis(true);
         setLoading(false);
-      })
-      .catch((error) => {
-        if (error.response && error.response.data && error.response.data.error) {
-          if (error.response.status === 404) {
-            setIsNewDevis(true);
-            setLoading(false);
-          }else{
-            alert(error.response.data.error);
-          }
-        } else {
-          alert("Une erreur est survenue.");
-        }
-      });
+        return null;
+      }
+      console.error(error);
+      alert('Une erreur est survenue lors de la récupération du devis.');
+      setLoading(false);
+      return null;
+    }
   }
 
   const getClientInfo = async () => {
@@ -371,8 +413,9 @@ function Devis() {
   useEffect(() => {
     getClientInfo();
     getAllArticles();
-    getDevisInfo();
-  }, [isNewDevis]);
+    // fetch current devis on id change
+    fetchDevisById(id_devis);
+  }, [id_devis]);
 
   // ### Filter articles logic ###
   useEffect(() => {
