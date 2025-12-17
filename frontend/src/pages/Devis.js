@@ -267,7 +267,9 @@ function Devis() {
         httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
         .then((resp) => {
-          setIsNewDevis(false);
+          const newDevisId = resp.data.id;
+          // Update URL to reflect the new devis ID
+          navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
