@@ -277,7 +277,7 @@ function Devis() {
           // fetch the newly created devis after a short delay to avoid race conditions
           setTimeout(() => {
             fetchDevisById(newDevisId);
-          }, 300);
+          }, 600);
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
