@@ -466,15 +466,16 @@ function Devis() {
                 className={`form-control form-control-lg`} placeholder="Entrer une description pour le devis"/>
             </div>
           </div>
-          {!isNewDevis && devis && (
+          {!isNewDevis && (
             <div className="mt-4">
-              <h3>{devis.statut === "Non signé" || devis.statut === "En attente de signature" ? <p className="text-danger">{devis.statut}</p> : devis.statut === "Signé" ? <p className="text-success">{devis.statut}</p> : <p className="text-warning">{devis.statut}</p>}</h3>
-              {(devis.statut === "Non signé" || devis.statut === "En attente de signature") && (
+              <h3>{devis_status === "Non signé" || devis_status === "En attente de signature" ? <p className="text-danger">{devis_status}</p> : devis_status === "Signé" ? <p className="text-success">{devis_status}</p> : <p className="text-warning">{devis_status}</p>}</h3>
+              {(devis_status === "Non signé" || devis_status === "En attente de signature") && (
                 <div className="form-check">
                   <input 
                     className="form-check-input" 
                     type="checkbox" 
                     id="marquerSigne" 
+                    checked={devis_status === "Signé"}
                     onChange={(e) => {
                       if (e.target.checked && window.confirm("Voulez-vous marquer ce devis comme signé ?")) {
                         setDevisStatus("Signé");
