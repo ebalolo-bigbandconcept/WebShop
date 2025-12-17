@@ -266,18 +266,37 @@ function Devis() {
         // Create new devis
         httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
-        .then((resp) => {
+        .then(async (resp) => {
           const newDevisId = resp.data && resp.data.id;
           if (!newDevisId) {
             alert('Erreur: id du devis manquant après création.');
             return;
           }
-          // Update URL to reflect the new devis ID
-          navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
-          // fetch the newly created devis after a short delay to avoid race conditions
-          setTimeout(() => {
-            fetchDevisById(newDevisId);
-          }, 600);
+          
+          // Set isNewDevis to false first to prevent the useEffect from fetching too early
+          setIsNewDevis(false);
+          
+          // Fetch the newly created devis with retry logic
+          let retries = 3;
+          let fetchSuccess = false;
+          
+          while (retries > 0 && !fetchSuccess) {
+            try {
+              await new Promise(resolve => setTimeout(resolve, 300)); // Wait 300ms
+              const data = await fetchDevisById(newDevisId);
+              if (data) {
+                fetchSuccess = true;
+                // Update URL to reflect the new devis ID only after successful fetch
+                navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
+              }
+            } catch (error) {
+              retries--;
+              if (retries === 0) {
+                alert("Le devis a été créé mais il y a eu un problème lors du rechargement. Veuillez rafraîchir la page.");
+                navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
+              }
+            }
+          }
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -338,7 +357,7 @@ function Devis() {
     if (!targetId) {
       setIsNewDevis(true);
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
@@ -376,12 +395,11 @@ function Devis() {
       if (error.response && error.response.status === 404) {
         setIsNewDevis(true);
         setLoading(false);
-        return null;
+        throw error; // Re-throw to allow retry logic in saveDevis
       }
       console.error(error);
-      alert('Une erreur est survenue lors de la récupération du devis.');
       setLoading(false);
-      return null;
+      throw error; // Re-throw to allow retry logic
     }
   }
 
@@ -420,8 +438,10 @@ function Devis() {
   useEffect(() => {
     getClientInfo();
     getAllArticles();
-    // fetch current devis on id change
-    fetchDevisById(id_devis);
+    // fetch current devis on id change, but not if we're in the middle of creating a new one
+    if (!isNewDevis || id_devis) {
+      fetchDevisById(id_devis);
+    }
   }, [id_devis]);
 
   // ### Filter articles logic ###
