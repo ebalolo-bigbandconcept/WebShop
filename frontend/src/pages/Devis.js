@@ -319,6 +319,7 @@ function Devis() {
       .get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${id_devis}`)
       .then((resp) => {
         setDevis(resp.data);
+        setIsNewDevis(false);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
