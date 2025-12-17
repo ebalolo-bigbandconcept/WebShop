@@ -320,6 +320,7 @@ function Devis() {
       .then((resp) => {
         setDevis(resp.data);
         setIsNewDevis(false);
+        setLoading(false);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -469,7 +470,7 @@ function Devis() {
                 className={`form-control form-control-lg`} placeholder="Entrer une description pour le devis"/>
             </div>
           </div>
-          {!isNewDevis && (
+          {id_devis && (
             <div className="mt-4">
               <h3>{devis_status === "Non signé" || devis_status === "En attente de signature" ? <p className="text-danger">{devis_status}</p> : devis_status === "Signé" ? <p className="text-success">{devis_status}</p> : <p className="text-warning">{devis_status}</p>}</h3>
               {(devis_status === "Non signé" || devis_status === "En attente de signature") && (
