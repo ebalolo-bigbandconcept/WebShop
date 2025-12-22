@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
-import bootstrap from "bootstrap/dist/js/bootstrap.js";
+import Modal from "../components/Modal";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -18,6 +18,11 @@ function AdminDashboard() {
   const [last_name_error, setLastNameError] = useState("");
   const [email_error, setEmailError] = useState("");
   const [password_error, setPasswordError] = useState("");
+
+  const modalRef = useRef(null);
+  const showModal = () => {
+    modalRef.current && modalRef.current.open();
+  };
 
   // ### User input verifications ###
   const firstNameVerif = (value) => {
@@ -126,19 +131,7 @@ function AdminDashboard() {
   };
 
   const handleClose = () => {
-    // Close modal
-    const popup = document.getElementById("popup");
-    const modal = bootstrap.Modal.getInstance(popup);
-    if (modal){
-      modal.hide();
-    }
-    // Close modal residues
-    const backdrops = document.querySelectorAll(".modal-backdrop");
-    backdrops.forEach((b) => b.remove());
-
-    document.body.classList.remove("modal-open");
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
+    modalRef.current && modalRef.current.close();
     // Reset form
     setNewFirstName("");
     setNewLastName("");
@@ -160,7 +153,7 @@ function AdminDashboard() {
     <div>
       <h1>Tableau de bord administrateur</h1>
       <div>
-        <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouvel utilisateur</button>
+        <button className="btn btn-primary" onClick={showModal}>+ Ajouter un nouvel utilisateur</button>
         <button
           className="btn btn-outline-secondary ms-2"
           type="button"
@@ -170,55 +163,49 @@ function AdminDashboard() {
         </button>
         <br />
         <br />
-        <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-          <div className="modal-dialog modal-xl">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h1 className="modal-title fs-5" id="popupLabel">Ajouter un nouvel utilisateur.</h1>
-              </div>
-              <div className="modal-body">
-                <form className="row">
-                  <div className="form-outline col-4">
-                    <label className="form-label">Nom</label>
-                    <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nouveau nom"/>
-                    <div className="invalid-feedback">{last_name_error}</div>
-                  </div>
-                  <div className="form-outline col-4">
-                    <label className="form-label">Prénom</label>
-                    <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom"
-                    />
-                    <div className="invalid-feedback">{first_name_error}</div>
-                  </div>
-                  <div className="form-outline col-4">
-                    <label className="form-label">Rôle</label>
-                    <select className="form-select form-select-lg" onChange={(e) => setNewRole(e.target.value)}>
-                      <option value="Utilisateur">Utilisateur</option>
-                      <option value="Administrateur">Administrateur</option>
-                    </select>
-                  </div>
-                  <div className="form-outline mt-4">
-                    <label className="form-label">Adresse mail</label>
-                    <input type="email" id="email" value={new_email} onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer une nouvelle adresse  mail"/>
-                    <div className="invalid-feedback">{email_error}</div>
-                  </div>
-                  <div className="form-outline mt-4">
-                    <label className="form-label">Mot de passe</label>
-                    <input type="password" id="mdp" value={new_password} onChange={(e) => { setNewPassword(e.target.value); passwordVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer un nouveau mot de passe"/>
-                    <div className="invalid-feedback">{password_error}</div>
-                  </div>
-                </form>
-              </div>
-              <div className="modal-footer d-flex justify-content-between">
-                <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Annuler</button>
-                <button className="btn btn-lg btn-success" onClick={addNewUser}>Enregistrer</button>
-              </div>
+        <Modal ref={modalRef} title={"Ajouter un nouvel utilisateur."} size="modal-xl" backdrop="static" keyboard={false}
+          footer={(
+            <div className="d-flex justify-content-between w-100">
+              <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+              <button className="btn btn-lg btn-success" onClick={addNewUser}>Enregistrer</button>
             </div>
-          </div>
-        </div>
+          )}
+        >
+          <form className="row">
+            <div className="form-outline col-4">
+              <label className="form-label">Nom</label>
+              <input type="text" id="nom" value={new_nom} onChange={(e) => {setNewLastName(e.target.value);lastNameVerif(e.target.value);}}
+                className={`form-control form-control-lg ${last_name_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nouveau nom"/>
+              <div className="invalid-feedback">{last_name_error}</div>
+            </div>
+            <div className="form-outline col-4">
+              <label className="form-label">Prénom</label>
+              <input type="text" id="prénom" value={new_prenom} onChange={(e) => {setNewFirstName(e.target.value);firstNameVerif(e.target.value);}}
+                className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un nouveau prénom"
+              />
+              <div className="invalid-feedback">{first_name_error}</div>
+            </div>
+            <div className="form-outline col-4">
+              <label className="form-label">Rôle</label>
+              <select className="form-select form-select-lg" onChange={(e) => setNewRole(e.target.value)}>
+                <option value="Utilisateur">Utilisateur</option>
+                <option value="Administrateur">Administrateur</option>
+              </select>
+            </div>
+            <div className="form-outline mt-4">
+              <label className="form-label">Adresse mail</label>
+              <input type="email" id="email" value={new_email} onChange={(e) => {setNewEmail(e.target.value);emailVerif(e.target.value);}}
+                className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer une nouvelle adresse  mail"/>
+              <div className="invalid-feedback">{email_error}</div>
+            </div>
+            <div className="form-outline mt-4">
+              <label className="form-label">Mot de passe</label>
+              <input type="password" id="mdp" value={new_password} onChange={(e) => { setNewPassword(e.target.value); passwordVerif(e.target.value);}}
+                className={`form-control form-control-lg ${password_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}placeholder="Entrer un nouveau mot de passe"/>
+              <div className="invalid-feedback">{password_error}</div>
+            </div>
+          </form>
+        </Modal>
       </div>
       <table className="table table-hover table-striped">
         <thead>

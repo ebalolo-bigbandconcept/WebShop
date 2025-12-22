@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
-import bootstrap from "bootstrap/dist/js/bootstrap.js";
+import Modal from "../components/Modal";
 
 function ListeClients() {
   const navigate = useNavigate();
@@ -36,6 +36,11 @@ function ListeClients() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10); // Items to display per page
   const [paginatedClients, setPaginatedClients] = useState([]);
+
+  const modalRef = useRef(null);
+  const showModal = () => {
+    modalRef.current && modalRef.current.open();
+  };
 
 
   // Automatically format French phone number as "01 23 45 67 89"
@@ -202,22 +207,24 @@ function ListeClients() {
   // ### Handle modal ###
   const handleForce = () => {
     setModeFORCE(true);
+    showModal();
   }
 
-  const handleClose = () => {
-    // Close modal
-    const popup = document.getElementById("popup");
-    const modal = bootstrap.Modal.getInstance(popup);
-    if (modal){
-      modal.hide();
-    }
-    // Close modal residues
-    const backdrops = document.querySelectorAll(".modal-backdrop");
-    backdrops.forEach((b) => b.remove());
+  const handleOpenCreate = () => {
+    setModeFORCE(false);
+    setFormSubmited(false);
+    setFirstNameError("");
+    setLastNameError("");
+    setEmailError("");
+    setRueError("");
+    setVilleError("");
+    setCodePostalError("");
+    setTelError("");
+    showModal();
+  };
 
-    document.body.classList.remove("modal-open");
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
+  const handleClose = () => {
+    modalRef.current && modalRef.current.close();
     // Reset form
     setFirstName("");
     setLastName("");
@@ -282,6 +289,116 @@ function ListeClients() {
     setCurrentPage(1);
   }, [itemsPerPage]);
 
+  const modalTitle = modeFORCE ? 'Attention' : 'Ajouter un nouveau client';
+
+  const modalBody = modeFORCE ? (
+    "Un utilisateur à déja cet adresse email. Êtes vous sur de vouloir créer un client avec la même adresse mail ?"
+  ) : (
+    <form className="row">
+      <div className="form-outline col-6">
+        <label className="form-label">Nom</label>
+        <input
+          type="text"
+          id="nom"
+          value={nom}
+          onChange={(e) => { setLastName(e.target.value); lastNameVerif(e.target.value); }}
+          className={`form-control form-control-lg ${nom_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Entrer un nom"
+        />
+        <div className="invalid-feedback">{nom_error}</div>
+      </div>
+      <div className="form-outline col-6">
+        <label className="form-label">Prénom</label>
+        <input
+          type="text"
+          id="prénom"
+          value={prenom}
+          onChange={(e) => { setFirstName(e.target.value); firstNameVerif(e.target.value); }}
+          className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Entrer un prénom"
+        />
+        <div className="invalid-feedback">{first_name_error}</div>
+      </div>
+      <div className="form-outline mt-4">
+        <label className="form-label">Adresse</label>
+        <input
+          type="text"
+          id="adresse"
+          value={rue}
+          onChange={(e) => { setRue(e.target.value); rueVerif(e.target.value); }}
+          className={`form-control form-control-lg ${rue_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="2 Av. Gustave Eiffel"
+        />
+        <div className="invalid-feedback">{rue_error}</div>
+      </div>
+      <div className="form-outline col-6 mt-4">
+        <label className="form-label">Ville</label>
+        <input
+          type="text"
+          id="ville"
+          value={ville}
+          onChange={(e) => { setVille(e.target.value); villeVerif(e.target.value); }}
+          className={`form-control form-control-lg ${ville_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Paris"
+        />
+        <div className="invalid-feedback">{ville_error}</div>
+      </div>
+      <div className="form-outline col-6 mt-4">
+        <label className="form-label">Code postal</label>
+        <input
+          type="text"
+          id="code_postal"
+          value={code_postal}
+          onChange={(e) => { setCodePostal(e.target.value); postalCodeVerif(e.target.value); }}
+          className={`form-control form-control-lg ${code_postal_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="75007"
+        />
+        <div className="invalid-feedback">{code_postal_error}</div>
+      </div>
+      <div className="form-outline col-6 mt-4">
+        <label className="form-label">Adresse mail</label>
+        <input
+          type="email"
+          id="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); emailVerif(e.target.value); }}
+          className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Entrer une adresse mail"
+        />
+        <div className="invalid-feedback">{email_error}</div>
+      </div>
+      <div className="form-outline col-6 mt-4">
+        <label className="form-label">Numéro de téléphone</label>
+        <input
+          type="tel"
+          id="tel"
+          value={tel}
+          onChange={(e) => {
+            const formatted = formatFrenchTel(e.target.value);
+            setTel(formatted);
+            telVerif(formatted);
+          }}
+          className={`form-control form-control-lg ${tel_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="01 23 45 67 89"
+          maxLength={14}
+        />
+        <div className="invalid-feedback">{tel_error}</div>
+      </div>
+    </form>
+  );
+
+  const modalFooter = modeFORCE ? (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Non</button>
+      <button className="btn btn-lg btn-success" onClick={forceCreate}>Oui</button>
+    </div>
+  ) : (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+      <button className="btn btn-lg btn-success" onClick={addNewClient}>Enregistrer</button>
+    </div>
+  );
+
 
   if (loading) return <div>Chargement...</div>;
 
@@ -289,81 +406,9 @@ function ListeClients() {
     <div>
       <h1>Liste des Clients</h1>
       <br/>
-      <div>
-        <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-          <div className="modal-dialog modal-xl">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h1 className="modal-title fs-5" id="popupLabel">{modeFORCE ? 'Attention' : 'Ajouter un nouveau client'}</h1>
-              </div>
-              <div className="modal-body">
-                {modeFORCE ? ("Un utilisateur à déja cet adresse email. Êtes vous sur de vouloir créer un client avec la même adresse mail ?") : (
-                <form className="row">
-                  <div className="form-outline col-6">
-                    <label className="form-label">Nom</label>
-                    <input type="text" id="nom" value={nom} onChange={(e) => {setLastName(e.target.value);lastNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom"/>
-                    <div className="invalid-feedback">{nom_error}</div>
-                  </div>
-                  <div className="form-outline col-6">
-                    <label className="form-label">Prénom</label>
-                    <input type="text" id="prénom" value={prenom} onChange={(e) => {setFirstName(e.target.value);firstNameVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${first_name_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer un prénom"/>
-                    <div className="invalid-feedback">{first_name_error}</div>
-                  </div>
-                  <div className="form-outline mt-4">
-                    <label className="form-label">Adresse</label>
-                    <input type="text" id="adresse" value={rue} onChange={(e) => {setRue(e.target.value);rueVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${rue_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="2 Av. Gustave Eiffel"/>
-                    <div className="invalid-feedback">{rue_error}</div>
-                  </div>
-                  <div className="form-outline col-6 mt-4">
-                    <label className="form-label">Ville</label>
-                    <input type="text" id="ville" value={ville} onChange={(e) => {setVille(e.target.value);villeVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${ville_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Paris"/>
-                    <div className="invalid-feedback">{ville_error}</div>
-                  </div>
-                  <div className="form-outline col-6 mt-4">
-                    <label className="form-label">Code postal</label>
-                    <input type="text" id="code_postal" value={code_postal} onChange={(e) => {setCodePostal(e.target.value);postalCodeVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${code_postal_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="75007"/>
-                    <div className="invalid-feedback">{code_postal_error}</div>
-                  </div>
-                  <div className="form-outline col-6 mt-4">
-                    <label className="form-label">Adresse mail</label>
-                    <input type="email" id="email" value={email} onChange={(e) => {setEmail(e.target.value);emailVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${email_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une adresse mail"/>
-                    <div className="invalid-feedback">{email_error}</div>
-                  </div>
-                  <div className="form-outline col-6 mt-4">
-                    <label className="form-label">Numéro de téléphone</label>
-                    <input type="tel" id="tel" value={tel} onChange={(e) => {
-                      const formatted = formatFrenchTel(e.target.value);
-                      setTel(formatted);
-                      telVerif(formatted);
-                    }}className={`form-control form-control-lg ${tel_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="01 23 45 67 89" maxLength={14}/>
-                    <div className="invalid-feedback">{tel_error}</div>
-                  </div>
-                </form>
-                )}
-              </div>
-              <div className="modal-footer ">
-                {modeFORCE ? (
-                    <div className="d-flex justify-content-between w-100">
-                      <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Non</button>
-                      <button className="btn btn-lg btn-success" onClick={forceCreate}>Oui</button>
-                    </div>
-                ) : (
-                  <div className="d-flex justify-content-between w-100">
-                    <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Annuler</button>
-                    <button className="btn btn-lg btn-success" onClick={addNewClient}>Enregistrer</button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-xl" backdrop="static" keyboard={false}>
+        {modalBody}
+      </Modal>
 
       <div className="row mb-3 align-items-center">
         <div className="col-md-6">
@@ -391,7 +436,7 @@ function ListeClients() {
         </div>
       </div>
       <div className="w-100 d-flex justify-content-end">
-        <button className="btn btn-lg btn-success mt-4" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouveau client</button>
+        <button className="btn btn-lg btn-success mt-4" onClick={handleOpenCreate}>+ Ajouter un nouveau client</button>
       </div>
       <table className="table table-hover table-striped mt-4">
         <thead>

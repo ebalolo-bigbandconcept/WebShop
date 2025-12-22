@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
-import bootstrap from "bootstrap/dist/js/bootstrap.js";
+import Modal from "../components/Modal";
 
 function ListeArticles() {
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,8 @@ function ListeArticles() {
   const [MODIFY, setMODIFY] = useState(false);
   const [DELETE, setDELETE] = useState(false);
   const [CREATE, setCREATE] = useState(false);
+
+  const modalRef = useRef(null);
 
   // Filter and Pagination state
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -80,9 +82,7 @@ function ListeArticles() {
   }
 
   const showModal = () => {
-    const popup = document.getElementById("popup");
-    const modal = new bootstrap.Modal(popup, {});
-    modal.show();
+    modalRef.current && modalRef.current.open();
   }
 
   const handleCreateArticle = () => {
@@ -234,20 +234,7 @@ function ListeArticles() {
   }
 
   const handleClose = () => {
-    // Close modal
-    const popup = document.getElementById("popup");
-    const modal = bootstrap.Modal.getInstance(popup);
-    if (modal){
-      modal.hide();
-    }
-    // Close modal residues
-    const backdrops = document.querySelectorAll(".modal-backdrop");
-    backdrops.forEach((b) => b.remove());
-
-    document.body.classList.remove("modal-open");
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
-    // Reset form
+    modalRef.current && modalRef.current.close();
     setFormSubmited(false);
     setArticleNom("");
     setArticleDescription("");
@@ -299,86 +286,103 @@ function ListeArticles() {
     setCurrentPage(1);
   }, [itemsPerPage]);
 
+  const modalTitle = CREATE
+    ? "Ajouter un nouvel article."
+    : MODIFY
+      ? "Modifier l'article."
+      : DELETE
+        ? "Supprimer l'article."
+        : "";
+
+  const modalBody = DELETE ? (
+    <h5>Êtes-vous sûr de vouloir supprimer l'article "{article_nom}" ?</h5>
+  ) : (
+    <form className="row">
+      <div className="form-outline col-12">
+        <label className="form-label">Article</label>
+        <input
+          type="text"
+          id="article"
+          value={article_nom}
+          onChange={(e) => { setArticleNom(e.target.value); articleNomVerif(e.target.value); }}
+          className={`form-control form-control-lg ${article_nom_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Entrer un nom d'article"
+        />
+        <div className="invalid-feedback">{article_nom_error}</div>
+      </div>
+      <div className="form-outline col-12 mt-4">
+        <label className="form-label">Description</label>
+        <textarea
+          id="prénom"
+          value={article_description}
+          onChange={(e) => { setArticleDescription(e.target.value); articleDescriptionVerif(e.target.value); }}
+          className={`form-control form-control-lg ${article_description_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Entrer une description"
+        />
+        <div className="invalid-feedback">{article_description_error}</div>
+      </div>
+      <div className="form-outline col-lg-5 col-4 mt-4">
+        <label className="form-label">Prix d'achat HT</label>
+        <input
+          type="text"
+          id="adresse"
+          value={article_prix_achat_HT}
+          onChange={(e) => {
+            const value = e.target.value.replace(',', '.');
+            setArticlePrixAchatHT(value);
+            articlePrixAchatHTVerif(value);
+          }}
+          className={`form-control form-control-lg ${article_prix_achat_HT_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="10,00€"
+        />
+        <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
+      </div>
+      {MODIFY && (
+        <div className="form-outline col-lg-5 col-4 mt-4">
+          <label className="form-label">Prix de vente HT (calculé)</label>
+          <input type="text" id="prix_vente" value={article_prix_vente_HT} readOnly className="form-control form-control-lg" />
+        </div>
+      )}
+      <div className={`form-outline ${MODIFY ? 'col-lg-2 col-4' : 'col-lg-7 col-8'} mt-4`}>
+        <label className="form-label">TVA</label>
+        <select
+          id="taux_tva"
+          value={article_taux_tva}
+          onChange={(e) => setArticleTauxTVA(e.target.value)}
+          className="form-control form-control-lg"
+        >
+          <option value={0.20}>20%</option>
+        </select>
+      </div>
+    </form>
+  );
+
+  const modalFooter = CREATE ? (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+      <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+    </div>
+  ) : MODIFY ? (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={() => handleDeleteArticle({ id: article_id, nom: article_nom })}>Supprimer</button>
+      <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
+    </div>
+  ) : DELETE ? (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
+      <button className="btn btn-lg btn-primary" onClick={deleteArticle}>Oui</button>
+    </div>
+  ) : null;
+
   if (loading) return <div>Chargement...</div>;
   
   return (
     <div>
       <h1>Liste des articles</h1>
       <br/>
-      <div>
-        <div className="modal fade" id="popup" tabIndex="-1">
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h1 className="modal-title fs-5" id="popupLabel">
-                  {CREATE ? 'Ajouter un nouvel article.'
-                  : MODIFY ? 'Modifier l\'article.'
-                  : DELETE ? 'Supprimer l\'article.' : ''}
-                </h1>
-              </div>
-              <div className="modal-body">
-                {DELETE ? <h5>Êtes-vous sûr de vouloir supprimer l'article "{article_nom}" ?</h5>
-                : 
-                <form className="row">
-                  <div className="form-outline col-12">
-                    <label className="form-label">Article</label>
-                    <input type="text" id="article" value={article_nom} onChange={(e) => {setArticleNom(e.target.value);articleNomVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${article_nom_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un nom d'article"/>
-                    <div className="invalid-feedback">{article_nom_error}</div>
-                  </div>
-                  <div className="form-outline col-12 mt-4">
-                    <label className="form-label">Description</label>
-                    <textarea id="prénom" value={article_description} onChange={(e) => {setArticleDescription(e.target.value);articleDescriptionVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${article_description_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="Entrer une description"/>
-                    <div className="invalid-feedback">{article_description_error}</div>
-                  </div>
-                  <div className="form-outline col-lg-5 col-4 mt-4">
-                    <label className="form-label">Prix d'achat HT</label>
-                    <input type="text" id="adresse" value={article_prix_achat_HT} onChange={(e) => {
-                      const value = e.target.value.replace(',', '.');
-                      setArticlePrixAchatHT(value);
-                      articlePrixAchatHTVerif(value);}} 
-                      className={`form-control form-control-lg ${article_prix_achat_HT_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="10,00€"/>
-                    <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
-                  </div>
-                  {MODIFY && (
-                  <div className="form-outline col-lg-5 col-4 mt-4">
-                    <label className="form-label">Prix de vente HT (calculé)</label>
-                    <input type="text" id="prix_vente" value={article_prix_vente_HT} readOnly 
-                      className={`form-control form-control-lg`} />
-                  </div>
-                  )}
-                  <div className={`form-outline ${MODIFY ? 'col-lg-2 col-4' : 'col-lg-7 col-8'} mt-4`}>
-                    <label className="form-label">TVA</label>
-                    <select id="taux_tva" value={article_taux_tva} onChange={(e) => setArticleTauxTVA(e.target.value)} className={`form-control form-control-lg`}>
-                      <option value={0.20}>20%</option>
-                    </select>
-                  </div>
-                </form>
-                }
-              </div>
-              <div className="modal-footer">
-                {CREATE ? 
-                  <div className="d-flex justify-content-between w-100">
-                    <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-                    <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
-                  </div>
-                : MODIFY ?
-                  <div className="d-flex justify-content-between w-100">
-                    <button className="btn btn-lg btn-danger" onClick={() => handleDeleteArticle({id: article_id, nom: article_nom})}>Supprimer</button>
-                    <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
-                  </div>
-                : DELETE ? 
-                <div className="d-flex justify-content-center w-100">
-                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
-                  <button className="btn btn-lg btn-primary" onClick={deleteArticle}>Oui</button>
-                </div> : ''
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-lg">
+        {modalBody}
+      </Modal>
 
       <div className="row mb-3 align-items-center">
         <div className="col-md-9">

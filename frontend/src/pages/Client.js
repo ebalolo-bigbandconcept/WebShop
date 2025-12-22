@@ -1,8 +1,8 @@
 import { useParams } from "react-router";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
-import bootstrap from "bootstrap/dist/js/bootstrap.js";
+import Modal from "../components/Modal";
 
 function Client() {
   const client_id = useParams();
@@ -22,6 +22,8 @@ function Client() {
   const [new_caduque, setNewCaduque] = useState("");
 
   const [activeTab, setActiveTab] = useState("devis");
+
+  const modalRef = useRef(null);
 
   const [form_submited, setFormSubmited] = useState(false);
   const [first_name_error, setPrenomError] = useState("");
@@ -144,9 +146,7 @@ function Client() {
 
   // ### handle modal ###
   const showModal = () => {
-    const popup = document.getElementById("popup");
-    const modal = new bootstrap.Modal(popup, {});
-    modal.show();
+    modalRef.current && modalRef.current.open();
   }
 
   const handleForce = () => {
@@ -154,19 +154,7 @@ function Client() {
   }
 
   const handleClose = () => {
-    // Close modal
-    const popup = document.getElementById("popup");
-    const modal = bootstrap.Modal.getInstance(popup);
-    if (modal){
-      modal.hide();
-    }
-    // Close modal residues
-    const backdrops = document.querySelectorAll(".modal-backdrop");
-    backdrops.forEach((b) => b.remove());
-
-    document.body.classList.remove("modal-open");
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
+    modalRef.current && modalRef.current.close();
     setPrenomError("");
     setNomError("");
     setRueError("");
@@ -430,23 +418,21 @@ function Client() {
         </div>
       </div>
 
-        {/* Modal for force update */}
-        <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div className="modal-dialog modal-xl">
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h1 className="modal-title fs-5" id="popupLabel">Attention</h1>
-                    </div>
-                    <div className="modal-body">
-                        <h5>Un client utilise déjà cet email, êtes vous sur de vouloir modifier le clients quand même ?</h5>
-                    </div>
-                    <div className="modal-footer d-flex justify-content-between">
-                        <button className="btn btn-lg btn-danger" data-bs-dismiss="modal" onClick={handleClose}>Non</button>
-                        <button className="btn btn-lg btn-success" onClick={forceUpdate}>Oui</button>
-                    </div>
-                </div>
+        <Modal
+          ref={modalRef}
+          title="Attention"
+          size="modal-xl"
+          backdrop="static"
+          keyboard={false}
+          footer={(
+            <div className="d-flex justify-content-between w-100">
+              <button className="btn btn-lg btn-danger" onClick={handleClose}>Non</button>
+              <button className="btn btn-lg btn-success" onClick={forceUpdate}>Oui</button>
             </div>
-        </div>
+          )}
+        >
+          <h5>Un client utilise déjà cet email, êtes vous sur de vouloir modifier le clients quand même ?</h5>
+        </Modal>
     </div>
   );
 }

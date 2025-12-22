@@ -1,8 +1,8 @@
 import { useParams } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
-import bootstrap from "bootstrap/dist/js/bootstrap.js";
+import Modal from "../components/Modal";
 import trashCan from "../assets/trash3-fill.svg";
 
 function Devis() {
@@ -58,101 +58,74 @@ function Devis() {
   const [article_MODIFY, setArticleMODIFY] = useState(false);
   const [article_DELETE, setArticleDELETE] = useState(false);
 
-  // ### User input validation ###
-  const devisTitleVerif = (value) => {
-    if (value === "") {
-      setDevisTitleError("Veuillez entrer un nom d'article");
-      return false;
-    }
-    setDevisTitleError("");
-    return true;
-  }
-
-  const devisDateVerif = (value) => {
-    if (value === "") {
-      setDevisDateError("Veuillez entrer une date");
-      return false;
-    }
-    else if (value < today) {
-      setDevisDateError("Veuillez entrer une date valide");
-    }
-    setDevisDateError("");
-    return true;
-  }
-
-  const devisContentVerif = (articles) => {
-    if (articles.length === 0) {
-      alert("Veuillez ajouter au moins un article au devis.");
-      return false;
-    }
-    return true;
-  }
+  const modalRef = useRef(null);
+  const goBack = () => {
+    navigate(-1);
+  };
 
   const articleQuantityVerif = (value) => {
-    if (value <= 0) {
-      setArticleQuantityError("Veuillez entrer une quantité valide");
+    const qty = Number(value);
+    if (!value || isNaN(qty) || qty <= 0 || !Number.isFinite(qty)) {
+      setArticleQuantityError("Veuillez entrer une quantité valide (> 0)");
       return false;
     }
     setArticleQuantityError("");
     return true;
-  }
+  };
 
-  // ### Go back button ###
-
-  const goBack = () => {
-    if (location.state && location.state.from) {
-      console.log(location.state.from)
-      navigate(location.state.from);
-    }else{
-      navigate('/liste-devis');
+  const devisTitleVerif = (value) => {
+    if (!value || String(value).trim() === "") {
+      setDevisTitleError("Veuillez entrer un titre");
+      return false;
     }
-  }
+    setDevisTitleError("");
+    return true;
+  };
 
-  // ### Handle modal ###
-  const showModal = () => {
-    const popup = document.getElementById("popup");
-    const modal = new bootstrap.Modal(popup, {});
-    modal.show();
-  }
+  const devisDateVerif = (value) => {
+    if (!value) {
+      setDevisDateError("Veuillez entrer une date");
+      return false;
+    }
+    const d = new Date(value);
+    if (isNaN(d.getTime())) {
+      setDevisDateError("Format de date invalide");
+      return false;
+    }
+    setDevisDateError("");
+    return true;
+  };
 
-  const handleAddArticle = () => {
-    showModal();
-  }
-
-  const handleDeleteDevis = () => {
-    setDELETE(true);
-    showModal();
-  }
-
-  const handleModifyArticle = (article) => {
-    setArticleSelected(article)
-    setArticleQuantite(article.quantite)
-    setArticleMODIFY(true);
-    showModal();
-  }
-
-  const handleDeleteArticle = (article) => {
-    setArticleDELETE(true);
-    setArticleSelected(article)
-    showModal();
-  }
-
-  const toggleSelectLine = (id) => {
-    setSelectedArticleIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  const devisContentVerif = (articles) => {
+    const isValid = Array.isArray(articles) && articles.length > 0;
+    if (!isValid) {
+      alert("Veuillez ajouter au moins un article au devis.");
+    }
+    return isValid;
   };
 
   const toggleSelectAllLines = () => {
     if (selectAllLines) {
-      setSelectedArticleIds([]);
       setSelectAllLines(false);
-    } else {
-      setSelectedArticleIds(articles_in_devis.map((a) => a.id));
-      setSelectAllLines(true);
+      setSelectedArticleIds([]);
+      return;
     }
+    const allIds = articles_in_devis.map((a) => a.id);
+    setSelectedArticleIds(allIds);
+    setSelectAllLines(true);
   };
 
+  const toggleSelectLine = (id) => {
+    setSelectedArticleIds((prev) => {
+      const exists = prev.includes(id);
+      const next = exists ? prev.filter((x) => x !== id) : [...prev, id];
+      setSelectAllLines(next.length === articles_in_devis.length && articles_in_devis.length > 0);
+      return next;
+    });
+  };
+  const showModal = () => {
+    modalRef.current && modalRef.current.open();
+  };
   const applyVatToSelected = (taux) => {
     if (selectedArticleIds.length === 0) return;
     const updated = articles_in_devis.map((article) => {
@@ -178,9 +151,7 @@ function Devis() {
   };
 
   const handleClose = () => {
-    const popup = document.getElementById("popup");
-    const modal = bootstrap.Modal.getInstance(popup);
-    modal.hide();
+    modalRef.current && modalRef.current.close();
 
     setArticleQuantite(1);
     setArticleSelected([]);
@@ -191,6 +162,41 @@ function Devis() {
     setArticleMODIFY(false);
     setArticleDELETE(false);
   }
+
+  const handleAddArticle = () => {
+    setDELETE(false);
+    setArticleDELETE(false);
+    setArticleMODIFY(false);
+    setFormSubmited(false);
+    setArticleQuantityError("");
+    setArticleQuantite(1);
+    showModal();
+  };
+
+  const handleModifyArticle = (article) => {
+    setDELETE(false);
+    setArticleDELETE(false);
+    setArticleMODIFY(true);
+    setArticleSelected(article);
+    setArticleQuantite(article.quantite);
+    setArticleQuantityError("");
+    showModal();
+  };
+
+  const handleDeleteArticle = (article) => {
+    setDELETE(false);
+    setArticleDELETE(true);
+    setArticleMODIFY(false);
+    setArticleSelected(article);
+    showModal();
+  };
+
+  const handleDeleteDevis = () => {
+    setDELETE(true);
+    setArticleDELETE(false);
+    setArticleMODIFY(false);
+    showModal();
+  };
 
   // ### Modify selected article in devis
   const modifyArticle = () => {
@@ -652,6 +658,153 @@ function Devis() {
     }
   }, [include_location, loading]);
 
+  const modalTitle = DELETE
+    ? 'Supprimer le devis'
+    : article_DELETE
+      ? "Supprimer l'article du devis"
+      : article_MODIFY
+        ? "Modifier la quantité de l'article"
+        : "Ajouter un article";
+
+  const modalBody = DELETE ? (
+    <h5>
+      Êtes-vous sur de vouloir supprimer le devis {devis && devis.titre} {client && `de ${client.nom} ${client.prenom}`}?
+    </h5>
+  ) : article_DELETE ? (
+    <h5>Êtes-vous sur de vouloir supprimer l'article {article_selected?.nom} du devis ?</h5>
+  ) : article_MODIFY ? (
+    <div className="d-flex flex-inline align-items-center">
+      <p>Modifier le nombre de {article_selected?.nom} :</p>
+      <div className="form-outline col-2 ms-4">
+        <input
+          type="number"
+          id="quantite"
+          value={article_quantite}
+          onChange={(e) => { setArticleQuantite(e.target.value); articleQuantityVerif(e.target.value); }}
+          className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+        />
+        <div className="invalid-feedback">{article_quantity_error}</div>
+      </div>
+    </div>
+  ) : (
+    <div>
+      <div className="row mb-3 align-items-center">
+        <div className="col-md-9">
+          <input
+            type="text"
+            className="form-control form-control-lg"
+            placeholder="Rechercher par nom, description..."
+            value={articleSearchTerm}
+            onChange={(e) => setArticleSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3">
+          <div className="d-flex align-items-center justify-content-end">
+            <label htmlFor="articleItemsPerPage" className="form-label me-2 mb-0">Articles:</label>
+            <select
+              id="articleItemsPerPage"
+              className="form-select form-select-lg w-auto"
+              value={articleItemsPerPage}
+              onChange={(e) => setArticleItemsPerPage(Number(e.target.value))}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <table className="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Article</th>
+            <th scope="col">Description</th>
+            <th scope="col">Montant u. HT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paginatedArticles.length > 0 ? (
+            paginatedArticles.map((article) => (
+              <tr
+                key={article.id}
+                className={article.id === article_selected?.id ? 'table-active' : ''}
+                onClick={() => { setArticleSelected(article); }}
+              >
+                <td>{article.nom}</td>
+                <td>{article.description}</td>
+                <td>{article.prix_vente_HT} €</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={3}>Aucun articles trouvé</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      {filteredArticles.length > articleItemsPerPage && (
+        <nav>
+          <ul className="pagination justify-content-center">
+            <li className={`page-item ${articleCurrentPage === 1 ? 'disabled' : ''}`}>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage - 1); }}>
+                Précédent
+              </a>
+            </li>
+            {Array.from({ length: Math.ceil(filteredArticles.length / articleItemsPerPage) }, (_, i) => i + 1).map(number => (
+              <li key={number} className={`page-item ${articleCurrentPage === number ? 'active' : ''}`}>
+                <a onClick={(e) => { e.preventDefault(); setArticleCurrentPage(number); }} href="!#" className='page-link'>
+                  {number}
+                </a>
+              </li>
+            ))}
+            <li className={`page-item ${articleCurrentPage >= Math.ceil(filteredArticles.length / articleItemsPerPage) ? 'disabled' : ''}`}>
+              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage + 1); }}>
+                Suivant
+              </a>
+            </li>
+          </ul>
+        </nav>
+      )}
+      <form className="row mt-3">
+        <div className="col-5"/>
+        <div className="form-outline col-2">
+          <label className="form-label">Quantité</label>
+          <input
+            type="number"
+            id="quantite"
+            value={article_quantite}
+            onChange={(e) => { setArticleQuantite(e.target.value); articleQuantityVerif(e.target.value); }}
+            className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          />
+          <div className="invalid-feedback">{article_quantity_error}</div>
+        </div>
+        <div className="col-5"/>
+      </form>
+    </div>
+  );
+
+  const modalFooter = DELETE ? (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Non</button>
+      <button className="btn btn-lg btn-primary" onClick={deleteDevis}>Oui</button>
+    </div>
+  ) : article_DELETE ? (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+      <button className="btn btn-lg btn-success" onClick={deleteArticle}>Supprimer</button>
+    </div>
+  ) : article_MODIFY ? (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+      <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
+    </div>
+  ) : (
+    <div className="d-flex justify-content-between w-100">
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
+      <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+    </div>
+  );
+
   if (loading) return <div>Chargement...</div>;
 
   return (
@@ -869,130 +1022,9 @@ function Devis() {
           <button className="btn btn-success" onClick={saveDevis}> Enregistrer le devis</button>
         </div>
       </div>
-      <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div className="modal-dialog modal-lg">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h1 className="modal-title fs-5" id="popupLabel">{DELETE ? 'Supprimer le devis' : article_DELETE ? 'Supprimer l\'article du devis'  : article_MODIFY ? "Modifier la quantité de l'article" : "Ajouter un article"}</h1>
-            </div>
-            <div className="modal-body">
-              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis && devis.titre} {client && `de ${client.nom} ${client.prenom}`}?</h5> : 
-              article_DELETE ? <h5>Êtes-vous sur de vouloir supprimer l'article {article_selected.nom} du devis ?</h5> :
-              article_MODIFY ? (
-                <div className="d-flex flex-inline align-items-center">
-                  <p>Modifier le nombre de {article_selected.nom} :</p>
-                  <div className="form-outline col-2 ms-4">
-                    <input type="number" id="quantite" value={article_quantite} onChange={(e) => {setArticleQuantite(e.target.value);articleQuantityVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
-                    <div className="invalid-feedback">{article_quantity_error}</div>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                <div className="row mb-3 align-items-center">
-                  <div className="col-md-9">
-                    <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, description..."
-                      value={articleSearchTerm} onChange={(e) => setArticleSearchTerm(e.target.value)}/>
-                  </div>
-                  <div className="col-md-3">
-                    <div className="d-flex align-items-center justify-content-end">
-                      <label htmlFor="articleItemsPerPage" className="form-label me-2 mb-0">Articles:</label>
-                      <select id="articleItemsPerPage" className="form-select form-select-lg w-auto" value={articleItemsPerPage}
-                        onChange={(e) => setArticleItemsPerPage(Number(e.target.value))}>
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <table className="table table-hover table-striped">
-                  <thead>
-                    <tr>
-                      <th scope="col">Article</th>
-                      <th scope="col">Description</th>
-                      <th scope="col">Montant u. HT</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedArticles.length > 0 ? (
-                      paginatedArticles.map((article) => (
-                        <tr key={article.id} className={article.id === article_selected.id ? 'table-active' : ''} onClick={() => {setArticleSelected(article);}}>
-                          <td>{article.nom}</td>
-                          <td>{article.description}</td>
-                          <td>{article.prix_vente_HT} €</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3}>Aucun articles trouvé</td>
-                      </tr>
-                      )}
-                  </tbody>
-                </table>
-                {filteredArticles.length > articleItemsPerPage && (
-                  <nav>
-                    <ul className="pagination justify-content-center">
-                      <li className={`page-item ${articleCurrentPage === 1 ? 'disabled' : ''}`}>
-                        <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage - 1); }}>
-                          Précédent
-                        </a>
-                      </li>
-                      {Array.from({ length: Math.ceil(filteredArticles.length / articleItemsPerPage) }, (_, i) => i + 1).map(number => (
-                        <li key={number} className={`page-item ${articleCurrentPage === number ? 'active' : ''}`}>
-                          <a onClick={(e) => { e.preventDefault(); setArticleCurrentPage(number); }} href="!#" className='page-link'>
-                            {number}
-                          </a>
-                        </li>
-                      ))}
-                      <li className={`page-item ${articleCurrentPage >= Math.ceil(filteredArticles.length / articleItemsPerPage) ? 'disabled' : ''}`}>
-                        <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage + 1); }}>
-                          Suivant
-                        </a>
-                      </li>
-                    </ul>
-                  </nav>
-                )}
-                <form className="row mt-3">
-                  <div className="col-5"/>
-                  <div className="form-outline col-2">
-                    <label className="form-label">Quantité</label>
-                    <input type="number" id="quantite" value={article_quantite} onChange={(e) => {setArticleQuantite(e.target.value);articleQuantityVerif(e.target.value);}}
-                      className={`form-control form-control-lg ${article_quantity_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
-                    <div className="invalid-feedback">{article_quantity_error}</div>
-                  </div>
-                  <div className="col-5"/>
-                </form>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer d-flex justify-content-center">
-              {DELETE ? (
-                <div>
-                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
-                  <button className="btn btn-lg btn-primary" onClick={deleteDevis}>Oui</button>
-                </div>
-              ) : article_DELETE ? (
-                <div>
-                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
-                  <button className="btn btn-lg btn-primary" onClick={deleteArticle}>Oui</button>
-                </div>
-              ) : article_MODIFY ? (
-                <div>
-                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Annuler</button>
-                  <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
-                </div>
-              ) : [
-                <div>
-                  <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Annuler</button>
-                  <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
-                </div>
-              ]}
-              
-            </div>
-          </div>
-        </div>
-      </div>
+      <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-lg" backdrop="static" keyboard={false}>
+        {modalBody}
+      </Modal>
     </div>
   );
 }

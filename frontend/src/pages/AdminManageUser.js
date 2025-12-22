@@ -1,7 +1,8 @@
 import { useParams } from "react-router";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
+import Modal from "../components/Modal";
 
 function ManageUser() {
   const user_id = useParams();
@@ -25,6 +26,11 @@ function ManageUser() {
   // Set modal to modify or delete mode
   const [MODIFY, setMODIFY] = useState(false);
   const [DELETE, setDELETE] = useState(false);
+
+  const modalRef = useRef(null);
+  const showModal = () => {
+    modalRef.current && modalRef.current.open();
+  };
 
   // ### User input verifications ###
   const firstNameVerif = (value) => {
@@ -145,6 +151,7 @@ function ManageUser() {
 
   // ### Handle modal close ###
   const handle_close = async () => {
+    modalRef.current && modalRef.current.close();
     setDELETE(false);
     setMODIFY(false);
   };
@@ -222,40 +229,35 @@ function ManageUser() {
 
             <div className="text-center text-lg-start mt-4 pt-2">
               <div className="d-flex justify-content-between">
-                <button type="button" onClick={(e) => setMODIFY(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-primary btn-lg">Modifier le compte</button>
-                <button type="button" onClick={(e) => setDELETE(true)} data-bs-toggle="modal" data-bs-target="#popup" className="btn btn-danger btn-lg"> Supprimer le compte</button>
+                <button type="button" onClick={(e) => { setMODIFY(true); setDELETE(false); showModal(); }} className="btn btn-primary btn-lg">Modifier le compte</button>
+                <button type="button" onClick={(e) => { setDELETE(true); setMODIFY(false); showModal(); }} className="btn btn-danger btn-lg"> Supprimer le compte</button>
               </div>
-              <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-                <div className="modal-dialog">
-                  <div className="modal-content">
-                    <div className="modal-header">
-                      <h1 className="modal-title fs-5" id="popupLabel">Attention !</h1>
+              <Modal
+                ref={modalRef}
+                title={"Attention !"}
+                size=""
+                backdrop="static"
+                keyboard={false}
+                footer={(
+                  MODIFY ? (
+                    <div className="d-flex justify-content-between w-100">
+                      <button type="button" className="btn btn-danger" onClick={handle_close}>Non</button>
+                      <button type="button" className="btn btn-primary" onClick={modify_account}>Oui</button>
                     </div>
-                    <div className="modal-body">
-                      {MODIFY === true
-                        ? "Êtes vous sur de vouloir modifier le compte de " + user.prenom + " " + user.nom + " ?"
-                        : DELETE === true
-                        ? "Êtes vous sur de vouloir supprimer le compte de " + user.prenom + " " + user.nom + " ?"
-                        : ""}
+                  ) : DELETE ? (
+                    <div className="d-flex justify-content-between w-100">
+                      <button type="button" className="btn btn-danger" onClick={handle_close}>Non</button>
+                      <button type="button" className="btn btn-primary" onClick={delete_account}>Oui</button>
                     </div>
-                    <div className="modal-footer d-flex justify-content-center">
-                      {MODIFY === true ? (
-                        <div>
-                          <button type="button" className="btn btn-danger me-4" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
-                          <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={modify_account}>Oui</button>
-                        </div>
-                      ) : DELETE === true ? (
-                        <div>
-                          <button type="button" className="btn btn-danger me-4" data-bs-dismiss="modal" onClick={handle_close}>Non</button>
-                          <button type="button" className="btn btn-primary" data-bs-dismiss="modal" onClick={delete_account}>Oui</button>
-                        </div>
-                      ) : (
-                        ""
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  ) : null
+                )}
+              >
+                {MODIFY
+                  ? `Êtes vous sur de vouloir modifier le compte de ${user.prenom} ${user.nom} ?`
+                  : DELETE
+                  ? `Êtes vous sur de vouloir supprimer le compte de ${user.prenom} ${user.nom} ?`
+                  : ""}
+              </Modal>
             </div>
           </form>
         </div>
