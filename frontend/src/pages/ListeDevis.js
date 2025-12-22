@@ -7,21 +7,27 @@ function ListeDevis() {
   const navigate = useNavigate();
   const [devis, setDevis] = useState([])
 
-  const getDisplayTotal = (d) => d.is_location ? (d.location_total ?? d.montant_TTC) : d.montant_TTC;
+  const getDisplayTotal = (d) => {
+    if (!d.is_location) return d.montant_TTC;
+    const baseHT = getLocationHT(d);
+    return (parseFloat(baseHT) * 1.2).toFixed(2);
+  };
 
   const getLocationHT = (d) => {
     if (!d.is_location) return d.montant_HT;
-    if (d.location_total_ht != null) return d.location_total_ht;
+    const apport = parseFloat(d.first_contribution_amount || 0);
+    if (d.location_total_ht != null) return (parseFloat(d.location_total_ht) + apport).toFixed(2);
     const totalTTC = d.location_total ?? d.montant_TTC;
     const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
-    return (totalTTC / vatFactor).toFixed(2);
+    const baseHT = totalTTC / vatFactor;
+    return (baseHT + apport).toFixed(2);
   };
 
   const getLocationTVA = (d) => {
     if (!d.is_location) return d.montant_TVA;
-    const totalTTC = parseFloat(d.location_total ?? d.montant_TTC);
     const ht = parseFloat(getLocationHT(d));
-    return (totalTTC - ht).toFixed(2);
+    const ttc = parseFloat(getDisplayTotal(d));
+    return (ttc - ht).toFixed(2);
   };
 
   // Filter and Pagination state
@@ -36,8 +42,10 @@ function ListeDevis() {
   const getEveryDevis = async () => {
     try {
       const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/all`);
-      setDevis(resp.data.data || []);
-      setFilteredDevis(resp.data.data || []);
+      const items = resp.data.data || [];
+      items.sort((a, b) => b.id - a.id);
+      setDevis(items);
+      setFilteredDevis(items);
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         if (error.response.data.error !== "Aucuns devis trouvé") {

@@ -30,21 +30,27 @@ function Client() {
   const [tel_error, setTelError] = useState("");
   const [email_error, setEmailError] = useState("");
 
-  const getDisplayTotal = (d) => d.is_location ? (d.location_total ?? d.montant_TTC) : d.montant_TTC;
-
   const getLocationHT = (d) => {
     if (!d.is_location) return d.montant_HT;
-    if (d.location_total_ht != null) return d.location_total_ht;
+    const apport = parseFloat(d.first_contribution_amount || 0);
+    if (d.location_total_ht != null) return (parseFloat(d.location_total_ht) + apport).toFixed(2);
     const totalTTC = d.location_total ?? d.montant_TTC;
     const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
-    return (totalTTC / vatFactor).toFixed(2);
+    const baseHT = totalTTC / vatFactor;
+    return (baseHT + apport).toFixed(2);
+  };
+
+  const getDisplayTotal = (d) => {
+    if (!d.is_location) return d.montant_TTC;
+    const ht = parseFloat(getLocationHT(d));
+    return (ht * 1.2).toFixed(2);
   };
 
   const getLocationTVA = (d) => {
     if (!d.is_location) return d.montant_TVA;
-    const totalTTC = parseFloat(d.location_total ?? d.montant_TTC);
     const ht = parseFloat(getLocationHT(d));
-    return (totalTTC - ht).toFixed(2);
+    const ttc = parseFloat(getDisplayTotal(d));
+    return (ttc - ht).toFixed(2);
   };
 
   // Automatically format French phone number as "01 23 45 67 89"
@@ -244,7 +250,9 @@ function Client() {
     httpClient
       .get(`${process.env.REACT_APP_BACKEND_URL}/devis/client/${client_id.id}`)
       .then((resp) => {
-        setDevis(resp.data.data);
+        const items = resp.data.data || [];
+        items.sort((a, b) => b.id - a.id);
+        setDevis(items);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
