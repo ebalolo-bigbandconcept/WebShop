@@ -312,8 +312,8 @@ def get_devis_pdf(devis_id):
     # Generate PDF
     pdf_bytes = HTML(string=html_out, base_url=base_path).write_pdf()
 
-    # Append location contract when applicable
-    if devis.is_location:
+    # Append location contract only for location scenarios
+    if devis.is_location and selected_scenario in {"location_without_apport", "location_with_apport"}:
         try:
             contract_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "pdf", "location_contract.pdf"))
             if os.path.isfile(contract_path):
