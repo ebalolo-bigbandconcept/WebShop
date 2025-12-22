@@ -80,7 +80,10 @@ function DevisPdfPreview() {
             <option value="location_with_apport">Location avec apport</option>
           </select>
         </div>
-        <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`)}>Retour</button>
+        <div className="d-flex gap-2">
+          <button className="btn btn-success" onClick={handleSendToDocuSign}>Envoyer le PDF</button>
+          <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`)}>Retour</button>
+        </div>
       </div>
       {pdfUrl && (
         <iframe
@@ -91,9 +94,6 @@ function DevisPdfPreview() {
           style={{ border: "1px solid #ccc", marginTop: "20px" }}
         ></iframe>
       )}
-      <div className="d-flex w-100 justify-content-end mt-3 mb-3">
-        <button className="btn btn-success" onClick={handleSendToDocuSign}>Envoyer le PDF</button>
-      </div>
     </div>
   );
 }
