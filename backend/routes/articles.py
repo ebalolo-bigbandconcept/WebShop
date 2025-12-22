@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-from models import db, Articles, ArticlesSchema, TauxTVA
+from models import db, Articles, ArticlesSchema, TauxTVA, Parameters
 import logging
 from .admin import admin_required
 from utils import validate_article_fields
@@ -52,7 +52,6 @@ def add_article():
     nom = request.json["nom"]
     description = request.json["description"]
     prix_achat_HT = request.json["prix_achat_HT"]
-    prix_vente_HT = request.json["prix_vente_HT"]
     taux_tva = request.json["taux_tva"]
     
     if not taux_tva:
@@ -60,6 +59,10 @@ def add_article():
         
     taux_tva_id = TauxTVA.query.filter_by(taux=taux_tva).first().id
     
+    # Get margin rate from parameters and calculate selling price
+    params = Parameters.query.first()
+    margin_rate = params.margin_rate if params else 0.0
+    prix_vente_HT = float(prix_achat_HT) * (1 + margin_rate / 100)
     
     error = validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux_tva_id)
     if error:

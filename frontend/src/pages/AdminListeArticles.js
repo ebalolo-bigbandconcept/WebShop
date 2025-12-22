@@ -99,9 +99,8 @@ function ListeArticles() {
     const isArticleNomValid = await articleNomVerif(article_nom);
     const isArticleDescriptionValid = await articleDescriptionVerif(article_description);
     const isArticlePrixAchatHTValid = await articlePrixAchatHTVerif(article_prix_achat_HT);
-    const isArticlePrixVenteHTValid = await articlePrixVenteHTVerif(article_prix_vente_HT);
 
-    const isFormValid = isArticleNomValid && isArticleDescriptionValid && isArticlePrixAchatHTValid && isArticlePrixVenteHTValid;
+    const isFormValid = isArticleNomValid && isArticleDescriptionValid && isArticlePrixAchatHTValid;
 
     if (isFormValid) {
       httpClient
@@ -109,7 +108,6 @@ function ListeArticles() {
           nom: article_nom,
           description: article_description,
           prix_achat_HT: article_prix_achat_HT,
-          prix_vente_HT: article_prix_vente_HT,
           taux_tva: article_taux_tva,
         })
         .then((resp) => {
@@ -346,6 +344,7 @@ function ListeArticles() {
                       className={`form-control form-control-lg ${article_prix_achat_HT_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="10,00€"/>
                     <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
                   </div>
+                  {MODIFY && (
                   <div className="form-outline col-lg-5 col-4 mt-4">
                     <label className="form-label">Prix de vente HT</label>
                     <input type="text" id="ville" value={article_prix_vente_HT} onChange={(e) => {
@@ -355,7 +354,8 @@ function ListeArticles() {
                       className={`form-control form-control-lg ${article_prix_vente_HT_error ? "is-invalid" : form_submited ? "is-valid" : ""}`} placeholder="20,00€"/>
                     <div className="invalid-feedback">{article_prix_vente_HT_error}</div>
                   </div>
-                  <div className="form-outline col-lg-2 col-4 mt-4">
+                  )}
+                  <div className={`form-outline ${MODIFY ? 'col-lg-2 col-4' : 'col-lg-7 col-8'} mt-4`}>
                     <label className="form-label">TVA</label>
                     <select id="taux_tva" value={article_taux_tva} onChange={(e) => setArticleTauxTVA(e.target.value)} className={`form-control form-control-lg`}>
                       <option value={0.20}>20%</option>
