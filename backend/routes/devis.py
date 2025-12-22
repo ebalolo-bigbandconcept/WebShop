@@ -36,7 +36,7 @@ def _resolve_tva_id(article_payload, articles_map):
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
 def get_every_devis():
-    devis = Devis.query.all()
+    devis = Devis.query.order_by(Devis.id.desc()).all()
     if len(devis) == 0:
         return jsonify({"error": "Aucuns devis trouvé"}), 404
     
@@ -47,7 +47,7 @@ def get_every_devis():
 # Get every devis of a client route
 @devis_bp.route('/client/<client_id>', methods=['GET'])
 def get_client_devis(client_id):
-    devis = Devis.query.filter_by(client_id=client_id).all()
+    devis = Devis.query.filter_by(client_id=client_id).order_by(Devis.id.desc()).all()
     if not devis:
         return jsonify({"error": "Aucuns devis trouvé"}), 404
     
@@ -254,6 +254,19 @@ def get_devis_pdf(devis_id):
     location_time = params.location_time if params else 0
     subscription_ttc = params.location_subscription_cost if params else 0.0
     maintenance_ttc = params.location_interests_cost if params else 0.0
+    company_info = {
+        "name": params.company_name if params else "",
+        "address_line1": params.company_address_line1 if params else "",
+        "address_line2": params.company_address_line2 if params else "",
+        "zip": params.company_zip if params else "",
+        "city": params.company_city if params else "",
+        "phone": params.company_phone if params else "",
+        "email": params.company_email if params else "",
+        "iban": params.company_iban if params else "",
+        "tva": params.company_tva if params else "",
+        "siret": params.company_siret if params else "",
+        "aprm": params.company_aprm if params else "",
+    }
 
     def _compute_location_totals(apport_value):
         articles_ttc = float(devis_data.get("montant_TTC") or 0.0)
@@ -287,6 +300,7 @@ def get_devis_pdf(devis_id):
         vat_tva_totals=vat_tva_totals,
         general_conditions=general_conditions,
         location_time=location_time,
+        company=company_info,
         selected_scenario=selected_scenario,
         payment_options=payment_options,
     )

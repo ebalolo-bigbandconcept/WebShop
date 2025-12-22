@@ -208,10 +208,11 @@
 
 <section class="info-row">
   <div class="info-box">
-    <strong>Artech Sécurité</strong><br />
-    6 Route Varennes,<br />
-    55840 Thierville Sur Meuse<br />
-    06 08 78 43 81
+    <strong>{{ company.name }}</strong><br />
+    {{ company.address_line1 }}<br />
+    {% if company.address_line2 %}{{ company.address_line2 }}<br />{% endif %}
+    {{ company.zip }} {{ company.city }}<br />
+    {{ company.phone }}
   </div>
   <div class="info-box">
     <strong>{{ devis.client.nom }} {{ devis.client.prenom }}</strong><br />
@@ -222,10 +223,10 @@
 </section>
 
 <section class="contact-legal">
-  <a href="mailto:artechsecurite@gmail.com">artechsecurite@gmail.com</a><br />
-  TVA :<br />
-  IBAN :<br />
-  Siret : 98773262500023 APRM : 4321A
+  <a href="mailto:{{ company.email }}">{{ company.email }}</a><br />
+  TVA : {{ company.tva }}<br />
+  IBAN : {{ company.iban }}<br />
+  Siret : {{ company.siret }} APRM : {{ company.aprm }}
 </section>
 
 <table>
@@ -346,7 +347,7 @@
 <p style="font-size: 11px; line-height: 1.4;">{{ general_conditions }}</p>
 
 <footer>
-  <div class="footer-center">Artech Sécurité - 6, route Varennes 55840 Thierville sur Meuse</div>
+  <div class="footer-center">{{ company.name }} - {{ company.address_line1 }} {{ company.zip }} {{ company.city }}</div>
   <div class="footer-right"><span class="page-number"></span></div>
 </footer>
 

@@ -40,7 +40,7 @@ function Devis() {
   const [include_location, setIncludeLocation] = useState(false);
   const [first_contribution_amount, setFirstContributionAmount] = useState(0);
   const [location_subscription_cost, setLocationSubscriptionCost] = useState(0);
-  const [location_maintenance_cost, setLocationMaintenanceCost] = useState(0);
+  const [location_interests_cost, setLocationInterestsCost] = useState(0);
   const [location_time, setLocationTime] = useState(0); // in months
   const [location_monthly_total, setLocationMonthlyTotal] = useState(0);
   const [location_monthly_total_ht, setLocationMonthlyTotalHt] = useState(0);
@@ -510,7 +510,7 @@ function Devis() {
       .get(`${process.env.REACT_APP_BACKEND_URL}/admin/parameters`)
       .then((resp) => {
         setLocationSubscriptionCost(resp.data.locationSubscriptionCost || 0);
-        setLocationMaintenanceCost(resp.data.locationMaintenanceCost || resp.data.locationInterestsCost || 0);
+        setLocationInterestsCost(resp.data.locationInterestsCost || resp.data.locationMaintenanceCost || 0);
         setLocationTime(resp.data.locationTime || 0); // in months
       })
       .catch((error) => {
@@ -529,10 +529,10 @@ function Devis() {
 
     const articlesTTC = parseFloat(devis_montant_TTC) || 0;
     const subscriptionTTC = parseFloat(location_subscription_cost) || 0;
-    const maintenanceTTC = parseFloat(location_maintenance_cost) || 0;
+    const interestsTTC = parseFloat(location_interests_cost) || 0;
     const apport = parseFloat(apportValue) || 0;
 
-    const totalHTValue = articlesTTC + subscriptionTTC + maintenanceTTC - apport;
+    const totalHTValue = articlesTTC + subscriptionTTC + interestsTTC - apport;
     const totalHT = totalHTValue.toFixed(2);
 
     const totalTTCValue = totalHTValue * 1.20;
@@ -641,7 +641,7 @@ function Devis() {
     if (!loading) {
       recomputeLocationTotals();
     }
-  }, [include_location, devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_maintenance_cost, location_time, first_contribution_amount, loading]);
+  }, [include_location, devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_interests_cost, location_time, first_contribution_amount, loading]);
 
   if (loading) return <div>Chargement...</div>;
 
@@ -769,8 +769,8 @@ function Devis() {
                   <span className="ms-2">{location_subscription_cost} €</span>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="fw-bold">Entretien:</span>
-                  <span className="ms-2">{location_maintenance_cost} €</span>
+                  <span className="fw-bold">Intérêts de location:</span>
+                  <span className="ms-2">{location_interests_cost} €</span>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <span className="fw-bold">Apport:</span>
