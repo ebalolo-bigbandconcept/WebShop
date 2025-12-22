@@ -109,6 +109,145 @@ sudo docker compose exec backend python init_db.py
 - Frontend : [http://localhost:3000](http://localhost:3000)
 - Backend : [http://localhost:5000](http://localhost:5000)
 
+### 5. Gestion des Migrations de Base de Données
+
+Cette application utilise Flask-Migrate (Alembic) pour gérer les modifications du schéma de base de données.
+
+#### Initialisation des migrations (première fois uniquement)
+
+```bash
+# Entrer dans le conteneur backend
+sudo docker compose -f docker-compose.prod.yml exec backend bash
+
+# Initialiser les migrations (crée le dossier migrations/)
+flask db init
+
+# Créer la première migration
+flask db migrate -m "Initial migration"
+
+# Appliquer la migration
+flask db upgrade
+
+exit
+```
+
+#### Créer une nouvelle migration après modification des modèles
+
+```bash
+# Entrer dans le conteneur backend
+sudo docker compose -f docker-compose.prod.yml exec backend bash
+
+# Créer une migration automatique
+flask db migrate -m "Description de vos changements"
+
+# Vérifier la migration générée dans migrations/versions/
+# Puis appliquer la migration
+flask db upgrade
+
+exit
+```
+
+#### Commandes utiles
+
+```bash
+# Voir l'historique des migrations
+flask db history
+
+# Voir la version actuelle de la base de données
+flask db current
+
+# Revenir à une version précédente
+flask db downgrade
+
+# Revenir à la version initiale
+flask db downgrade base
+
+# Appliquer toutes les migrations en attente
+flask db upgrade
+```
+
+#### Exemple : Ajouter un champ à un modèle existant
+
+**Étape 1** : Modifier le modèle dans `backend/models.py`
+
+```python
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    nom = db.Column(db.String(50), nullable=False)
+    prenom = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(345), nullable=False, unique=True)
+    mdp = db.Column(db.Text, nullable=False)
+    role = db.Column(db.String(50), nullable=False, default="Utilisateur")
+    # Nouveau champ ajouté
+    telephone = db.Column(db.String(20), nullable=True)  # nullable=True pour les utilisateurs existants
+```
+
+**Étape 2** : Créer et appliquer la migration
+
+```bash
+# Entrer dans le conteneur
+sudo docker compose exec backend bash
+
+# Créer la migration
+flask db migrate -m "Add telephone field to User model"
+
+# Vérifier le fichier de migration généré dans migrations/versions/
+# Le fichier contiendra quelque chose comme :
+# op.add_column('users', sa.Column('telephone', sa.String(length=20), nullable=True))
+
+# Appliquer la migration
+flask db upgrade
+
+exit
+```
+
+**Étape 3** : Utiliser le nouveau champ dans votre code
+
+```python
+# Dans routes/auth.py ou routes/admin.py
+new_user = User(
+    email=email,
+    prenom=prenom,
+    nom=nom,
+    mdp=hashed_password,
+    telephone=telephone  # Nouveau champ
+)
+```
+
+#### Exemple : Supprimer un champ d'un modèle
+
+**Étape 1** : Supprimer le champ dans `backend/models.py`
+
+```python
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    nom = db.Column(db.String(50), nullable=False)
+    prenom = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(345), nullable=False, unique=True)
+    mdp = db.Column(db.Text, nullable=False)
+    role = db.Column(db.String(50), nullable=False, default="Utilisateur")
+    # telephone supprimé
+```
+
+**Étape 2** : Créer et appliquer la migration
+
+```bash
+sudo docker compose exec backend bash
+flask db migrate -m "Remove telephone field from User model"
+flask db upgrade
+exit
+```
+
+#### Notes importantes
+
+- **Toujours créer une migration** avant de modifier directement la base de données
+- **Vérifiez les fichiers de migration générés** dans `migrations/versions/` avant d'appliquer
+- **En production**, testez d'abord les migrations en développement
+- **Sauvegardez votre base de données** avant d'appliquer des migrations en production
+- Les migrations sont **versionnées** et peuvent être annulées avec `flask db downgrade`
+
 ---
 
 ## Production

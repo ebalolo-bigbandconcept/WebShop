@@ -1,3 +1,7 @@
+:root {
+  --selected-color: #0d6efd;
+}
+
 .App {
   text-align: center;
 }
@@ -39,4 +43,29 @@
 
 textarea {
   resize: none;
+}
+
+/* Improved hover effect for article list */
+.table-hover tbody tr {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--selected-color) !important;
+}
+
+.table-hover tbody tr:hover td {
+  color: white !important;
+  background-color: transparent !important;
+}
+
+/* Selected article styling */
+.table-hover tbody tr.table-active {
+  background-color: var(--selected-color) !important;
+}
+
+.table-hover tbody tr.table-active td {
+  color: white !important;
+  background-color: transparent !important;
 }

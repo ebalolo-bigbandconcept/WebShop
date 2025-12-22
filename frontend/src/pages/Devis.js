@@ -20,6 +20,13 @@ function Devis() {
   const [article_quantite, setArticleQuantite] = useState(1);
   const [articles_in_devis, setArticlesInDevis] = useState([]);
 
+  // Article modal pagination and filter state
+  const [filteredArticles, setFilteredArticles] = useState([]);
+  const [paginatedArticles, setPaginatedArticles] = useState([]);
+  const [articleSearchTerm, setArticleSearchTerm] = useState("");
+  const [articleCurrentPage, setArticleCurrentPage] = useState(1);
+  const [articleItemsPerPage, setArticleItemsPerPage] = useState(10);
+
   const [form_submited, setFormSubmited] = useState(false);
   const [devis_title, setDevisTitle] = useState("");
   const [devis_description, setDevisDescription] = useState("");
@@ -27,10 +34,9 @@ function Devis() {
   const [devis_montant_HT, setDevisMontantHT] = useState(0);
   const [devis_montant_TVA, setDevisMontantTVA] = useState(0);
   const [devis_montant_TTC, setDevisMontantTTC] = useState(0);
-  const [devis_status, setDevisStatus] = useState("Non payé");
+  const [devis_status, setDevisStatus] = useState("Non signé");
 
   const [devis_title_error, setDevisTitleError] = useState("");
-  const [devis_description_error, setDevisDescriptionError] = useState("");
   const [devis_date_error, setDevisDateError] = useState("");
 
   const [article_quantity_error, setArticleQuantityError] = useState("");
@@ -48,15 +54,6 @@ function Devis() {
       return false;
     }
     setDevisTitleError("");
-    return true;
-  }
-
-  const devisDescriptionVerif = (value) => {
-    if (value === "") {
-      setDevisDescriptionError("Veuillez entrer une description");
-      return false;
-    }
-    setDevisDescriptionError("");
     return true;
   }
 
@@ -137,6 +134,8 @@ function Devis() {
     setArticleQuantite(1);
     setArticleSelected([]);
     setArticleQuantityError("");
+    setArticleSearchTerm("");
+    setArticleCurrentPage(1);
     setDELETE(false);
     setArticleMODIFY(false);
     setArticleDELETE(false);
@@ -242,11 +241,10 @@ function Devis() {
   const saveDevis = async () => {
     setFormSubmited(true);
     const isTitleValid = devisTitleVerif(devis_title);
-    const isDescriptionValid = devisDescriptionVerif(devis_description);
     const isDateValid = devisDateVerif(devis_date);
     const isContentValid = devisContentVerif(articles_in_devis);
 
-    const isformValid = isTitleValid && isDescriptionValid && isDateValid && isContentValid;
+    const isformValid = isTitleValid && isDateValid && isContentValid;
 
     if (isformValid){
       const devisData = {
@@ -268,8 +266,37 @@ function Devis() {
         // Create new devis
         httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
-        .then((resp) => {
+        .then(async (resp) => {
+          const newDevisId = resp.data && resp.data.id;
+          if (!newDevisId) {
+            alert('Erreur: id du devis manquant après création.');
+            return;
+          }
+          
+          // Set isNewDevis to false first to prevent the useEffect from fetching too early
           setIsNewDevis(false);
+          
+          // Fetch the newly created devis with retry logic
+          let retries = 3;
+          let fetchSuccess = false;
+          
+          while (retries > 0 && !fetchSuccess) {
+            try {
+              await new Promise(resolve => setTimeout(resolve, 300)); // Wait 300ms
+              const data = await fetchDevisById(newDevisId);
+              if (data) {
+                fetchSuccess = true;
+                // Update URL to reflect the new devis ID only after successful fetch
+                navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
+              }
+            } catch (error) {
+              retries--;
+              if (retries === 0) {
+                alert("Le devis a été créé mais il y a eu un problème lors du rechargement. Veuillez rafraîchir la page.");
+                navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
+              }
+            }
+          }
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -298,8 +325,14 @@ function Devis() {
 
   // ### Delete devis
   const deleteDevis = async () => {
+    const targetId = (devis && devis.id) ? devis.id : id_devis;
+    if (!targetId) {
+      alert('Impossible de supprimer: aucun id de devis valide.');
+      return;
+    }
+
     httpClient
-    .delete(`${process.env.REACT_APP_BACKEND_URL}/devis/delete/${id_devis}`)
+    .delete(`${process.env.REACT_APP_BACKEND_URL}/devis/delete/${targetId}`)
       .then((resp) => {
         handleClose()
         navigate(`/client/${id_client}`);
@@ -315,23 +348,59 @@ function Devis() {
 
   // ### Fetch devis, client info and every articles on page load ###
   const getDevisInfo = async () => {
-    httpClient
-      .get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${id_devis}`)
-      .then((resp) => {
-        setDevis(resp.data);
-      })
-      .catch((error) => {
-        if (error.response && error.response.data && error.response.data.error) {
-          if (error.response.status === 404) {
-            setIsNewDevis(true);
-            setLoading(false);
-          }else{
-            alert(error.response.data.error);
-          }
-        } else {
-          alert("Une erreur est survenue.");
-        }
-      });
+    // kept for backwards compatibility, delegates to fetchDevisById
+    return fetchDevisById(id_devis);
+  }
+
+  const fetchDevisById = async (targetId) => {
+    setLoading(true);
+    if (!targetId) {
+      setIsNewDevis(true);
+      setLoading(false);
+      return null;
+    }
+
+    try {
+      const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${targetId}`);
+      const data = resp.data;
+      setDevis(data);
+      setIsNewDevis(false);
+
+      // initialize form fields from fetched devis
+      setDevisTitle(data.titre);
+      setDevisDescription(data.description);
+      setDevisDate(data.date);
+      setDevisMontantHT(data.montant_HT);
+      setDevisMontantTVA(data.montant_TVA);
+      setDevisMontantTTC(data.montant_TTC);
+      setDevisStatus(data.statut);
+
+      if (Array.isArray(data.articles)) {
+        setArticlesInDevis(
+          data.articles.map((da) => ({
+            ...da.article,
+            quantite: da.quantite,
+            montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
+            montant_TVA: ((da.article.prix_vente_HT * da.article.taux_tva.taux) * da.quantite).toFixed(2),
+            montant_TTC: ((da.article.prix_vente_HT * (1 + da.article.taux_tva.taux)) * da.quantite).toFixed(2),
+          }))
+        );
+      } else {
+        setArticlesInDevis([]);
+      }
+
+      setLoading(false);
+      return data;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setIsNewDevis(true);
+        setLoading(false);
+        throw error; // Re-throw to allow retry logic in saveDevis
+      }
+      console.error(error);
+      setLoading(false);
+      throw error; // Re-throw to allow retry logic
+    }
   }
 
   const getClientInfo = async () => {
@@ -369,8 +438,42 @@ function Devis() {
   useEffect(() => {
     getClientInfo();
     getAllArticles();
-    getDevisInfo();
-  }, [isNewDevis]);
+    // fetch current devis on id change, but not if we're in the middle of creating a new one
+    if (!isNewDevis || id_devis) {
+      fetchDevisById(id_devis);
+    }
+  }, [id_devis]);
+
+  // ### Filter articles logic ###
+  useEffect(() => {
+    if (articles && articles.data) {
+      let currentArticles = articles.data;
+
+      if (articleSearchTerm) {
+        currentArticles = currentArticles.filter(art =>
+          art.nom.toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
+          art.description.toLowerCase().includes(articleSearchTerm.toLowerCase())
+        );
+      }
+
+      setFilteredArticles(currentArticles);
+      setArticleCurrentPage(1);
+    }
+  }, [articles, articleSearchTerm]);
+
+  // ### Pagination articles logic ###
+  useEffect(() => {
+    if (filteredArticles) {
+      const startIndex = (articleCurrentPage - 1) * articleItemsPerPage;
+      const endIndex = startIndex + articleItemsPerPage;
+      setPaginatedArticles(filteredArticles.slice(startIndex, endIndex));
+    }
+  }, [filteredArticles, articleCurrentPage, articleItemsPerPage]);
+
+  // Reset to page 1 when itemsPerPage changes
+  useEffect(() => {
+    setArticleCurrentPage(1);
+  }, [articleItemsPerPage]);
 
   useEffect(() => {
   if (devis && !isNewDevis) {
@@ -407,10 +510,14 @@ function Devis() {
         <button className="btn btn-danger col-lg-1 col-2" onClick={goBack}>Retour</button>
       </div>
       <br/>
-      <h3>Client: {client.nom} {client.prenom}</h3>
-      <h3>Adresse: {client.rue}, {client.code_postal} à {client.ville}</h3>
+      {client && (
+        <>
+          <h3>Client: {client.nom} {client.prenom}</h3>
+          <h3>Adresse: {client.rue}, {client.code_postal} à {client.ville}</h3>
+        </>
+      )}
       <div className="row">
-        <form className="col-8">
+        <form className="col-lg-8 col-12">
           <div className="row">
             <div className="form-outline col-xl-4 col-6">
               <label className="form-label">Titre</label>
@@ -429,17 +536,49 @@ function Devis() {
           <div className="row">
             <div className="form-outline col-xl-7 mt-4">
               <label className="form-label">Description</label>
-              <textarea rows={3} id="description" value={devis_description} onChange={(e) => {setDevisDescription(e.target.value);devisDescriptionVerif(e.target.value);}}
-                className={`form-control form-control-lg ${devis_description_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer une description pour le devis"/>
-              <div className="invalid-feedback">{devis_description_error}</div>
+              <textarea rows={3} id="description" value={devis_description} onChange={(e) => setDevisDescription(e.target.value)}
+                className={`form-control form-control-lg`} placeholder="Entrer une description pour le devis"/>
             </div>
           </div>
-          {!isNewDevis && devis && <h3 className="mt-4">{devis.statut === "Non payé" ? <p className="text-danger">{devis.statut}</p> : <p className="text-success">{devis.statut}</p>}</h3>}
+          {id_devis && (
+            <div className="mt-4">
+              <h3>{devis_status === "Non signé" || devis_status === "En attente de signature" ? <p className="text-danger">{devis_status}</p> : devis_status === "Signé" ? <p className="text-success">{devis_status}</p> : <p className="text-warning">{devis_status}</p>}</h3>
+              {(devis_status === "Non signé" || devis_status === "En attente de signature") && (
+                <div className="form-check">
+                  <input 
+                    className="form-check-input" 
+                    type="checkbox" 
+                    id="marquerSigne" 
+                    checked={devis_status === "Signé"}
+                    onChange={(e) => {
+                      if (e.target.checked && window.confirm("Voulez-vous marquer ce devis comme signé ?")) {
+                        setDevisStatus("Signé");
+                      } else {
+                        e.target.checked = false;
+                      }
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor="marquerSigne">
+                    Marquer comme signé
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
         </form>
-        <div className="col-4 d-flex flex-column justify-content-end">
-          <h3 className="mt-4">Montant total HT: {devis_montant_HT} €</h3>
-          <h3 className="mt-4">Montant total TVA: {devis_montant_TVA} €</h3>
-          <h3 className="mt-4">Montant total TTC: {devis_montant_TTC} €</h3>
+        <div className="col-lg-4 col-12 d-flex flex-column justify-content-end mt-lg-0 mt-4">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-bold">Montant total HT:</span>
+            <span className="ms-2">{devis_montant_HT} €</span>
+          </div>
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <span className="fw-bold">Montant total TVA:</span>
+            <span className="ms-2">{devis_montant_TVA} €</span>
+          </div>
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="fw-bold fs-5">Montant total TTC:</span>
+            <span className="ms-2 fs-5 fw-bold">{devis_montant_TTC} €</span>
+          </div>
         </div>
       </div>
       <table className="table table-hover table-striped mt-4">
@@ -487,7 +626,7 @@ function Devis() {
               <h1 className="modal-title fs-5" id="popupLabel">{DELETE ? 'Supprimer le devis' : article_DELETE ? 'Supprimer l\'article du devis'  : article_MODIFY ? "Modifier la quantité de l'article" : "Ajouter un article"}</h1>
             </div>
             <div className="modal-body">
-              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis.titre} de {client.nom} {client.prenom}?</h5> : 
+              {DELETE ? <h5>Êtes-vous sur de vouloir supprimer le devis {devis && devis.titre} {client && `de ${client.nom} ${client.prenom}`}?</h5> : 
               article_DELETE ? <h5>Êtes-vous sur de vouloir supprimer l'article {article_selected.nom} du devis ?</h5> :
               article_MODIFY ? (
                 <div className="d-flex flex-inline align-items-center">
@@ -500,7 +639,24 @@ function Devis() {
                 </div>
               ) : (
                 <div>
-                <table className="table table-hover table-striped mt-4">
+                <div className="row mb-3 align-items-center">
+                  <div className="col-md-9">
+                    <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, description..."
+                      value={articleSearchTerm} onChange={(e) => setArticleSearchTerm(e.target.value)}/>
+                  </div>
+                  <div className="col-md-3">
+                    <div className="d-flex align-items-center justify-content-end">
+                      <label htmlFor="articleItemsPerPage" className="form-label me-2 mb-0">Articles:</label>
+                      <select id="articleItemsPerPage" className="form-select form-select-lg w-auto" value={articleItemsPerPage}
+                        onChange={(e) => setArticleItemsPerPage(Number(e.target.value))}>
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <table className="table table-hover table-striped">
                   <thead>
                     <tr>
                       <th scope="col">Article</th>
@@ -509,22 +665,45 @@ function Devis() {
                     </tr>
                   </thead>
                   <tbody>
-                    {articles !== null && articles !== undefined ? (
-                      articles.data.map((article) => (
+                    {paginatedArticles.length > 0 ? (
+                      paginatedArticles.map((article) => (
                         <tr key={article.id} className={article.id === article_selected.id ? 'table-active' : ''} onClick={() => {setArticleSelected(article);}}>
                           <td>{article.nom}</td>
                           <td>{article.description}</td>
-                          <td>{article.prix_vente_HT}</td>
+                          <td>{article.prix_vente_HT} €</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6}>Aucun articles</td>
+                        <td colSpan={3}>Aucun articles trouvé</td>
                       </tr>
                       )}
                   </tbody>
                 </table>
-                <form className="row">
+                {filteredArticles.length > articleItemsPerPage && (
+                  <nav>
+                    <ul className="pagination justify-content-center">
+                      <li className={`page-item ${articleCurrentPage === 1 ? 'disabled' : ''}`}>
+                        <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage - 1); }}>
+                          Précédent
+                        </a>
+                      </li>
+                      {Array.from({ length: Math.ceil(filteredArticles.length / articleItemsPerPage) }, (_, i) => i + 1).map(number => (
+                        <li key={number} className={`page-item ${articleCurrentPage === number ? 'active' : ''}`}>
+                          <a onClick={(e) => { e.preventDefault(); setArticleCurrentPage(number); }} href="!#" className='page-link'>
+                            {number}
+                          </a>
+                        </li>
+                      ))}
+                      <li className={`page-item ${articleCurrentPage >= Math.ceil(filteredArticles.length / articleItemsPerPage) ? 'disabled' : ''}`}>
+                        <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage + 1); }}>
+                          Suivant
+                        </a>
+                      </li>
+                    </ul>
+                  </nav>
+                )}
+                <form className="row mt-3">
                   <div className="col-5"/>
                   <div className="form-outline col-2">
                     <label className="form-label">Quantité</label>

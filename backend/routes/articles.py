@@ -11,8 +11,12 @@ articles_bp = Blueprint('articles_bp', __name__, url_prefix='/api/articles')
 ### Articles routes ###
 # Get all articles info route
 @articles_bp.route("/all", methods=['GET'])
-@admin_required
 def get_all_articles():
+    # Check if user is authenticated
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
     tableEmpty = Articles.query.first() is None
     if tableEmpty:
         return jsonify({"error": "Aucuns articles trouvé"}), 404
@@ -24,8 +28,12 @@ def get_all_articles():
 
 # Get specific article info route
 @articles_bp.route('/info/<article_id>', methods=['GET'])
-@admin_required
 def get_article_info(article_id):
+    # Check if user is authenticated
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
     article = Articles.query.filter_by(id=article_id).first()
     if not article:
         return jsonify({"error": "Article non trouvé"}), 404
@@ -35,8 +43,12 @@ def get_article_info(article_id):
 
 # Add new article route
 @articles_bp.route("/create", methods=["POST"])
-@admin_required
 def add_article():
+    # Check if user is authenticated
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
     nom = request.json["nom"]
     description = request.json["description"]
     prix_achat_HT = request.json["prix_achat_HT"]
@@ -64,8 +76,12 @@ def add_article():
 
 # Modify article route
 @articles_bp.route("/update/<article_id>", methods=['POST'])
-@admin_required
 def modify_article(article_id):
+    # Check if user is authenticated
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
     article = Articles.query.filter_by(id=article_id).first()
     if not article:
         return jsonify({"error": "Article non trouvé"}), 404
@@ -100,8 +116,12 @@ def modify_article(article_id):
 
 # Delete article route
 @articles_bp.route("/delete/<article_id>", methods=['POST'])
-@admin_required
 def delete_article(article_id):
+    # Check if user is authenticated
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
     article = Articles.query.filter_by(id=article_id).first()
     if not article:
         return jsonify({"error": "Article non trouvé"}), 404
