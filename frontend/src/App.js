@@ -16,6 +16,7 @@ const ManageUser = lazy(() => import ('./pages/AdminManageUser'));
 const ListeClients = lazy(() => import ('./pages/ListeClients'));
 const Client = lazy(() => import ('./pages/Client'));
 const ListeArticles = lazy(() => import ('./pages/AdminListeArticles'));
+const AdminParameters = lazy(() => import ('./pages/AdminParameters'));
 const ListeDevis = lazy(() => import ('./pages/ListeDevis'));
 const Devis = lazy(() => import ('./pages/Devis'));
 const DevisPdf = lazy(() => import ('./pages/DevisPdf'));
@@ -94,6 +95,11 @@ function App() {
             <Route path="/admin/dashboard" element={
               <PrivateRoute user={user} requiredRole={'Administrateur'}>
                 <AdminDashboard setUser={setUser}/>
+              </PrivateRoute>
+            }/>
+            <Route path="/admin/parameters" element={
+              <PrivateRoute user={user} requiredRole={'Administrateur'}>
+                <AdminParameters/>
               </PrivateRoute>
             }/>
             <Route path="/admin/liste-articles" element={

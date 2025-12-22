@@ -2,8 +2,9 @@ from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_session import Session
+from flask_migrate import Migrate
 from config import ApplicationConfig
-from models import db, ma, User, TauxTVA
+from models import db, ma, User, TauxTVA, Parameters
 from dotenv import load_dotenv
 import os, logging
 from routes.admin import admin_bp
@@ -41,6 +42,7 @@ logging.basicConfig(
 # Config BDD
 db.init_app(app)
 ma.init_app(app)
+migrate = Migrate(app, db)
 
 # Register blueprints
 app.register_blueprint(admin_bp)
@@ -49,23 +51,36 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(clients_bp)
 app.register_blueprint(devis_bp)
 
-with app.app_context():
-    db.create_all()
-    # Créer le 1er admin si la table users est vide.
-    table_empty_user = User.query.filter_by(email=ADMIN_MAIL).first() is None
+# Initialize default data (only if tables exist)
+# This will be called after migrations are run
+def init_default_data():
+    with app.app_context():
+        try:
+            # Créer le 1er admin si la table users est vide.
+            table_empty_user = User.query.filter_by(email=ADMIN_MAIL).first() is None
 
-    if table_empty_user:
-        hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode('utf-8')
-        admin_user = User(nom='Admin',prenom='Admin',email=ADMIN_MAIL,mdp=hashed_admin_password,role='Administrateur')
-        db.session.add(admin_user)
-        db.session.commit()
-    
-    # Ajoute la TVA 20% si la table est vide
-    table_empty_tva = TauxTVA.query.first() is None
-    if table_empty_tva:
-        taux20 = TauxTVA(taux=0.20)
-        db.session.add(taux20)
-        db.session.commit()
+            if table_empty_user:
+                hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode('utf-8')
+                admin_user = User(nom='Admin',prenom='Admin',email=ADMIN_MAIL,mdp=hashed_admin_password,role='Administrateur')
+                db.session.add(admin_user)
+                db.session.commit()
+            
+            # Ajoute la TVA 20% si la table est vide
+            table_empty_tva = TauxTVA.query.first() is None
+            if table_empty_tva:
+                taux20 = TauxTVA(taux=0.20)
+                db.session.add(taux20)
+                db.session.commit()
+
+            # Ajoute une ligne de parametres par defaut si la table est vide
+            has_params = Parameters.query.first() is not None
+            if not has_params:
+                params = Parameters()
+                db.session.add(params)
+                db.session.commit()
+        except Exception as e:
+            logging.warning(f"Could not initialize default data (tables may not exist yet): {e}")
+            logging.info("Run 'flask db upgrade' to create tables, then restart the app.")
 
 ### Main ###
 

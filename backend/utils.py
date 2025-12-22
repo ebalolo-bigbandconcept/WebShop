@@ -59,3 +59,20 @@ def is_strong_password(password):
     # Au moins 8 caractères, une majuscule, une minuscule, un chiffre, un caractère spécial
     regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$'
     return re.match(regex, password)
+
+def _coerce_float(value, default=0.0):
+        if value in (None, ""):
+            return default
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            raise ValueError("Ce champ doit etre un nombre.")
+
+
+def _coerce_int(value, default=0):
+    if value in (None, ""):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise ValueError("Ce champ doit etre un entier.")

@@ -17,11 +17,14 @@ services:
       - DOCUSIGN_INTEGRATION_KEY
     expose:
       - "5000"
+    ports:
+      - "5000:5000"
     depends_on:
       - db
       - redis
     volumes:
       - db_data:/app/instance
+      - ./backend/migrations:/app/migrations
     restart: always
 
   frontend:

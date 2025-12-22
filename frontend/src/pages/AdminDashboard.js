@@ -158,8 +158,16 @@ function AdminDashboard() {
 
   return (
     <div>
+      <h1>Tableau de bord administrateur</h1>
       <div>
         <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#popup">+ Ajouter un nouvel utilisateur</button>
+        <button
+          className="btn btn-outline-secondary ms-2"
+          type="button"
+          onClick={() => navigate("/admin/parameters")}
+        >
+          Parametres de l'application
+        </button>
         <br />
         <br />
         <div className="modal fade" id="popup" tabIndex="-1" data-bs-backdrop="static" data-bs-keyboard="false">

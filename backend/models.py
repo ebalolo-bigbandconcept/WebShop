@@ -66,6 +66,17 @@ class TauxTVA(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     taux = db.Column(db.Float(), nullable=False, default=0.20)
 
+
+class Parameters(db.Model):
+    __tablename__ = "parameters"
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    margin_rate = db.Column(db.Float(), nullable=False, default=0.0)
+    margin_rate_location = db.Column(db.Float(), nullable=False, default=0.0)
+    location_time = db.Column(db.Integer(), nullable=False, default=0)
+    location_subscription_cost = db.Column(db.Float(), nullable=False, default=0.0)
+    location_interests_cost = db.Column(db.Float(), nullable=False, default=0.0)
+    general_conditions_sales = db.Column(db.Text, nullable=False, default="")
+
 # Marshmallow Schema to strucuture the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -102,4 +113,10 @@ class DevisSchema(ma.SQLAlchemyAutoSchema):
     
     class Meta:
         model = Devis
+        load_instance = True
+
+
+class ParametersSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Parameters
         load_instance = True

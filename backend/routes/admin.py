@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify, session
 from flask_bcrypt import Bcrypt
-from models import db, User, UserSchema
+from models import db, User, UserSchema, Parameters
 from functools import wraps
 import logging
-from utils import validate_user_fields
+from utils import validate_user_fields, _coerce_float, _coerce_int
 
 # Create a Blueprint for admin-related routes
 admin_bp = Blueprint('admin_bp', __name__, url_prefix='/api/admin')
@@ -55,7 +55,7 @@ def add_user():
         return jsonify({"error": error}), 400
     
     # Création du nouvel utilisateur du mot de passe.
-    hashed_password = bcrypt.generate_password_hash(mdp)
+    hashed_password = bcrypt.generate_password_hash(mdp).decode('utf-8')
     new_user = User(email=email,prenom=prenom,nom=nom,mdp=hashed_password,role=role)
     db.session.add(new_user)
     db.session.commit()
@@ -106,7 +106,7 @@ def modify_user(user_id):
     user.role = new_role
     
     if new_password:
-        new_hashed_password = bcrypt.generate_password_hash(new_password)
+        new_hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
         user.mdp = new_hashed_password
     
     db.session.commit()
@@ -155,3 +155,56 @@ def get_user_info(user_id):
         "email": user.email,
         "role": user.role
     })
+
+
+@admin_bp.route("/parameters", methods=["GET"])
+@admin_required
+def get_parameters():
+    params = Parameters.query.first()
+    if not params:
+        params = Parameters()
+        db.session.add(params)
+        db.session.commit()
+
+    return jsonify({
+        "marginRate": params.margin_rate,
+        "marginRateLocation": params.margin_rate_location,
+        "locationTime": params.location_time,
+        "locationSubscriptionCost": params.location_subscription_cost,
+        "locationInterestsCost": params.location_interests_cost,
+        "generalConditionsSales": params.general_conditions_sales,
+    })
+
+
+@admin_bp.route("/parameters", methods=["POST"])
+@admin_required
+def update_parameters():
+    body = request.get_json(force=True) if request.data else {}
+
+    try:
+        margin_rate = _coerce_float(body.get("marginRate"))
+        margin_rate_location = _coerce_float(body.get("marginRateLocation"))
+        location_time = _coerce_int(body.get("locationTime"))
+        location_subscription_cost = _coerce_float(body.get("locationSubscriptionCost"))
+        location_interests_cost = _coerce_float(body.get("locationInterestsCost"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    general_conditions_sales = body.get("generalConditionsSales", "") or ""
+
+    params = Parameters.query.first()
+    if not params:
+        params = Parameters()
+        db.session.add(params)
+
+    params.margin_rate = margin_rate
+    params.margin_rate_location = margin_rate_location
+    params.location_time = location_time
+    params.location_subscription_cost = location_subscription_cost
+    params.location_interests_cost = location_interests_cost
+    params.general_conditions_sales = general_conditions_sales
+
+    db.session.commit()
+    logging.info(f"Admin {session.get('user_id')} a mis a jour les parametres de l'application")
+
+    return jsonify({"status": "ok"})

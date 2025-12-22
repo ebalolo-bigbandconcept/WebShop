@@ -84,6 +84,26 @@ sudo docker compose build
 sudo docker compose up
 ```
 
+#### Initialiser la base de données
+
+La première fois (ou après modification des modèles), exécutez les migrations :
+
+```bash
+# Créer le dossier migrations
+sudo docker compose exec backend flask db init
+
+# Générer la première migration
+sudo docker compose exec backend flask db migrate -m "Initial migration"
+
+# Appliquer les migrations
+sudo docker compose exec backend flask db upgrade
+
+# Initialiser les données par défaut (admin, TVA, paramètres)
+sudo docker compose exec backend python init_db.py
+```
+
+**Note importante**: Avec Flask-Migrate, `db.create_all()` n'est plus utilisé. Cela évite les redémarrages infinis du backend quand le schéma de la base de données change.
+
 ### 4. Accès à l'application
 
 - Frontend : [http://localhost:3000](http://localhost:3000)
@@ -253,11 +273,61 @@ sudo docker compose -f docker-compose.prod.yml build
 # Lancer en production
 sudo docker compose -f docker-compose.prod.yml up -d
 
+# Initialiser la base de données avec migrations
+sudo docker compose -f docker-compose.prod.yml exec backend flask db init
+sudo docker compose -f docker-compose.prod.yml exec backend flask db migrate -m "Initial migration"
+sudo docker compose -f docker-compose.prod.yml exec backend flask db upgrade
+sudo docker compose -f docker-compose.prod.yml exec backend python init_db.py
+
 # Vérifier que tout fonctionne
 sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
+```
 
-### 5. Accès à l'Application
+### 6. Accès à l'Application
 
 - Frontend : [http://votre_domaine_ou_ip](http://votre_domaine_ou_ip)
 - Backend : [http://votre_domaine_ou_ip:5000](http://votre_domaine_ou_ip:5000)
+
+---
+
+## Gestion des Migrations de Base de Données
+
+### Créer une nouvelle migration après modification des modèles
+
+Quand vous modifiez `models.py` (ajout/suppression de colonnes, tables, etc.), créez une migration :
+
+```bash
+# En développement
+sudo docker compose exec backend flask db migrate -m "Description des changements"
+sudo docker compose exec backend flask db upgrade
+
+# En production
+sudo docker compose -f docker-compose.prod.yml exec backend flask db migrate -m "Description des changements"
+sudo docker compose -f docker-compose.prod.yml exec backend flask db upgrade
+```
+
+### Revenir en arrière (downgrade)
+
+```bash
+# Revenir d'une migration
+sudo docker compose exec backend flask db downgrade
+
+# Voir l'historique des migrations
+sudo docker compose exec backend flask db history
+```
+
+### Problèmes courants
+
+**Backend redémarre en boucle** : Cela arrive quand le schéma DB ne correspond pas aux modèles. Appliquez les migrations :
+
+```bash
+sudo docker compose exec backend flask db upgrade
+```
+
+**Migration automatique échoue** : Parfois Flask-Migrate ne détecte pas tous les changements. Créez une migration vide et éditez-la manuellement :
+
+```bash
+sudo docker compose exec backend flask db revision -m "Manual migration"
+# Éditez ensuite le fichier dans backend/migrations/versions/
+```
