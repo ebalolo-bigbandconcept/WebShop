@@ -208,6 +208,11 @@ def get_devis_pdf(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
         return jsonify({"error": "Devis non trouvé"}), 404
+
+    # Scenario selection for PDF rendering
+    selected_scenario = request.args.get("scenario") or "direct"
+    if selected_scenario not in {"direct", "location_without_apport", "location_with_apport"}:
+        selected_scenario = "direct"
     
     # Convert Devis object to dict including articles
     devis_schema = DevisSchema()
@@ -243,10 +248,37 @@ def get_devis_pdf(devis_id):
         if wanted in vat_totals_map:
             vat_tva_totals[wanted] = round(vat_totals_map[wanted]["total_tva"], 2)
 
-    # Fetch parameters for general conditions and location duration
+    # Fetch parameters for general conditions, location duration and fees
     params = Parameters.query.first()
     general_conditions = params.general_conditions_sales if params else ""
     location_time = params.location_time if params else 0
+    subscription_ttc = params.location_subscription_cost if params else 0.0
+    maintenance_ttc = params.location_interests_cost if params else 0.0
+
+    def _compute_location_totals(apport_value):
+        articles_ttc = float(devis_data.get("montant_TTC") or 0.0)
+        apport = float(apport_value or 0.0)
+
+        total_ht_value = articles_ttc + float(subscription_ttc or 0.0) + float(maintenance_ttc or 0.0) - apport
+        total_ht_value = max(total_ht_value, 0.0)
+        total_ttc_value = total_ht_value * 1.20
+
+        monthly_ht = (total_ht_value / location_time) if location_time else 0.0
+        monthly_ttc = (total_ttc_value / location_time) if location_time else 0.0
+
+        return {
+            "monthly_ht": round(monthly_ht, 2),
+            "monthly_ttc": round(monthly_ttc, 2),
+            "total_ht": round(total_ht_value, 2),
+            "total_ttc": round(total_ttc_value, 2),
+            "apport": round(apport, 2),
+        }
+
+    payment_options = {
+        "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
+        "location_without_apport": _compute_location_totals(0.0),
+        "location_with_apport": _compute_location_totals(devis_data.get("first_contribution_amount")),
+    }
 
     # Render HTML using Jinja2 template
     html_out = render_template(
@@ -255,6 +287,8 @@ def get_devis_pdf(devis_id):
         vat_tva_totals=vat_tva_totals,
         general_conditions=general_conditions,
         location_time=location_time,
+        selected_scenario=selected_scenario,
+        payment_options=payment_options,
     )
     
     # Calculate the absolute path to the folder containing your template and static files
