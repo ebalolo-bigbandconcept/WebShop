@@ -74,6 +74,13 @@
   td.left-align {
     text-align: left;
   }
+  .line-comment {
+    display: block;
+    font-size: 10px;
+    color: #555;
+    margin-top: 2px;
+    white-space: pre-wrap;
+  }
 
   /* Totals summary table (right aligned) */
   .totals {
@@ -100,12 +107,23 @@
     text-align: right;
   }
 
+  /* VAT recap table (no bold last row) */
+  .vat-recap {
+    border-collapse: collapse;
+  }
+  .vat-recap td, .vat-recap th {
+    border: 1px solid #000;
+    padding: 6px 8px;
+  }
+  .vat-recap td:first-child { text-align: left; }
+  .vat-recap td.right { text-align: right; }
+
   /* Payment options table */
   .payment-options {
     width: 30%;
     border-collapse: collapse;
     margin-bottom: 15px;
-    margin-top: 110px;
+    margin-top: 20px;
   }
   .payment-options td, .payment-options th {
     border: 1px solid #000;
@@ -123,18 +141,61 @@
     margin-bottom: 30px;
   }
 
+  .location-box {
+    border: none;
+    padding: 0;
+    margin-top: 20px;
+    width: 30%;
+    clear: both;
+  }
+  .location-box table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .location-box th,
+  .location-box td {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    text-align: left;
+  }
+  .location-box th {
+    background-color: #4f688b;
+    color: white;
+    text-align: center;
+  }
+  .location-box .right {
+    text-align: right;
+  }
+
   /* Footer with page number */
   footer {
     position: fixed;
     bottom: 10px;
     left: 0;
     right: 0;
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
     font-size: 11px;
     color: #555;
   }
+  .footer-center {
+    flex: 1;
+    text-align: center;
+  }
+  .footer-right {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .page-number:before {
+    content: "Page ";
+  }
   .page-number:after {
-    content: "1/1";
+    content: counter(page);
+  }
+  @page {
+    counter-reset: page 1;
   }
 </style>
 </head>
@@ -147,10 +208,11 @@
 
 <section class="info-row">
   <div class="info-box">
-    <strong>Artech Sécurité</strong><br />
-    6 Route Varennes,<br />
-    55840 Thierville Sur Meuse<br />
-    06 08 78 43 81
+    <strong>{{ company.name }}</strong><br />
+    {{ company.address_line1 }}<br />
+    {% if company.address_line2 %}{{ company.address_line2 }}<br />{% endif %}
+    {{ company.zip }} {{ company.city }}<br />
+    {{ company.phone }}
   </div>
   <div class="info-box">
     <strong>{{ devis.client.nom }} {{ devis.client.prenom }}</strong><br />
@@ -161,10 +223,10 @@
 </section>
 
 <section class="contact-legal">
-  <a href="mailto:artechsecurite@gmail.com">artechsecurite@gmail.com</a><br />
-  TVA :<br />
-  IBAN :<br />
-  Siret : 98773262500023 APRM : 4321A
+  <a href="mailto:{{ company.email }}">{{ company.email }}</a><br />
+  TVA : {{ company.tva }}<br />
+  IBAN : {{ company.iban }}<br />
+  Siret : {{ company.siret }} APRM : {{ company.aprm }}
 </section>
 
 <table>
@@ -178,14 +240,39 @@
   </thead>
   <tbody>
     {% for item in devis.articles %}
+    {% set taux = item.taux_tva.taux if item.taux_tva and item.taux_tva.taux is not none else (item.article.taux_tva.taux if item.article and item.article.taux_tva and item.article.taux_tva.taux is not none else 0) %}
+    {% set designation = item.article.nom ~ (' (Rénovation)' if taux == 0.10 else '') %}
     <tr>
-      <td class="left-align">{{ item.article.nom }}</td>
+      <td class="left-align">
+        {{ designation }}
+        {% if item.commentaire %}
+        <span class="line-comment">{{ item.commentaire }}</span>
+        {% endif %}
+      </td>
       <td>{{ item.quantite or 0 }}</td>
       <td>{{ "{:.2f}".format(item.article.prix_vente_HT or 0) }}€</td>
       <td>{{ "{:.2f}".format((item.quantite or 0) * (item.article.prix_vente_HT or 0)) }}€</td>
     </tr>
     {% endfor %}
   </tbody>
+</table>
+
+<table class="vat-recap" style="width: 30%; float: left;">
+  <tr>
+    <th colspan="2"><strong>Récapitulatif TVA</strong></th>
+  </tr>
+  {% if vat_tva_totals and 0.20 in vat_tva_totals %}
+  <tr>
+    <td>TVA 20%</td>
+    <td class="right">{{ "{:.2f}".format(vat_tva_totals[0.20] or 0) }}€</td>
+  </tr>
+  {% endif %}
+  {% if vat_tva_totals and 0.10 in vat_tva_totals %}
+  <tr>
+    <td>TVA 10%</td>
+    <td class="right">{{ "{:.2f}".format(vat_tva_totals[0.10] or 0) }}€</td>
+  </tr>
+  {% endif %}
 </table>
 
 <table class="totals">
@@ -203,28 +290,65 @@
   </tr>
 </table>
 
-<table class="payment-options">
-  <tr><th colspan="2">Total TTC</th></tr>
-  <tr>
-    <td>Paiement direct</td>
-    <td>{{ "{:.2f}".format(devis.montant_TTC or 0) }} €</td>
-  </tr>
-  <tr>
-    <td>Location *</td>
-    <td>25 € / mois</td>
-  </tr>
-</table>
-
-<div class="payment-note" style="width: 100%;">
-  * La location est soumise à un engagement de 18 mois à partir du premier paiement.<br />
-  Un acompte de 10 % de la somme totale devra être versé lors du 1er paiement.
-</div>
+{% if devis.is_location and selected_scenario %}
+  {% if selected_scenario == "direct" %}
+    <div style="clear: both;"></div>
+    <table class="payment-options">
+      <tr><th colspan="2">Total TTC</th></tr>
+      <tr>
+        <td>Paiement direct</td>
+        <td>{{ "{:.2f}".format(payment_options.direct.total_ttc or 0) }} €</td>
+      </tr>
+    </table>
+  {% elif selected_scenario == "location_without_apport" %}
+    <div style="clear: both;"></div>
+    <div class="location-box" style="margin-top: 16px;">
+      <table>
+        <tr><th colspan="2">Location sans apport</th></tr>
+        <tr><td>Mensuel HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ht or 0) }} €</td></tr>
+        <tr><td>Mensuel TTC</td><td class="right">{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ttc or 0) }} €</td></tr>
+        <tr><td>Total HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_without_apport.total_ht or 0) }} €</td></tr>
+        <tr><td><strong>Total TTC</strong></td><td class="right"><strong>{{ "{:.2f}".format(payment_options.location_without_apport.total_ttc or 0) }} €</strong></td></tr>
+      </table>
+    </div>
+  {% elif selected_scenario == "location_with_apport" %}
+    <div style="clear: both;"></div>
+    <div class="location-box" style="margin-top: 16px;">
+      <table>
+        <tr><th colspan="2">Location avec apport</th></tr>
+        <tr><td>Apport</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.apport or 0) }} €</td></tr>
+        <tr><td>Mensuel HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ht or 0) }} €</td></tr>
+        <tr><td>Mensuel TTC</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ttc or 0) }} €</td></tr>
+        <tr><td>Total HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.total_ht or 0) }} €</td></tr>
+        <tr><td><strong>Total TTC</strong></td><td class="right"><strong>{{ "{:.2f}".format(payment_options.location_with_apport.total_ttc or 0) }} €</strong></td></tr>
+      </table>
+    </div>
+  {% endif %}
+{% elif devis.is_location %}
+  <div style="clear: both;"></div>
+  <div class="location-box">
+    <div class="location-row"><strong>Location</strong><span></span></div>
+    <div class="location-row"><span>Durée</span><span>{{ location_time }} mois</span></div>
+    <div class="location-row"><span>Apport</span><span>{{ "{:.2f}".format(devis.first_contribution_amount or 0) }} €</span></div>
+    <div class="location-row"><span>Mensuel</span><span>{{ "{:.2f}".format(devis.location_monthly_total or 0) }} €</span></div>
+    <div class="location-row"><span>Total location</span><span>{{ "{:.2f}".format(devis.location_total or 0) }} €</span></div>
+  </div>
+{% else %}
+  <table class="payment-options">
+    <tr><th colspan="2">Total TTC</th></tr>
+    <tr>
+      <td>Paiement direct</td>
+      <td>{{ "{:.2f}".format(devis.montant_TTC or 0) }} €</td>
+    </tr>
+  </table>
+{% endif %}
 
 <p>Conditions générales de ventes :</p>
+<p style="font-size: 11px; line-height: 1.4;">{{ general_conditions }}</p>
 
 <footer>
-  Artech Sécurité - 6, route Varennes 55840 Thierville sur Meuse
-  <span class="page-number"></span>
+  <div class="footer-center">{{ company.name }} - {{ company.address_line1 }} {{ company.zip }} {{ company.city }}</div>
+  <div class="footer-right"><span class="page-number"></span></div>
 </footer>
 
 </body>

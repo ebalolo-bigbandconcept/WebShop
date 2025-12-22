@@ -172,7 +172,19 @@ def get_parameters():
         "locationTime": params.location_time,
         "locationSubscriptionCost": params.location_subscription_cost,
         "locationInterestsCost": params.location_interests_cost,
+        "locationMaintenanceCost": params.location_interests_cost,
         "generalConditionsSales": params.general_conditions_sales,
+        "companyName": params.company_name,
+        "companyAddressLine1": params.company_address_line1,
+        "companyAddressLine2": params.company_address_line2,
+        "companyZip": params.company_zip,
+        "companyCity": params.company_city,
+        "companyPhone": params.company_phone,
+        "companyEmail": params.company_email,
+        "companyIban": params.company_iban,
+        "companyTva": params.company_tva,
+        "companySiret": params.company_siret,
+        "companyAprm": params.company_aprm,
     })
 
 
@@ -186,11 +198,22 @@ def update_parameters():
         margin_rate_location = _coerce_float(body.get("marginRateLocation"))
         location_time = _coerce_int(body.get("locationTime"))
         location_subscription_cost = _coerce_float(body.get("locationSubscriptionCost"))
-        location_interests_cost = _coerce_float(body.get("locationInterestsCost"))
+        location_maintenance_cost = _coerce_float(body.get("locationInterestsCost") or body.get("locationMaintenanceCost"))
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
     general_conditions_sales = body.get("generalConditionsSales", "") or ""
+    company_name = body.get("companyName", "") or ""
+    company_address_line1 = body.get("companyAddressLine1", "") or ""
+    company_address_line2 = body.get("companyAddressLine2", "") or ""
+    company_zip = body.get("companyZip", "") or ""
+    company_city = body.get("companyCity", "") or ""
+    company_phone = body.get("companyPhone", "") or ""
+    company_email = body.get("companyEmail", "") or ""
+    company_iban = body.get("companyIban", "") or ""
+    company_tva = body.get("companyTva", "") or ""
+    company_siret = body.get("companySiret", "") or ""
+    company_aprm = body.get("companyAprm", "") or ""
 
     params = Parameters.query.first()
     if not params:
@@ -201,8 +224,19 @@ def update_parameters():
     params.margin_rate_location = margin_rate_location
     params.location_time = location_time
     params.location_subscription_cost = location_subscription_cost
-    params.location_interests_cost = location_interests_cost
+    params.location_interests_cost = location_maintenance_cost
     params.general_conditions_sales = general_conditions_sales
+    params.company_name = company_name
+    params.company_address_line1 = company_address_line1
+    params.company_address_line2 = company_address_line2
+    params.company_zip = company_zip
+    params.company_city = company_city
+    params.company_phone = company_phone
+    params.company_email = company_email
+    params.company_iban = company_iban
+    params.company_tva = company_tva
+    params.company_siret = company_siret
+    params.company_aprm = company_aprm
 
     db.session.commit()
     logging.info(f"Admin {session.get('user_id')} a mis a jour les parametres de l'application")

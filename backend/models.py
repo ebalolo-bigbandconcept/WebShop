@@ -38,6 +38,13 @@ class Devis(db.Model):
     statut = db.Column(db.String(50), nullable=False)
     date_paiement = db.Column(db.Date(), nullable=True)
     
+    is_location = db.Column(db.Boolean, nullable=False, default=False)
+    first_contribution_amount = db.Column(db.Float(), nullable=True)
+    location_monthly_total = db.Column(db.Float(), nullable=True)
+    location_monthly_total_ht = db.Column(db.Float(), nullable=True)
+    location_total = db.Column(db.Float(), nullable=True)
+    location_total_ht = db.Column(db.Float(), nullable=True)
+    
     client = db.relationship('Clients', backref='devis', lazy=True)
     articles = db.relationship('DevisArticles', backref='devis', lazy=True)
 
@@ -58,8 +65,11 @@ class DevisArticles(db.Model):
     devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=False)
     article_id = db.Column(db.Integer(), db.ForeignKey('articles.id'), nullable=False)
     quantite = db.Column(db.Integer(), nullable=False)
+    taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=True)
+    commentaire = db.Column(db.Text, nullable=True)
     
     article = db.relationship('Articles', backref='devis_articles', lazy=True)
+    taux_tva = db.relationship('TauxTVA', lazy=True)
 
 class TauxTVA(db.Model):
     __tablename__ = "taux_tva"
@@ -76,6 +86,17 @@ class Parameters(db.Model):
     location_subscription_cost = db.Column(db.Float(), nullable=False, default=0.0)
     location_interests_cost = db.Column(db.Float(), nullable=False, default=0.0)
     general_conditions_sales = db.Column(db.Text, nullable=False, default="")
+    company_name = db.Column(db.String(200), nullable=False, default="")
+    company_address_line1 = db.Column(db.String(200), nullable=False, default="")
+    company_address_line2 = db.Column(db.String(200), nullable=False, default="")
+    company_zip = db.Column(db.String(20), nullable=False, default="")
+    company_city = db.Column(db.String(100), nullable=False, default="")
+    company_phone = db.Column(db.String(50), nullable=False, default="")
+    company_email = db.Column(db.String(200), nullable=False, default="")
+    company_iban = db.Column(db.String(64), nullable=False, default="")
+    company_tva = db.Column(db.String(64), nullable=False, default="")
+    company_siret = db.Column(db.String(64), nullable=False, default="")
+    company_aprm = db.Column(db.String(64), nullable=False, default="")
 
 # Marshmallow Schema to strucuture the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):
@@ -102,6 +123,7 @@ class ArticlesSchema(ma.SQLAlchemyAutoSchema):
 
 class DevisArticlesSchema(ma.SQLAlchemyAutoSchema):
     article = ma.Nested('ArticlesSchema')
+    taux_tva = ma.Nested('TauxTVASchema')
     
     class Meta:
         model = DevisArticles

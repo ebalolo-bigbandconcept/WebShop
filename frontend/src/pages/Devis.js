@@ -19,6 +19,8 @@ function Devis() {
   const [article_selected, setArticleSelected] = useState([]);
   const [article_quantite, setArticleQuantite] = useState(1);
   const [articles_in_devis, setArticlesInDevis] = useState([]);
+  const [selectedArticleIds, setSelectedArticleIds] = useState([]);
+  const [selectAllLines, setSelectAllLines] = useState(false);
 
   // Article modal pagination and filter state
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -35,6 +37,15 @@ function Devis() {
   const [devis_montant_TVA, setDevisMontantTVA] = useState(0);
   const [devis_montant_TTC, setDevisMontantTTC] = useState(0);
   const [devis_status, setDevisStatus] = useState("Non signé");
+  const [include_location, setIncludeLocation] = useState(false);
+  const [first_contribution_amount, setFirstContributionAmount] = useState(0);
+  const [location_subscription_cost, setLocationSubscriptionCost] = useState(0);
+  const [location_interests_cost, setLocationInterestsCost] = useState(0);
+  const [location_time, setLocationTime] = useState(0); // in months
+  const [location_monthly_total, setLocationMonthlyTotal] = useState(0);
+  const [location_monthly_total_ht, setLocationMonthlyTotalHt] = useState(0);
+  const [devis_location_total, setDevisLocationTotal] = useState(0);
+  const [devis_location_total_ht, setDevisLocationTotalHt] = useState(0);
 
   const [devis_title_error, setDevisTitleError] = useState("");
   const [devis_date_error, setDevisDateError] = useState("");
@@ -125,6 +136,46 @@ function Devis() {
     setArticleSelected(article)
     showModal();
   }
+
+  const toggleSelectLine = (id) => {
+    setSelectedArticleIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllLines = () => {
+    if (selectAllLines) {
+      setSelectedArticleIds([]);
+      setSelectAllLines(false);
+    } else {
+      setSelectedArticleIds(articles_in_devis.map((a) => a.id));
+      setSelectAllLines(true);
+    }
+  };
+
+  const applyVatToSelected = (taux) => {
+    if (selectedArticleIds.length === 0) return;
+    const updated = articles_in_devis.map((article) => {
+      if (!selectedArticleIds.includes(article.id)) return article;
+      const taux_tva = { ...(article.taux_tva || {}), taux };
+      const montant_HT = (article.prix_vente_HT * article.quantite).toFixed(2);
+      const montant_TVA = ((article.prix_vente_HT * taux) * article.quantite).toFixed(2);
+      const montant_TTC = ((article.prix_vente_HT * (1 + taux)) * article.quantite).toFixed(2);
+      return { ...article, taux_tva, montant_HT, montant_TVA, montant_TTC };
+    });
+    setArticlesInDevis(updated);
+
+    const totalHT = updated.reduce((sum, a) => sum + parseFloat(a.montant_HT), 0).toFixed(2);
+    const totalTVA = updated.reduce((sum, a) => sum + parseFloat(a.montant_TVA), 0).toFixed(2);
+    const totalTTC = updated.reduce((sum, a) => sum + parseFloat(a.montant_TTC), 0).toFixed(2);
+    setDevisMontantHT(totalHT);
+    setDevisMontantTVA(totalTVA);
+    setDevisMontantTTC(totalTTC);
+
+    // Clear selection after applying VAT
+    setSelectedArticleIds([]);
+    setSelectAllLines(false);
+  };
 
   const handleClose = () => {
     const popup = document.getElementById("popup");
@@ -222,9 +273,11 @@ function Devis() {
       const newArticle = {
         ...article_selected,
         quantite: article_quantite,
+        taux_tva: article_selected.taux_tva,
         montant_HT: (article_selected.prix_vente_HT * article_quantite).toFixed(2),
-        montant_TVA: ((article_selected.prix_vente_HT * article_selected.taux_tva.taux) * article_quantite).toFixed(2),
-        montant_TTC: ((article_selected.prix_vente_HT * (1 + article_selected.taux_tva.taux)) * article_quantite).toFixed(2),
+        montant_TVA: ((article_selected.prix_vente_HT * (article_selected.taux_tva?.taux ?? 0.20)) * article_quantite).toFixed(2),
+        montant_TTC: ((article_selected.prix_vente_HT * (1 + (article_selected.taux_tva?.taux ?? 0.20))) * article_quantite).toFixed(2),
+        commentaire: '',
       };
 
       // Update devis totals
@@ -256,9 +309,17 @@ function Devis() {
         montant_TTC: devis_montant_TTC,
         statut: devis_status,
         client_id: id_client,
+        is_location: include_location,
+        first_contribution_amount: include_location ? first_contribution_amount : null,
+        location_monthly_total: include_location ? location_monthly_total : null,
+        location_monthly_total_ht: include_location ? location_monthly_total_ht : null,
+        location_total: include_location ? devis_location_total : null,
+        location_total_ht: include_location ? devis_location_total_ht : null,
         articles: articles_in_devis.map(article => ({
           article_id: article.id,
           quantite: article.quantite,
+          taux_tva: article.taux_tva?.taux,
+          commentaire: article.commentaire || null,
         })),
       };
 
@@ -374,16 +435,25 @@ function Devis() {
       setDevisMontantTVA(data.montant_TVA);
       setDevisMontantTTC(data.montant_TTC);
       setDevisStatus(data.statut);
+      setIncludeLocation(data.is_location || false);
+      setFirstContributionAmount(data.first_contribution_amount || 0);
+      setLocationMonthlyTotal(data.location_monthly_total || 0);
+      setDevisLocationTotal(data.location_total || 0);
 
       if (Array.isArray(data.articles)) {
         setArticlesInDevis(
-          data.articles.map((da) => ({
-            ...da.article,
-            quantite: da.quantite,
-            montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
-            montant_TVA: ((da.article.prix_vente_HT * da.article.taux_tva.taux) * da.quantite).toFixed(2),
-            montant_TTC: ((da.article.prix_vente_HT * (1 + da.article.taux_tva.taux)) * da.quantite).toFixed(2),
-          }))
+          data.articles.map((da) => {
+            const taux = (da.taux_tva && da.taux_tva.taux != null) ? da.taux_tva.taux : da.article.taux_tva.taux;
+            return {
+              ...da.article,
+              quantite: da.quantite,
+              taux_tva: { taux },
+              montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
+              montant_TVA: ((da.article.prix_vente_HT * taux) * da.quantite).toFixed(2),
+              montant_TTC: ((da.article.prix_vente_HT * (1 + taux)) * da.quantite).toFixed(2),
+              commentaire: da.commentaire || '',
+            };
+          })
         );
       } else {
         setArticlesInDevis([]);
@@ -435,9 +505,66 @@ function Devis() {
       });
   }
 
+  const getParameters = async () => {
+    httpClient
+      .get(`${process.env.REACT_APP_BACKEND_URL}/admin/parameters`)
+      .then((resp) => {
+        setLocationSubscriptionCost(resp.data.locationSubscriptionCost || 0);
+        setLocationInterestsCost(resp.data.locationInterestsCost || resp.data.locationMaintenanceCost || 0);
+        setLocationTime(resp.data.locationTime || 0); // in months
+      })
+      .catch((error) => {
+        console.error("Error fetching parameters:", error);
+      });
+  }
+
+  const recomputeLocationTotals = (apportValue = first_contribution_amount, includeFlag = include_location) => {
+    if (!includeFlag) {
+      setLocationMonthlyTotal(0);
+      setLocationMonthlyTotalHt(0);
+      setDevisLocationTotal(0);
+      setDevisLocationTotalHt(0);
+      return;
+    }
+
+    const articlesTTC = parseFloat(devis_montant_TTC) || 0;
+    const subscriptionTTC = parseFloat(location_subscription_cost) || 0;
+    const interestsTTC = parseFloat(location_interests_cost) || 0;
+    const apport = parseFloat(apportValue) || 0;
+
+    const totalHTValue = articlesTTC + subscriptionTTC + interestsTTC - apport;
+    const totalHT = totalHTValue.toFixed(2);
+
+    const totalTTCValue = totalHTValue * 1.20;
+    const totalTTC = totalTTCValue.toFixed(2);
+
+    const monthlyHT = location_time > 0 ? (totalHTValue / location_time).toFixed(2) : 0;
+    const monthlyTTC = location_time > 0 ? (totalTTCValue / location_time).toFixed(2) : 0;
+
+    setDevisLocationTotalHt(totalHT);
+    setDevisLocationTotal(totalTTC);
+    setLocationMonthlyTotalHt(monthlyHT);
+    setLocationMonthlyTotal(monthlyTTC);
+  };
+
+  const handleLocationToggle = (checked) => {
+    setIncludeLocation(checked);
+    recomputeLocationTotals(first_contribution_amount, checked);
+  }
+
+  const handleApportChange = (value) => {
+    const apport = parseFloat(value) || 0;
+    setFirstContributionAmount(apport);
+
+    if (include_location) {
+      recomputeLocationTotals(apport, true);
+    }
+  }
+
   useEffect(() => {
     getClientInfo();
     getAllArticles();
+    getParameters();
     // fetch current devis on id change, but not if we're in the middle of creating a new one
     if (!isNewDevis || id_devis) {
       fetchDevisById(id_devis);
@@ -485,21 +612,45 @@ function Devis() {
     setDevisMontantTVA(devis.montant_TVA);
     setDevisMontantTTC(devis.montant_TTC);
     setDevisStatus(devis.statut);
+    setIncludeLocation(devis.is_location || false);
+    setFirstContributionAmount(devis.first_contribution_amount || 0);
+    setLocationMonthlyTotal(devis.location_monthly_total || 0);
+    setDevisLocationTotal(devis.location_total || 0);
 
     if (Array.isArray(devis.articles)){
       setArticlesInDevis(
-        devis.articles.map((da) => ({
-          ...da.article,
-          quantite: da.quantite,
-          montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
-          montant_TVA: ((da.article.prix_vente_HT * da.article.taux_tva.taux) * da.quantite).toFixed(2),
-          montant_TTC: ((da.article.prix_vente_HT * (1 + da.article.taux_tva.taux)) * da.quantite).toFixed(2),
-        }))
+        devis.articles.map((da) => {
+          const taux = (da.taux_tva && da.taux_tva.taux != null) ? da.taux_tva.taux : da.article.taux_tva.taux;
+          return {
+            ...da.article,
+            quantite: da.quantite,
+            taux_tva: { taux },
+            montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
+            montant_TVA: ((da.article.prix_vente_HT * taux) * da.quantite).toFixed(2),
+            montant_TTC: ((da.article.prix_vente_HT * (1 + taux)) * da.quantite).toFixed(2),
+            commentaire: da.commentaire || '',
+          };
+        })
       );
     }
     setLoading(false);
   }
 }, [devis, isNewDevis]);
+
+  useEffect(() => {
+    if (!loading) {
+      recomputeLocationTotals();
+    }
+  }, [include_location, devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_interests_cost, location_time, first_contribution_amount, loading]);
+
+  useEffect(() => {
+    if (include_location && !loading) {
+      const locationTab = document.getElementById('location-tab');
+      if (locationTab) {
+        locationTab.click();
+      }
+    }
+  }, [include_location, loading]);
 
   if (loading) return <div>Chargement...</div>;
 
@@ -541,14 +692,14 @@ function Devis() {
             </div>
           </div>
           {id_devis && (
-            <div className="mt-4">
-              <h3>{devis_status === "Non signé" || devis_status === "En attente de signature" ? <p className="text-danger">{devis_status}</p> : devis_status === "Signé" ? <p className="text-success">{devis_status}</p> : <p className="text-warning">{devis_status}</p>}</h3>
+            <div className="mt-4 d-flex flex-wrap align-items-center gap-3">
+              <h3 className={`m-0 ${devis_status === "Non signé" || devis_status === "En attente de signature" ? "text-danger" : devis_status === "Signé" ? "text-success" : "text-warning"}`}>{devis_status}</h3>
               {(devis_status === "Non signé" || devis_status === "En attente de signature") && (
-                <div className="form-check">
-                  <input 
-                    className="form-check-input" 
-                    type="checkbox" 
-                    id="marquerSigne" 
+                <div className="form-check mb-0 d-flex align-items-center gap-2">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="marquerSigne"
                     checked={devis_status === "Signé"}
                     onChange={(e) => {
                       if (e.target.checked && window.confirm("Voulez-vous marquer ce devis comme signé ?")) {
@@ -558,7 +709,7 @@ function Devis() {
                       }
                     }}
                   />
-                  <label className="form-check-label" htmlFor="marquerSigne">
+                  <label className="form-check-label mb-0" htmlFor="marquerSigne">
                     Marquer comme signé
                   </label>
                 </div>
@@ -567,28 +718,113 @@ function Devis() {
           )}
         </form>
         <div className="col-lg-4 col-12 d-flex flex-column justify-content-end mt-lg-0 mt-4">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <span className="fw-bold">Montant total HT:</span>
-            <span className="ms-2">{devis_montant_HT} €</span>
-          </div>
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <span className="fw-bold">Montant total TVA:</span>
-            <span className="ms-2">{devis_montant_TVA} €</span>
-          </div>
-          <div className="d-flex justify-content-between align-items-center">
-            <span className="fw-bold fs-5">Montant total TTC:</span>
-            <span className="ms-2 fs-5 fw-bold">{devis_montant_TTC} €</span>
+          <ul className="nav nav-tabs mb-3" role="tablist">
+            <li className="nav-item" role="presentation">
+              <button className="nav-link active" id="articles-tab" data-bs-toggle="tab" data-bs-target="#articles-pane" type="button" role="tab" aria-controls="articles-pane" aria-selected="true">
+                Articles
+              </button>
+            </li>
+            {include_location && (
+              <li className="nav-item" role="presentation">
+                <button className="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected="false">
+                  Location
+                </button>
+              </li>
+            )}
+          </ul>
+
+          <div className="tab-content" id="totalsTabContent">
+            <div className="tab-pane fade show active" id="articles-pane" role="tabpanel" aria-labelledby="articles-tab">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="fw-bold">Montant total HT:</span>
+                <span className="ms-2">{devis_montant_HT} €</span>
+              </div>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="fw-bold">Montant total TVA:</span>
+                <span className="ms-2">{devis_montant_TVA} €</span>
+              </div>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <span className="fw-bold fs-5">Montant total TTC:</span>
+                <span className="ms-2 fs-5 fw-bold">{devis_montant_TTC} €</span>
+              </div>
+              <hr />
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="includeLocation"
+                  checked={include_location}
+                  onChange={(e) => handleLocationToggle(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="includeLocation">
+                  Location
+                </label>
+              </div>
+            </div>
+
+            {include_location && (
+              <div className="tab-pane fade" id="location-pane" role="tabpanel" aria-labelledby="location-tab">
+                <div className="mb-3">
+                  <small className="text-muted">
+                    Durée location: {Math.floor(location_time / 12)} an{Math.floor(location_time / 12) !== 1 ? 's' : ''}{location_time % 12 > 0 ? ` ${location_time % 12} mois` : ''}
+                  </small>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="fw-bold">Articles TTC:</span>
+                  <span className="ms-2">{devis_montant_TTC} €</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="fw-bold">Abonement:</span>
+                  <span className="ms-2">{location_subscription_cost} €</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="fw-bold">Intérêts:</span>
+                  <span className="ms-2">{location_interests_cost} €</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <span className="fw-bold">Apport:</span>
+                  <div className="d-flex align-items-center">
+                    <input type="number" className="form-control form-control-sm" style={{width: '100px'}} value={first_contribution_amount} onChange={(e) => handleApportChange(e.target.value)} step="0.01" min="0" />
+                    <span className="ms-2">€</span>
+                  </div>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-2 border-top pt-2">
+                  <span className="fw-bold">Mensuel HT:</span>
+                  <span className="ms-2 fw-bold">{location_monthly_total_ht} €</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="fw-bold">Mensuel TTC:</span>
+                  <span className="ms-2 fw-bold">{location_monthly_total} €</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center border-top pt-2">
+                  <span className="fw-bold fs-6">Total Location HT:</span>
+                  <span className="ms-2 fw-bold">{devis_location_total_ht} €</span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="fw-bold fs-5">Total Location TTC:</span>
+                  <span className="ms-2 fs-5 fw-bold">{devis_location_total} €</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+      </div>
+      <div className="d-flex align-items-center mb-3 mt-4">
+        <span className="me-3">TVA sélectionnée:</span>
+        <button className="btn btn-outline-secondary me-2" onClick={() => applyVatToSelected(0.20)}>20%</button>
+        <button className="btn btn-outline-secondary" onClick={() => applyVatToSelected(0.10)}>10%</button>
       </div>
       <table className="table table-hover table-striped mt-4">
         <thead>
           <tr>
+            <th scope="col"><input type="checkbox" checked={selectAllLines} onChange={toggleSelectAllLines} /></th>
             <th scope="col">Article</th>
             <th scope="col">Quantité</th>
+            <th scope="col">TVA</th>
             <th scope="col">Montant u. HT</th>
             <th scope="col">Montant u. TVA</th>
             <th scope="col">Montant u. TTC</th>
+            <th scope="col">Commentaire</th>
             <th scope="col"></th>
           </tr>
         </thead>
@@ -596,17 +832,31 @@ function Devis() {
           {articles_in_devis.length > 0 ? (
             articles_in_devis.map((article) => (
               <tr key={article.id}>
-                <td onClick={() => handleModifyArticle(article)}>{article.nom}</td>
+                <td><input type="checkbox" checked={selectedArticleIds.includes(article.id)} onChange={() => toggleSelectLine(article.id)} /></td>
+                <td onClick={() => handleModifyArticle(article)}>{article.nom}{(article.taux_tva?.taux ?? 0) === 0.10 ? ' (Rénovation)' : ''}</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.quantite}</td>
+                <td onClick={() => handleModifyArticle(article)}>{((article.taux_tva?.taux ?? 0) * 100).toFixed(0)} %</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.montant_HT} €</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.montant_TVA} €</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.montant_TTC} €</td>
+                <td>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={article.commentaire || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setArticlesInDevis(prev => prev.map(a => a.id === article.id ? { ...a, commentaire: value } : a));
+                    }}
+                    placeholder="Commentaire"
+                  />
+                </td>
                 <td onClick={() => handleDeleteArticle(article)}><img src={trashCan} alt="trashcan"></img></td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={6}>Aucun articles</td>
+              <td colSpan={9}>Aucun articles</td>
             </tr>
             )}
         </tbody>

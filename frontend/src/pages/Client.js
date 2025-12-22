@@ -30,6 +30,29 @@ function Client() {
   const [tel_error, setTelError] = useState("");
   const [email_error, setEmailError] = useState("");
 
+  const getLocationHT = (d) => {
+    if (!d.is_location) return d.montant_HT;
+    const apport = parseFloat(d.first_contribution_amount || 0);
+    if (d.location_total_ht != null) return (parseFloat(d.location_total_ht) + apport).toFixed(2);
+    const totalTTC = d.location_total ?? d.montant_TTC;
+    const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
+    const baseHT = totalTTC / vatFactor;
+    return (baseHT + apport).toFixed(2);
+  };
+
+  const getDisplayTotal = (d) => {
+    if (!d.is_location) return d.montant_TTC;
+    const ht = parseFloat(getLocationHT(d));
+    return (ht * 1.2).toFixed(2);
+  };
+
+  const getLocationTVA = (d) => {
+    if (!d.is_location) return d.montant_TVA;
+    const ht = parseFloat(getLocationHT(d));
+    const ttc = parseFloat(getDisplayTotal(d));
+    return (ttc - ht).toFixed(2);
+  };
+
   // Automatically format French phone number as "01 23 45 67 89"
   const formatFrenchTel = (value) => {
     // Keep only digits
@@ -227,7 +250,9 @@ function Client() {
     httpClient
       .get(`${process.env.REACT_APP_BACKEND_URL}/devis/client/${client_id.id}`)
       .then((resp) => {
-        setDevis(resp.data.data);
+        const items = resp.data.data || [];
+        items.sort((a, b) => a.id - b.id);
+        setDevis(items);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -375,12 +400,15 @@ function Client() {
                                 devis.map((devis) => (
                                     <tr key={devis.id} onClick={() => {navigate(`/devis/${client.id}/${devis.id}`, {state : {from: `/client/${client.id}`}});}}>
                                     <td>{devis.id}</td>
-                                    <td>{devis.titre}</td>
+                                <td>
+                                  {devis.titre}
+                                  {devis.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
+                                </td>
                                     <td>{devis.description}</td>
                                     <td>{devis.date}</td>
-                                    <td>{devis.montant_HT} €</td>
-                                    <td>{devis.montant_TVA} €</td>
-                                    <td>{devis.montant_TTC} €</td>
+                                    <td>{getLocationHT(devis)} €</td>
+                                    <td>{getLocationTVA(devis)} €</td>
+                                <td>{getDisplayTotal(devis)} €</td>
                                     <td>{devis.statut}</td>
                                     </tr>
                                 ))

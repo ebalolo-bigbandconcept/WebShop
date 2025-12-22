@@ -7,6 +7,29 @@ function ListeDevis() {
   const navigate = useNavigate();
   const [devis, setDevis] = useState([])
 
+  const getDisplayTotal = (d) => {
+    if (!d.is_location) return d.montant_TTC;
+    const baseHT = getLocationHT(d);
+    return (parseFloat(baseHT) * 1.2).toFixed(2);
+  };
+
+  const getLocationHT = (d) => {
+    if (!d.is_location) return d.montant_HT;
+    const apport = parseFloat(d.first_contribution_amount || 0);
+    if (d.location_total_ht != null) return (parseFloat(d.location_total_ht) + apport).toFixed(2);
+    const totalTTC = d.location_total ?? d.montant_TTC;
+    const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
+    const baseHT = totalTTC / vatFactor;
+    return (baseHT + apport).toFixed(2);
+  };
+
+  const getLocationTVA = (d) => {
+    if (!d.is_location) return d.montant_TVA;
+    const ht = parseFloat(getLocationHT(d));
+    const ttc = parseFloat(getDisplayTotal(d));
+    return (ttc - ht).toFixed(2);
+  };
+
   // Filter and Pagination state
   const [filteredDevis, setFilteredDevis] = useState([]);
   const [paginatedDevis, setPaginatedDevis] = useState([]);
@@ -19,8 +42,10 @@ function ListeDevis() {
   const getEveryDevis = async () => {
     try {
       const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/all`);
-      setDevis(resp.data.data || []);
-      setFilteredDevis(resp.data.data || []);
+      const items = resp.data.data || [];
+      items.sort((a, b) => a.id - b.id);
+      setDevis(items);
+      setFilteredDevis(items);
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         if (error.response.data.error !== "Aucuns devis trouvé") {
@@ -126,12 +151,15 @@ function ListeDevis() {
               <tr key={d.id} onClick={() => {navigate(`/devis/${d.client.id}/${d.id}`, {state : {from: '/liste-devis'}});}}>
                 <td>{d.id}</td>
                 <td>{d.client.nom} {d.client.prenom}</td>
-                <td>{d.titre}</td>
+                <td>
+                  {d.titre}
+                  {d.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
+                </td>
                 <td>{d.description}</td>
                 <td>{d.date}</td>
-                <td>{d.montant_HT} €</td>
-                <td>{d.montant_TVA} €</td>
-                <td>{d.montant_TTC} €</td>
+                <td>{getLocationHT(d)} €</td>
+                <td>{getLocationTVA(d)} €</td>
+                <td>{getDisplayTotal(d)} €</td>
                 <td>{d.statut}</td>
               </tr>
             ))
