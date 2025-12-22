@@ -20,7 +20,6 @@ const AdminParameters = lazy(() => import ('./pages/AdminParameters'));
 const ListeDevis = lazy(() => import ('./pages/ListeDevis'));
 const Devis = lazy(() => import ('./pages/Devis'));
 const DevisPdf = lazy(() => import ('./pages/DevisPdf'));
-const ConsentComplete = lazy(() => import ('./pages/ConsentComplete'));
 
 function App() {
   const navigate = useNavigate();
@@ -62,11 +61,6 @@ function App() {
           <Routes>
             <Route path="/" element={<Login setUser={setUser}/>}/>
             <Route path="/*" element={<NotFound/>}/>
-            <Route path="/consent_complete" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur']}>
-                <ConsentComplete/>
-              </PrivateRoute>
-            }/>
             <Route path="/liste-clients" element={
               <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
                 <ListeClients/>
