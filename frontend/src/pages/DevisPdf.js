@@ -66,7 +66,7 @@ function DevisPdfPreview() {
   return (
     <div>
       <div className="d-flex w-100 justify-content-between align-items-center mb-3">
-        <div>
+        <div className="d-flex gap-2 align-items-center">
           <label htmlFor="scenarioSelect" className="form-label mb-0 me-2">Solution:</label>
           <select
             id="scenarioSelect"
@@ -79,11 +79,9 @@ function DevisPdfPreview() {
             <option value="location_without_apport">Location sans apport</option>
             <option value="location_with_apport">Location avec apport</option>
           </select>
-        </div>
-        <div className="d-flex gap-2">
           <button className="btn btn-success" onClick={handleSendToDocuSign}>Envoyer le PDF</button>
-          <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`)}>Retour</button>
         </div>
+        <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`)}>Retour</button>
       </div>
       {pdfUrl && (
         <iframe
