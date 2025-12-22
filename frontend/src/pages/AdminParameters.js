@@ -10,7 +10,7 @@ function AdminParameters() {
     marginRateLocation: "",
     locationTime: "",
     locationSubscriptionCost: "",
-    locationInterestsCost: "",
+    locationMaintenanceCost: "",
     generalConditionsSales: "",
   });
 
@@ -29,7 +29,7 @@ function AdminParameters() {
           marginRateLocation: resp.data?.marginRateLocation ?? "",
           locationTime: resp.data?.locationTime ?? "",
           locationSubscriptionCost: resp.data?.locationSubscriptionCost ?? "",
-          locationInterestsCost: resp.data?.locationInterestsCost ?? "",
+          locationMaintenanceCost: resp.data?.locationMaintenanceCost ?? resp.data?.locationInterestsCost ?? "",
           generalConditionsSales: resp.data?.generalConditionsSales ?? "",
         });
       } catch (err) {
@@ -127,12 +127,12 @@ function AdminParameters() {
           />
         </div>
         <div className="col-md-4">
-          <label className="form-label">Intérêts de la location (EUR)</label>
+          <label className="form-label">Maintenance de la location (EUR)</label>
           <input
             type="number"
             className="form-control"
-            value={parameters.locationInterestsCost}
-            onChange={handleChange("locationInterestsCost")}
+            value={parameters.locationMaintenanceCost}
+            onChange={handleChange("locationMaintenanceCost")}
             min="0"
             step="0.1"
           />

@@ -30,6 +30,23 @@ function Client() {
   const [tel_error, setTelError] = useState("");
   const [email_error, setEmailError] = useState("");
 
+  const getDisplayTotal = (d) => d.is_location ? (d.location_total ?? d.montant_TTC) : d.montant_TTC;
+
+  const getLocationHT = (d) => {
+    if (!d.is_location) return d.montant_HT;
+    if (d.location_total_ht != null) return d.location_total_ht;
+    const totalTTC = d.location_total ?? d.montant_TTC;
+    const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
+    return (totalTTC / vatFactor).toFixed(2);
+  };
+
+  const getLocationTVA = (d) => {
+    if (!d.is_location) return d.montant_TVA;
+    const totalTTC = parseFloat(d.location_total ?? d.montant_TTC);
+    const ht = parseFloat(getLocationHT(d));
+    return (totalTTC - ht).toFixed(2);
+  };
+
   // Automatically format French phone number as "01 23 45 67 89"
   const formatFrenchTel = (value) => {
     // Keep only digits
@@ -375,12 +392,15 @@ function Client() {
                                 devis.map((devis) => (
                                     <tr key={devis.id} onClick={() => {navigate(`/devis/${client.id}/${devis.id}`, {state : {from: `/client/${client.id}`}});}}>
                                     <td>{devis.id}</td>
-                                    <td>{devis.titre}</td>
+                                <td>
+                                  {devis.titre}
+                                  {devis.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
+                                </td>
                                     <td>{devis.description}</td>
                                     <td>{devis.date}</td>
-                                    <td>{devis.montant_HT} €</td>
-                                    <td>{devis.montant_TVA} €</td>
-                                    <td>{devis.montant_TTC} €</td>
+                                    <td>{getLocationHT(devis)} €</td>
+                                    <td>{getLocationTVA(devis)} €</td>
+                                <td>{getDisplayTotal(devis)} €</td>
                                     <td>{devis.statut}</td>
                                     </tr>
                                 ))

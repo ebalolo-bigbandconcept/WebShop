@@ -7,6 +7,23 @@ function ListeDevis() {
   const navigate = useNavigate();
   const [devis, setDevis] = useState([])
 
+  const getDisplayTotal = (d) => d.is_location ? (d.location_total ?? d.montant_TTC) : d.montant_TTC;
+
+  const getLocationHT = (d) => {
+    if (!d.is_location) return d.montant_HT;
+    if (d.location_total_ht != null) return d.location_total_ht;
+    const totalTTC = d.location_total ?? d.montant_TTC;
+    const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
+    return (totalTTC / vatFactor).toFixed(2);
+  };
+
+  const getLocationTVA = (d) => {
+    if (!d.is_location) return d.montant_TVA;
+    const totalTTC = parseFloat(d.location_total ?? d.montant_TTC);
+    const ht = parseFloat(getLocationHT(d));
+    return (totalTTC - ht).toFixed(2);
+  };
+
   // Filter and Pagination state
   const [filteredDevis, setFilteredDevis] = useState([]);
   const [paginatedDevis, setPaginatedDevis] = useState([]);
@@ -126,12 +143,15 @@ function ListeDevis() {
               <tr key={d.id} onClick={() => {navigate(`/devis/${d.client.id}/${d.id}`, {state : {from: '/liste-devis'}});}}>
                 <td>{d.id}</td>
                 <td>{d.client.nom} {d.client.prenom}</td>
-                <td>{d.titre}</td>
+                <td>
+                  {d.titre}
+                  {d.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
+                </td>
                 <td>{d.description}</td>
                 <td>{d.date}</td>
-                <td>{d.montant_HT} €</td>
-                <td>{d.montant_TVA} €</td>
-                <td>{d.montant_TTC} €</td>
+                <td>{getLocationHT(d)} €</td>
+                <td>{getLocationTVA(d)} €</td>
+                <td>{getDisplayTotal(d)} €</td>
                 <td>{d.statut}</td>
               </tr>
             ))
