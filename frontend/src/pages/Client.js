@@ -21,7 +21,7 @@ function Client() {
   const [new_email, setNewEmail] = useState("");
   const [new_caduque, setNewCaduque] = useState("");
 
-  const [activeTab, setActiveTab] = useState("edit");
+  const [activeTab, setActiveTab] = useState("devis");
 
   const [form_submited, setFormSubmited] = useState(false);
   const [first_name_error, setPrenomError] = useState("");
@@ -310,28 +310,70 @@ function Client() {
         </div>
       <ul className="nav nav-tabs mb-3" role="tablist">
         <li className="nav-item" role="presentation">
-        <button
-          className={`nav-link ${activeTab === "edit" ? "active" : ""}`}
-          onClick={() => setActiveTab("edit")}
-          type="button"
-          role="tab"
-        >
-          Modifier les informations du client
-        </button>
+          <button
+            className={`nav-link ${activeTab === "devis" ? "active" : ""}`}
+            onClick={() => setActiveTab("devis")}
+            type="button"
+            role="tab"
+          >
+            Liste des devis ({devis.length})
+          </button>
         </li>
         <li className="nav-item" role="presentation">
-        <button
-          className={`nav-link ${activeTab === "devis" ? "active" : ""}`}
-          onClick={() => setActiveTab("devis")}
-          type="button"
-          role="tab"
-        >
-          Liste des devis ({devis.length})
-        </button>
+          <button
+            className={`nav-link ${activeTab === "edit" ? "active" : ""}`}
+            onClick={() => setActiveTab("edit")}
+            type="button"
+            role="tab"
+          >
+            Modifier les informations du client
+          </button>
         </li>
       </ul>
 
       <div className="tab-content">
+        <div className={`tab-pane fade ${activeTab === "devis" ? "show active" : ""}`} role="tabpanel">
+        <table className="table table-hover table-striped">
+          <thead>
+            <tr>
+            <th scope="col">#</th>
+            <th scope="col">Titre</th>
+            <th scope="col">Description</th>
+            <th scope="col">Date</th>
+            <th scope="col">Montant HT</th>
+            <th scope="col">Montant TVA</th>
+            <th scope="col">Montant TTC</th>
+            <th scope="col">Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {devis.length > 0 ? (
+            devis.map((devis) => (
+              <tr key={devis.id} onClick={() => {navigate(`/devis/${client.id}/${devis.id}`, {state : {from: `/client/${client.id}`}});}}>
+              <td>{devis.id}</td>
+            <td>
+              {devis.titre}
+              {devis.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
+            </td>
+              <td>{devis.description}</td>
+              <td>{devis.date}</td>
+              <td>{getLocationHT(devis)} €</td>
+              <td>{getLocationTVA(devis)} €</td>
+            <td>{getDisplayTotal(devis)} €</td>
+              <td>{devis.statut}</td>
+              </tr>
+            ))
+            ) : (
+            <tr>
+              <td colSpan={8}>Aucun devis trouvé</td>
+            </tr>
+            )}
+          </tbody>
+        </table>
+        <br/>
+        <button className="btn btn-primary" onClick={() => handleNewDevis()}>+ Créer un devis</button>
+        </div>
+
         <div className={`tab-pane fade ${activeTab === "edit" ? "show active" : ""}`} role="tabpanel">
         <form className="row">
           <div className="form-outline col-6">
@@ -385,48 +427,6 @@ function Client() {
         <div className="d-flex w-100 justify-content-end">
           <button className="btn btn-lg btn-success mt-4" onClick={modifyClient}>Enregistrer les modifications</button>
         </div>
-        </div>
-
-        <div className={`tab-pane fade ${activeTab === "devis" ? "show active" : ""}`} role="tabpanel">
-        <table className="table table-hover table-striped">
-          <thead>
-            <tr>
-            <th scope="col">#</th>
-            <th scope="col">Titre</th>
-            <th scope="col">Description</th>
-            <th scope="col">Date</th>
-            <th scope="col">Montant HT</th>
-            <th scope="col">Montant TVA</th>
-            <th scope="col">Montant TTC</th>
-            <th scope="col">Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            {devis.length > 0 ? (
-            devis.map((devis) => (
-              <tr key={devis.id} onClick={() => {navigate(`/devis/${client.id}/${devis.id}`, {state : {from: `/client/${client.id}`}});}}>
-              <td>{devis.id}</td>
-            <td>
-              {devis.titre}
-              {devis.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
-            </td>
-              <td>{devis.description}</td>
-              <td>{devis.date}</td>
-              <td>{getLocationHT(devis)} €</td>
-              <td>{getLocationTVA(devis)} €</td>
-            <td>{getDisplayTotal(devis)} €</td>
-              <td>{devis.statut}</td>
-              </tr>
-            ))
-            ) : (
-            <tr>
-              <td colSpan={8}>Aucun devis trouvé</td>
-            </tr>
-            )}
-          </tbody>
-        </table>
-        <br/>
-        <button className="btn btn-primary" onClick={() => handleNewDevis()}>+ Créer un devis</button>
         </div>
       </div>
 
