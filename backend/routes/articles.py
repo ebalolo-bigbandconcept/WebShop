@@ -62,7 +62,7 @@ def add_article():
     # Get margin rate from parameters and calculate selling price
     params = Parameters.query.first()
     margin_rate = params.margin_rate if params else 0.0
-    prix_vente_HT = float(prix_achat_HT) * (1 + margin_rate / 100)
+    prix_vente_HT = float(prix_achat_HT) * margin_rate
     
     error = validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux_tva_id)
     if error:
@@ -92,13 +92,16 @@ def modify_article(article_id):
     new_nom = request.json["nom"]
     new_description = request.json["description"]
     new_prix_achat_HT = request.json["prix_achat_HT"]
-    new_prix_vente_HT = request.json["prix_vente_HT"]
     new_taux_tva = request.json["taux_tva"]
     
     if not new_taux_tva:
         return jsonify({"error": "Le taux de TVA est requis."}), 400
         
     new_taux_tva_id = TauxTVA.query.filter_by(taux=new_taux_tva).first().id
+
+    params = Parameters.query.first()
+    margin_rate = params.margin_rate if params else 0.0
+    new_prix_vente_HT = float(new_prix_achat_HT) * margin_rate
     
     error = validate_article_fields(new_nom, new_description, new_prix_achat_HT, new_prix_vente_HT, new_taux_tva_id)
     if error:
