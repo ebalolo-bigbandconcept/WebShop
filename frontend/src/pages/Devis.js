@@ -643,6 +643,15 @@ function Devis() {
     }
   }, [include_location, devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_interests_cost, location_time, first_contribution_amount, loading]);
 
+  useEffect(() => {
+    if (include_location && !loading) {
+      const locationTab = document.getElementById('location-tab');
+      if (locationTab) {
+        locationTab.click();
+      }
+    }
+  }, [include_location, loading]);
+
   if (loading) return <div>Chargement...</div>;
 
   return (
