@@ -769,7 +769,7 @@ function Devis() {
                   <span className="ms-2">{location_subscription_cost} €</span>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="fw-bold">Intérêts de location:</span>
+                  <span className="fw-bold">Intérêts:</span>
                   <span className="ms-2">{location_interests_cost} €</span>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-3">
