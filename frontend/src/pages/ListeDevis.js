@@ -7,6 +7,7 @@ function ListeDevis() {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate();
   const [devis, setDevis] = useState([])
+  
   const { showToast } = useToast();
 
   const getDisplayTotal = (d) => {
@@ -51,10 +52,10 @@ function ListeDevis() {
     } catch (error) {
       if (error.response && error.response.data && error.response.data.error) {
         if (error.response.data.error !== "Aucuns devis trouvé") {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         }
       } else {
-        alert("Une erreur est survenue.");
+        showToast({ message: "Une erreur est survenue.", variant: "danger" });
       }
     } finally {
       setLoading(false);
