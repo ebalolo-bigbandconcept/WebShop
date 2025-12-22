@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
+import { useToast } from "../components/Toast";
 
 function Login({ setUser }) {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ function Login({ setUser }) {
   const [form_submited, setFormSubmited] = useState(false);
   const [email_error, setEmailError] = useState("");
   const [password_error, setPasswordError] = useState("");
+
+  const { showToast } = useToast();
 
   // ### User input verifications ###
   const emailVerif = (value) => {
@@ -58,7 +61,7 @@ function Login({ setUser }) {
             setPasswordError("Mot de passe invalide");
           }
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
     }

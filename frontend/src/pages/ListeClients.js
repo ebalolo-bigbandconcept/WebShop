@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
+import { useToast } from "../components/Toast";
 
 function ListeClients() {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ function ListeClients() {
   const [email_error, setEmailError] = useState("");
 
   const [modeFORCE, setModeFORCE] = useState(false);
+
+  const { showToast } = useToast();
 
   // Filter state
   const [filteredClients, setFilteredClients] = useState([]);
@@ -141,13 +144,13 @@ function ListeClients() {
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
           if (error.response.data.error !== "Aucun clients trouvé") {
-            alert(error.response.data.error);
+            showToast({ message: error.response.data.error, variant: "danger" });
           } else {
             setclients({ data: [] }); // Ensure clients.data is not undefined
             setFilteredClients([]);
           }
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   };
@@ -182,6 +185,7 @@ function ListeClients() {
         .then((resp) => {
           console.log(resp);
           handleClose();
+          showToast({ message: "Client créé avec succès", variant: "success" });
           getAllUsersInfo();
         })
         .catch((error) => {
@@ -189,10 +193,10 @@ function ListeClients() {
             if (error.response.status === 409 && !forceValue){
               handleForce();
             }else{
-              alert(error.response.data.error);
+              showToast({ message: error.response.data.error, variant: "danger" });
             }
           } else {
-            alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue.", variant: "danger" });
           }
         });
     }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
+import { useToast } from "../components/Toast";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -18,6 +19,8 @@ function AdminDashboard() {
   const [last_name_error, setLastNameError] = useState("");
   const [email_error, setEmailError] = useState("");
   const [password_error, setPasswordError] = useState("");
+
+  const { showToast } = useToast();
 
   const modalRef = useRef(null);
   const showModal = () => {
@@ -82,9 +85,9 @@ function AdminDashboard() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   };
@@ -114,6 +117,7 @@ function AdminDashboard() {
         .then((resp) => {
           console.log(resp);
           handleClose();
+          showToast({ message: "Utilisateur créé avec succès", variant: "success" });
           getAllUsersInfo();
         })
         .catch((error) => {
@@ -121,10 +125,10 @@ function AdminDashboard() {
             if (error.response.status === 409){
               setEmailError(error.response.data.error)
             }else{
-              alert(error.response.data.error);
+              showToast({ message: error.response.data.error, variant: "danger" });
             }
           } else {
-            alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue.", variant: "danger" });
           }
         });
     }

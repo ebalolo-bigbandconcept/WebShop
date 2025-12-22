@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import httpClient from "../components/httpClient";
+import { useToast } from "../components/Toast";
 
 function AdminParameters() {
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ function AdminParameters() {
     companyAprm: "",
   });
   const [activeTab, setActiveTab] = useState("enterprise");
+  const { showToast } = useToast();
 
   // Fetch existing parameters when the page loads
   useEffect(() => {
@@ -82,7 +84,7 @@ function AdminParameters() {
         `${process.env.REACT_APP_BACKEND_URL}/admin/parameters`,
         parameters
       );
-      alert("Parametres mis a jour");
+      showToast({ message: "Parametres mis à jour", variant: "success" });
     } catch (err) {
       const message = err.response?.data?.error ?? "Une erreur est survenue.";
       setErrorMessage(message);

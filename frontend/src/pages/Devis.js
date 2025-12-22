@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import trashCan from "../assets/trash3-fill.svg";
+import { useToast } from "../components/Toast";
 
 function Devis() {
   const { id_client, id_devis } = useParams();
@@ -58,6 +59,8 @@ function Devis() {
   const [article_MODIFY, setArticleMODIFY] = useState(false);
   const [article_DELETE, setArticleDELETE] = useState(false);
 
+  const { showToast } = useToast();
+
   const modalRef = useRef(null);
   const goBack = () => {
     navigate(-1);
@@ -99,7 +102,7 @@ function Devis() {
   const devisContentVerif = (articles) => {
     const isValid = Array.isArray(articles) && articles.length > 0;
     if (!isValid) {
-      alert("Veuillez ajouter au moins un article au devis.");
+      showToast({ message: "Veuillez ajouter au moins un article au devis.", variant: "warning" });
     }
     return isValid;
   };
@@ -270,7 +273,7 @@ function Devis() {
 
     // If article is not already in the devis
     if (articles_in_devis.find(article => article.id === article_selected.id)) {
-      alert("Cet article est déjà dans le devis.");
+      showToast({ message: "Cet article est déjà dans le devis.", variant: "warning" });
       return;
     }
 
@@ -336,7 +339,7 @@ function Devis() {
         .then(async (resp) => {
           const newDevisId = resp.data && resp.data.id;
           if (!newDevisId) {
-            alert('Erreur: id du devis manquant après création.');
+            showToast({ message: "Erreur: id du devis manquant après création.", variant: "danger" });
             return;
           }
           
@@ -359,7 +362,7 @@ function Devis() {
             } catch (error) {
               retries--;
               if (retries === 0) {
-                alert("Le devis a été créé mais il y a eu un problème lors du rechargement. Veuillez rafraîchir la page.");
+                showToast({ message: "Le devis a été créé mais il y a eu un problème lors du rechargement. Veuillez rafraîchir la page.", variant: "warning" });
                 navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
               }
             }
@@ -369,7 +372,7 @@ function Devis() {
           if (error.response && error.response.data && error.response.data.error) {
             console.log(error.response.data.error);
           } else {
-            alert("Une erreur est survenue lors de la création du devis.");
+            showToast({ message: "Une erreur est survenue lors de la création du devis.", variant: "danger" });
           }
         });
       } else {
@@ -383,7 +386,7 @@ function Devis() {
           if (error.response && error.response.data && error.response.data.error) {
             console.log(error.response.data.error);
           } else {
-            alert("Une erreur est survenue lors de la mise à jour du devis.");
+            showToast({ message: "Une erreur est survenue lors de la mise à jour du devis.", variant: "danger" });
           }
         });
       }
@@ -394,7 +397,7 @@ function Devis() {
   const deleteDevis = async () => {
     const targetId = (devis && devis.id) ? devis.id : id_devis;
     if (!targetId) {
-      alert('Impossible de supprimer: aucun id de devis valide.');
+      showToast({ message: "Impossible de supprimer: aucun id de devis valide.", variant: "warning" });
       return;
     }
 
@@ -406,9 +409,9 @@ function Devis() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   }
@@ -487,9 +490,9 @@ function Devis() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   }
@@ -503,10 +506,10 @@ function Devis() {
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
           if (error.response.status !== 404) {
-            alert(error.response.data.error);
+            showToast({ message: error.response.data.error, variant: "danger" });
           }
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   }
@@ -855,10 +858,11 @@ function Devis() {
                     id="marquerSigne"
                     checked={devis_status === "Signé"}
                     onChange={(e) => {
-                      if (e.target.checked && window.confirm("Voulez-vous marquer ce devis comme signé ?")) {
+                      if (e.target.checked) {
                         setDevisStatus("Signé");
+                        showToast({ message: "Devis marqué comme signé.", variant: "success" });
                       } else {
-                        e.target.checked = false;
+                        setDevisStatus("Non signé");
                       }
                     }}
                   />

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
+import { useToast } from "../components/Toast";
 
 function Client() {
   const client_id = useParams();
@@ -33,6 +34,8 @@ function Client() {
   const [ville_error, setVilleError] = useState("");
   const [tel_error, setTelError] = useState("");
   const [email_error, setEmailError] = useState("");
+
+  const { showToast } = useToast();
 
   const getLocationHT = (d) => {
     if (!d.is_location) return d.montant_HT;
@@ -204,7 +207,7 @@ function Client() {
         })
         .then((resp) => {
           console.log(resp.data);
-          alert("Les modifications ont bien été enregistrer.")
+          showToast({ message: "Les modifications ont bien été enregistrées.", variant: "success" });
           getClientInfo();
         })
         .catch((error) => {
@@ -215,7 +218,7 @@ function Client() {
               console.log(error.response.data.error)
             }
           } else {
-            alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue.", variant: "danger" });
           }
         });
     }
@@ -229,9 +232,9 @@ function Client() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   }
@@ -247,10 +250,10 @@ function Client() {
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
           if (error.response.data.error !== "Aucuns devis trouvé") {
-            alert(error.response.data.error);
+            showToast({ message: error.response.data.error, variant: "danger" });
           }
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   };
@@ -263,9 +266,9 @@ function Client() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   };

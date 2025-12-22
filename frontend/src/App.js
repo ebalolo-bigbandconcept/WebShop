@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import httpClient from "./components/httpClient";
+import { ToastProvider } from "./components/Toast";
 import './App.css';
 
 // Component imports
@@ -121,7 +122,9 @@ function App() {
 
 const AppWrapper = () => (
   <BrowserRouter>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </BrowserRouter>
 );
 

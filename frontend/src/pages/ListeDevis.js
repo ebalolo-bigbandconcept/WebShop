@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
+import { useToast } from "../components/Toast";
 
 function ListeDevis() {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate();
   const [devis, setDevis] = useState([])
+  const { showToast } = useToast();
 
   const getDisplayTotal = (d) => {
     if (!d.is_location) return d.montant_TTC;

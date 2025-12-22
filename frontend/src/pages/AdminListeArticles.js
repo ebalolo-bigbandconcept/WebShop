@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
+import { useToast } from "../components/Toast";
 
 function ListeArticles() {
   const [loading, setLoading] = useState(true);
@@ -19,6 +20,8 @@ function ListeArticles() {
   const [article_description_error, setArticleDescriptionError] = useState("");
   const [article_prix_achat_HT_error, setArticlePrixAchatHTError] = useState("");
   const [article_prix_vente_HT_error, setArticlePrixVenteHTError] = useState("");
+
+  const { showToast } = useToast();
 
   // Modal state
   const [MODIFY, setMODIFY] = useState(false);
@@ -113,15 +116,16 @@ function ListeArticles() {
         .then((resp) => {
           console.log(resp);
           handleClose();
+          showToast({ message: "Article ajouté", variant: "success" });
           getAllArticles();
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
             if (error.response.status === 400) {
-              alert(error.response.data.error);
+              showToast({ message: error.response.data.error, variant: "warning" });
             }
           } else {
-            alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue.", variant: "danger" });
           }
         });
     }
@@ -144,9 +148,9 @@ function ListeArticles() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   }
@@ -170,15 +174,16 @@ function ListeArticles() {
         .then((resp) => {
           console.log(resp);
           handleClose();
+          showToast({ message: "Article mis à jour", variant: "success" });
           getAllArticles();
         })
         .catch((error) => {
-          if (error.response && error.response.data && error.response.data.error) {
-            if (error.response.status !== 400) {
-              alert(error.response.data.error);
-            }
+          const errorMessage = error.response && error.response.data && error.response.data.error;
+          if (errorMessage) {
+            const variant = error.response.status === 400 ? "warning" : "danger";
+            showToast({ message: errorMessage, variant });
           } else {
-            alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue.", variant: "danger" });
           }
         });
     }
@@ -199,15 +204,16 @@ function ListeArticles() {
       .then((resp) => {
         console.log(resp);
         handleClose();
+        showToast({ message: "Article supprimé", variant: "success" });
         getAllArticles();
       })
       .catch((error) => {
-        if (error.response && error.response.data && error.response.data.error) {
-          if (error.response.status !== 400) {
-            alert(error.response.data.error);
-          }
+        const errorMessage = error.response && error.response.data && error.response.data.error;
+        if (errorMessage) {
+          const variant = error.response.status === 400 ? "warning" : "danger";
+          showToast({ message: errorMessage, variant });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   }
@@ -223,10 +229,10 @@ function ListeArticles() {
                 setArticles([]);
                 setFilteredArticles([]);
             } else {
-                alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue lors du chargement des articles.", variant: "danger" });
             }
         } else {
-            alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue lors du chargement des articles.", variant: "danger" });
         }
     } finally {
         setLoading(false);

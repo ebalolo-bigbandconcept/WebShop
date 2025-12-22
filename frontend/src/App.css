@@ -69,3 +69,11 @@ textarea {
   color: white !important;
   background-color: transparent !important;
 }
+
+.toast-container {
+  z-index: 1080;
+}
+
+.toast {
+  opacity: 1;
+}

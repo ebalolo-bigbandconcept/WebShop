@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import httpClient from "../components/httpClient";
+import { useToast } from "../components/Toast";
 
 
 function DevisPdfPreview() {
@@ -9,6 +10,7 @@ function DevisPdfPreview() {
   const [pdfBlob, setPdfBlob] = useState(null);
   const navigate = useNavigate();
   const [scenario, setScenario] = useState("direct"); // "direct", "location_without_apport", "location_with_apport"
+  const { showToast } = useToast();
 
   const handlePdf = async (selectedScenario = scenario) => {
     const params = new URLSearchParams();
@@ -29,7 +31,7 @@ function DevisPdfPreview() {
         if (error.response && error.response.data && error.response.data.error) {
           console.log(error.response.data.error);
         } else {
-          alert("Une erreur est survenue lors de la création du pdf.");
+          showToast({ message: "Une erreur est survenue lors de la création du pdf.", variant: "danger" });
         }
       });
   }
@@ -40,7 +42,10 @@ function DevisPdfPreview() {
   }
 
   const handleSendToDocuSign = () => {
-    if(!pdfBlob) return alert("PDF non disponible.");
+    if (!pdfBlob) {
+      showToast({ message: "PDF non disponible.", variant: "warning" });
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", pdfBlob, `devis_${id_devis}.pdf`)
@@ -48,13 +53,13 @@ function DevisPdfPreview() {
     httpClient
       .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/external/${id_client}`,formData)
       .then((resp) => {
-        alert(`Document envoyé ! Envelope ID: ${resp.data.envelope_id}`);
+        showToast({ message: `Document envoyé ! Envelope ID: ${resp.data.envelope_id}`, variant: "success" });
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
           console.log(error.response.data.error);
         } else {
-          alert("Une erreur est survenue lors de l'envoie du pdf.");
+          showToast({ message: "Une erreur est survenue lors de l'envoie du pdf.", variant: "danger" });
         }
       });
   }

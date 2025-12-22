@@ -1,6 +1,7 @@
 import { useState } from "react";
 import httpClient from "../components/httpClient";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/Toast";
 
 const Register = ({ setUser }) => {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ const Register = ({ setUser }) => {
   const [last_name_error, setLastNameError] = useState("");
   const [email_error, setEmailError] = useState("");
   const [password_error, setPasswordError] = useState("");
+
+  const { showToast } = useToast();
 
 
   // ### User input verifications ###
@@ -94,9 +97,9 @@ const Register = ({ setUser }) => {
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
-            alert(error.response.data.error);
+            showToast({ message: error.response.data.error, variant: "danger" });
           } else {
-            alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue.", variant: "danger" });
           }
         });
     }

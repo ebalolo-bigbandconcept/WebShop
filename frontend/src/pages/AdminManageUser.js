@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
+import { useToast } from "../components/Toast";
 
 function ManageUser() {
   const user_id = useParams();
@@ -26,6 +27,8 @@ function ManageUser() {
   // Set modal to modify or delete mode
   const [MODIFY, setMODIFY] = useState(false);
   const [DELETE, setDELETE] = useState(false);
+
+  const { showToast } = useToast();
 
   const modalRef = useRef(null);
   const showModal = () => {
@@ -107,6 +110,7 @@ function ManageUser() {
           headers: {"Content-Type": "application/json"},
         })
         .then((resp) => {
+          showToast({ message: "Utilisateur modifié avec succès", variant: "success" });
           navigate("/admin/dashboard");
           console.log(resp.data);
         })
@@ -119,10 +123,10 @@ function ManageUser() {
             }else if (error.response.status === 409){
               setEmailError(error.response.data.error)
             }else{
-              alert(error.response.data.error);
+              showToast({ message: error.response.data.error, variant: "danger" });
             }
           } else {
-            alert("Une erreur est survenue.");
+            showToast({ message: "Une erreur est survenue.", variant: "danger" });
           }
         });
     }
@@ -134,17 +138,18 @@ function ManageUser() {
     httpClient
       .post(`${process.env.REACT_APP_BACKEND_URL}/admin/delete-user/${user_id.id}`)
       .then((resp) => {
+        showToast({ message: "Utilisateur supprimé avec succès", variant: "success" });
         navigate("/admin/dashboard");
         console.log(resp.data);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
           if (error.response.data.error === "Vous ne pouvez pas supprimer votre propre compte admin.") {
             navigate("/admin/dashboard");
           }
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   };
@@ -165,9 +170,9 @@ function ManageUser() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          alert(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
-          alert("Une erreur est survenue.");
+          showToast({ message: "Une erreur est survenue.", variant: "danger" });
         }
       });
   }, [user_id.id]);
