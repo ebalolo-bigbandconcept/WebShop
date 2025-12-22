@@ -251,7 +251,7 @@ function Client() {
       .get(`${process.env.REACT_APP_BACKEND_URL}/devis/client/${client_id.id}`)
       .then((resp) => {
         const items = resp.data.data || [];
-        items.sort((a, b) => b.id - a.id);
+        items.sort((a, b) => a.id - b.id);
         setDevis(items);
       })
       .catch((error) => {

@@ -43,7 +43,7 @@ function ListeDevis() {
     try {
       const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/all`);
       const items = resp.data.data || [];
-      items.sort((a, b) => b.id - a.id);
+      items.sort((a, b) => a.id - b.id);
       setDevis(items);
       setFilteredDevis(items);
     } catch (error) {

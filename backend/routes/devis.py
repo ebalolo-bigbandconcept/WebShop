@@ -36,7 +36,7 @@ def _resolve_tva_id(article_payload, articles_map):
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
 def get_every_devis():
-    devis = Devis.query.order_by(Devis.id.desc()).all()
+    devis = Devis.query.order_by(Devis.id.asc()).all()
     if len(devis) == 0:
         return jsonify({"error": "Aucuns devis trouvé"}), 404
     
@@ -47,7 +47,7 @@ def get_every_devis():
 # Get every devis of a client route
 @devis_bp.route('/client/<client_id>', methods=['GET'])
 def get_client_devis(client_id):
-    devis = Devis.query.filter_by(client_id=client_id).order_by(Devis.id.desc()).all()
+    devis = Devis.query.filter_by(client_id=client_id).order_by(Devis.id.asc()).all()
     if not devis:
         return jsonify({"error": "Aucuns devis trouvé"}), 404
     
