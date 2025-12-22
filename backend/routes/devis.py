@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify, session, render_template, make_re
 from models import db, Devis, DevisSchema, DevisArticles, Clients, Articles, TauxTVA, Parameters
 from datetime import datetime
 from weasyprint import HTML
-import logging, os, requests, json
+from PyPDF2 import PdfMerger
+import io, logging, os, requests, json
 
 # Create a Blueprint for authentication-related routes
 devis_bp = Blueprint('devis_bp', __name__, url_prefix='/api/devis')
@@ -309,10 +310,26 @@ def get_devis_pdf(devis_id):
     base_path = '/app/pdf/'
 
     # Generate PDF
-    pdf = HTML(string=html_out,base_url=base_path).write_pdf()
+    pdf_bytes = HTML(string=html_out, base_url=base_path).write_pdf()
+
+    # Append location contract when applicable
+    if devis.is_location:
+        try:
+            contract_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "pdf", "location_contract.pdf"))
+            if os.path.isfile(contract_path):
+                merged = PdfMerger()
+                merged.append(io.BytesIO(pdf_bytes))
+                merged.append(contract_path)
+                buffer = io.BytesIO()
+                merged.write(buffer)
+                pdf_bytes = buffer.getvalue()
+            else:
+                logging.warning(f"Location contract PDF not found at {contract_path}; returning devis PDF only.")
+        except Exception as merge_err:
+            logging.exception(f"Failed to append location contract PDF: {merge_err}")
 
     # Return PDF as response
-    response = make_response(pdf)
+    response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=devis_{devis_id}.pdf"
     return response
