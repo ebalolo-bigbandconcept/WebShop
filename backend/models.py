@@ -86,6 +86,17 @@ class Parameters(db.Model):
     location_subscription_cost = db.Column(db.Float(), nullable=False, default=0.0)
     location_interests_cost = db.Column(db.Float(), nullable=False, default=0.0)
     general_conditions_sales = db.Column(db.Text, nullable=False, default="")
+    company_name = db.Column(db.String(200), nullable=False, default="")
+    company_address_line1 = db.Column(db.String(200), nullable=False, default="")
+    company_address_line2 = db.Column(db.String(200), nullable=False, default="")
+    company_zip = db.Column(db.String(20), nullable=False, default="")
+    company_city = db.Column(db.String(100), nullable=False, default="")
+    company_phone = db.Column(db.String(50), nullable=False, default="")
+    company_email = db.Column(db.String(200), nullable=False, default="")
+    company_iban = db.Column(db.String(64), nullable=False, default="")
+    company_tva = db.Column(db.String(64), nullable=False, default="")
+    company_siret = db.Column(db.String(64), nullable=False, default="")
+    company_aprm = db.Column(db.String(64), nullable=False, default="")
 
 # Marshmallow Schema to strucuture the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):
