@@ -1,13 +1,37 @@
 from flask import Blueprint, request, jsonify, session, render_template, make_response, redirect
-from models import db, Devis, DevisSchema, DevisArticles, Clients
+from models import db, Devis, DevisSchema, DevisArticles, Clients, Articles, TauxTVA, Parameters
 from datetime import datetime
 from weasyprint import HTML
-from docusign_esign import ApiClient, EnvelopesApi, EnvelopeDefinition, Document, Signer, SignHere, Tabs, Recipients, ApiClient
-from docusign_esign.client.api_exception import ApiException
 import logging, os, requests, json
 
 # Create a Blueprint for authentication-related routes
 devis_bp = Blueprint('devis_bp', __name__, url_prefix='/api/devis')
+
+def _build_article_map(articles_payload):
+    article_ids = [article.get("article_id") for article in articles_payload if article.get("article_id")]
+    if not article_ids:
+        return {}
+    articles = Articles.query.filter(Articles.id.in_(article_ids)).all()
+    return {article.id: article for article in articles}
+
+
+def _resolve_tva_id(article_payload, articles_map):
+    taux_tva_id = article_payload.get("taux_tva_id")
+    if taux_tva_id:
+        return taux_tva_id
+
+    taux_value = article_payload.get("taux_tva")
+    if taux_value is not None:
+        existing_tva = TauxTVA.query.filter_by(taux=taux_value).first()
+        if existing_tva:
+            return existing_tva.id
+        new_tva = TauxTVA(taux=taux_value)
+        db.session.add(new_tva)
+        db.session.flush()
+        return new_tva.id
+
+    article = articles_map.get(article_payload.get("article_id"))
+    return article.taux_tva_id if article else None
 
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
@@ -66,13 +90,42 @@ def create_devis():
     statut = request.json["statut"]
     client_id = request.json["client_id"]
     articles_data = request.json["articles"]
+    is_location = request.json.get("is_location", False)
+    first_contribution_amount = request.json.get("first_contribution_amount")
+    location_monthly_total = request.json.get("location_monthly_total")
+    location_monthly_total_ht = request.json.get("location_monthly_total_ht")
+    location_total = request.json.get("location_total")
+    location_total_ht = request.json.get("location_total_ht")
     
-    new_devis = Devis(client_id=client_id,titre=titre,description=description,date=date,montant_HT=montant_HT,montant_TVA=montant_TVA,montant_TTC=montant_TTC,statut=statut)
+    new_devis = Devis(
+        client_id=client_id,
+        titre=titre,
+        description=description,
+        date=date,
+        montant_HT=montant_HT,
+        montant_TVA=montant_TVA,
+        montant_TTC=montant_TTC,
+        statut=statut,
+        is_location=is_location,
+        first_contribution_amount=first_contribution_amount,
+        location_monthly_total=location_monthly_total,
+        location_monthly_total_ht=location_monthly_total_ht,
+        location_total=location_total,
+        location_total_ht=location_total_ht,
+    )
     db.session.add(new_devis)
     db.session.flush()
     
+    articles_map = _build_article_map(articles_data)
     for article in articles_data:
-        devis_article = DevisArticles(devis_id=new_devis.id,article_id=article["article_id"],quantite=article['quantite'],)
+        tva_id = _resolve_tva_id(article, articles_map)
+        devis_article = DevisArticles(
+            devis_id=new_devis.id,
+            article_id=article["article_id"],
+            quantite=article['quantite'],
+            taux_tva_id=tva_id,
+            commentaire=article.get('commentaire')
+        )
         db.session.add(devis_article)
         
     db.session.commit()
@@ -96,15 +149,29 @@ def update_devis(devis_id):
     devis.montant_TVA = request.json["montant_TVA"]
     devis.montant_TTC = request.json["montant_TTC"]
     devis.statut = request.json["statut"]
+    devis.is_location = request.json.get("is_location", False)
+    devis.first_contribution_amount = request.json.get("first_contribution_amount")
+    devis.location_monthly_total = request.json.get("location_monthly_total")
+    devis.location_monthly_total_ht = request.json.get("location_monthly_total_ht")
+    devis.location_total = request.json.get("location_total")
+    devis.location_total_ht = request.json.get("location_total_ht")
     articles_data = request.json["articles"]
     
     try:
         DevisArticles.query.filter_by(devis_id=devis.id).delete()
-        
+
+        articles_map = _build_article_map(articles_data)
         for article in articles_data:
-            devis_article = DevisArticles(devis_id=devis.id,article_id=article["article_id"],quantite=article["quantite"])
+            tva_id = _resolve_tva_id(article, articles_map)
+            devis_article = DevisArticles(
+                devis_id=devis.id,
+                article_id=article["article_id"],
+                quantite=article["quantite"],
+                taux_tva_id=tva_id,
+                commentaire=article.get('commentaire')
+            )
             db.session.add(devis_article)
-    
+
         db.session.commit()
         
         logging.info(f"Devis modifié: {devis.titre} (id: {devis.id}) par l'utilisateur {session.get('user_id')}")
@@ -146,8 +213,49 @@ def get_devis_pdf(devis_id):
     devis_schema = DevisSchema()
     devis_data = devis_schema.dump(devis)
 
+    # Compute totals by VAT rate from per-line or article default
+    vat_totals_map = {}
+    for item in devis_data.get('articles', []):
+        try:
+            taux = None
+            if item.get('taux_tva') and item['taux_tva'].get('taux') is not None:
+                taux = float(item['taux_tva']['taux'])
+            else:
+                taux = float(item['article']['taux_tva']['taux'])
+
+            qty = float(item.get('quantite') or 0)
+            unit_ht = float(item.get('article', {}).get('prix_vente_HT') or 0)
+            line_ht = qty * unit_ht
+            line_tva = line_ht * (taux or 0.0)
+            line_ttc = line_ht + line_tva
+
+            bucket = vat_totals_map.setdefault(taux, {"total_ht": 0.0, "total_tva": 0.0, "total_ttc": 0.0})
+            bucket["total_ht"] += line_ht
+            bucket["total_tva"] += line_tva
+            bucket["total_ttc"] += line_ttc
+        except Exception:
+            # Skip malformed items silently for PDF rendering
+            continue
+
+    # Build a minimal map for 20% and 10% showing only total TVA
+    vat_tva_totals = {}
+    for wanted in (0.20, 0.10):
+        if wanted in vat_totals_map:
+            vat_tva_totals[wanted] = round(vat_totals_map[wanted]["total_tva"], 2)
+
+    # Fetch parameters for general conditions and location duration
+    params = Parameters.query.first()
+    general_conditions = params.general_conditions_sales if params else ""
+    location_time = params.location_time if params else 0
+
     # Render HTML using Jinja2 template
-    html_out = render_template("pdf.html", devis=devis_data)
+    html_out = render_template(
+        "pdf.html",
+        devis=devis_data,
+        vat_tva_totals=vat_tva_totals,
+        general_conditions=general_conditions,
+        location_time=location_time,
+    )
     
     # Calculate the absolute path to the folder containing your template and static files
     base_path = '/app/pdf/'

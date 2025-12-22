@@ -66,11 +66,12 @@ def init_default_data():
                 db.session.commit()
             
             # Ajoute la TVA 20% si la table est vide
-            table_empty_tva = TauxTVA.query.first() is None
-            if table_empty_tva:
-                taux20 = TauxTVA(taux=0.20)
-                db.session.add(taux20)
-                db.session.commit()
+            existing_tva = {row.taux for row in TauxTVA.query.all()}
+            needed_tva = [0.20, 0.10]
+            for rate in needed_tva:
+                if rate not in existing_tva:
+                    db.session.add(TauxTVA(taux=rate))
+            db.session.commit()
 
             # Ajoute une ligne de parametres par defaut si la table est vide
             has_params = Parameters.query.first() is not None

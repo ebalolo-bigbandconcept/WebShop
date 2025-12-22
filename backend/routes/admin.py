@@ -171,7 +171,7 @@ def get_parameters():
         "marginRateLocation": params.margin_rate_location,
         "locationTime": params.location_time,
         "locationSubscriptionCost": params.location_subscription_cost,
-        "locationInterestsCost": params.location_interests_cost,
+        "locationMaintenanceCost": params.location_interests_cost,
         "generalConditionsSales": params.general_conditions_sales,
     })
 
@@ -186,7 +186,7 @@ def update_parameters():
         margin_rate_location = _coerce_float(body.get("marginRateLocation"))
         location_time = _coerce_int(body.get("locationTime"))
         location_subscription_cost = _coerce_float(body.get("locationSubscriptionCost"))
-        location_interests_cost = _coerce_float(body.get("locationInterestsCost"))
+        location_maintenance_cost = _coerce_float(body.get("locationMaintenanceCost") or body.get("locationInterestsCost"))
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
@@ -201,7 +201,7 @@ def update_parameters():
     params.margin_rate_location = margin_rate_location
     params.location_time = location_time
     params.location_subscription_cost = location_subscription_cost
-    params.location_interests_cost = location_interests_cost
+    params.location_interests_cost = location_maintenance_cost
     params.general_conditions_sales = general_conditions_sales
 
     db.session.commit()
