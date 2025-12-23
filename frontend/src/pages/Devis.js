@@ -48,6 +48,8 @@ function Devis() {
   const [location_monthly_total_ht, setLocationMonthlyTotalHt] = useState(0);
   const [devis_location_total, setDevisLocationTotal] = useState(0);
   const [devis_location_total_ht, setDevisLocationTotalHt] = useState(0);
+  const [marginRate, setMarginRate] = useState(0);
+  const [marginRateLocation, setMarginRateLocation] = useState(0);
 
   const [devis_title_error, setDevisTitleError] = useState("");
   const [devis_date_error, setDevisDateError] = useState("");
@@ -135,9 +137,10 @@ function Devis() {
     const updated = articles_in_devis.map((article) => {
       if (!selectedArticleIds.includes(article.id)) return article;
       const taux_tva = { ...(article.taux_tva || {}), taux };
-      const montant_HT = (article.prix_vente_HT * article.quantite).toFixed(2);
-      const montant_TVA = ((article.prix_vente_HT * taux) * article.quantite).toFixed(2);
-      const montant_TTC = ((article.prix_vente_HT * (1 + taux)) * article.quantite).toFixed(2);
+      const unit = getUnitHT(article);
+      const montant_HT = (unit * article.quantite).toFixed(2);
+      const montant_TVA = ((unit * taux) * article.quantite).toFixed(2);
+      const montant_TTC = ((unit * (1 + taux)) * article.quantite).toFixed(2);
       return { ...article, taux_tva, montant_HT, montant_TVA, montant_TTC };
     });
     setArticlesInDevis(updated);
@@ -210,12 +213,13 @@ function Devis() {
       // Find the article to modify
       const updatedArticles = articles_in_devis.map(article => {
         if (article.id === article_selected.id) {
+          const unit = getUnitHT(article);
           const updated = {
             ...article,
             quantite: Number(article_quantite),
-            montant_HT: (article.prix_vente_HT * article_quantite).toFixed(2),
-            montant_TVA: ((article.prix_vente_HT * article.taux_tva.taux) * article_quantite).toFixed(2),
-            montant_TTC: ((article.prix_vente_HT * (1 + article.taux_tva.taux)) * article_quantite).toFixed(2),
+            montant_HT: (unit * article_quantite).toFixed(2),
+            montant_TVA: ((unit * article.taux_tva.taux) * article_quantite).toFixed(2),
+            montant_TTC: ((unit * (1 + article.taux_tva.taux)) * article_quantite).toFixed(2),
           };
           return updated;
         }
@@ -280,13 +284,14 @@ function Devis() {
 
     // Set article in devis if inputs are valid
     if (isQuantityValid && isArticleSelected) {
+      const unit = getUnitHT(article_selected);
       const newArticle = {
         ...article_selected,
         quantite: article_quantite,
         taux_tva: article_selected.taux_tva,
-        montant_HT: (article_selected.prix_vente_HT * article_quantite).toFixed(2),
-        montant_TVA: ((article_selected.prix_vente_HT * (article_selected.taux_tva?.taux ?? 0.20)) * article_quantite).toFixed(2),
-        montant_TTC: ((article_selected.prix_vente_HT * (1 + (article_selected.taux_tva?.taux ?? 0.20))) * article_quantite).toFixed(2),
+        montant_HT: (unit * article_quantite).toFixed(2),
+        montant_TVA: ((unit * (article_selected.taux_tva?.taux ?? 0.20)) * article_quantite).toFixed(2),
+        montant_TTC: ((unit * (1 + (article_selected.taux_tva?.taux ?? 0.20))) * article_quantite).toFixed(2),
         commentaire: '',
       };
 
@@ -454,13 +459,14 @@ function Devis() {
         setArticlesInDevis(
           data.articles.map((da) => {
             const taux = (da.taux_tva && da.taux_tva.taux != null) ? da.taux_tva.taux : da.article.taux_tva.taux;
+            const unit = getUnitHT(da.article);
             return {
               ...da.article,
               quantite: da.quantite,
               taux_tva: { taux },
-              montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
-              montant_TVA: ((da.article.prix_vente_HT * taux) * da.quantite).toFixed(2),
-              montant_TTC: ((da.article.prix_vente_HT * (1 + taux)) * da.quantite).toFixed(2),
+              montant_HT: (unit * da.quantite).toFixed(2),
+              montant_TVA: ((unit * taux) * da.quantite).toFixed(2),
+              montant_TTC: ((unit * (1 + taux)) * da.quantite).toFixed(2),
               commentaire: da.commentaire || '',
             };
           })
@@ -522,11 +528,23 @@ function Devis() {
         setLocationSubscriptionCost(resp.data.locationSubscriptionCost || 0);
         setLocationInterestsCost(resp.data.locationInterestsCost || resp.data.locationMaintenanceCost || 0);
         setLocationTime(resp.data.locationTime || 0); // in months
+        setMarginRate(resp.data.marginRate || 0);
+        setMarginRateLocation(resp.data.marginRateLocation || 0);
       })
       .catch((error) => {
         console.error("Error fetching parameters:", error);
       });
   }
+
+  const getUnitHT = (article) => {
+    const unitSale = Number(article.prix_vente_HT) || 0;
+    const unitBuy = Number(article.prix_achat_HT) || 0;
+    const locRate = Number(marginRateLocation) || 0;
+    if (include_location && locRate > 0 && unitBuy > 0) {
+      return unitBuy * locRate;
+    }
+    return unitSale;
+  };
 
   const loadVatRates = async () => {
     try {
@@ -663,6 +681,29 @@ function Devis() {
     }
   }, [include_location, devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_interests_cost, location_time, first_contribution_amount, loading]);
 
+  // Recalculate line amounts and totals when location mode or its margin changes
+  useEffect(() => {
+    if (loading) return;
+    setArticlesInDevis((prev) => {
+      const updated = prev.map((a) => {
+        const unit = getUnitHT(a);
+        const qty = Number(a.quantite) || 0;
+        const taux = Number(a.taux_tva?.taux || 0);
+        const montant_HT = (unit * qty).toFixed(2);
+        const montant_TVA = ((unit * taux) * qty).toFixed(2);
+        const montant_TTC = ((unit * (1 + taux)) * qty).toFixed(2);
+        return { ...a, montant_HT, montant_TVA, montant_TTC };
+      });
+      const totalHT = updated.reduce((s, a) => s + parseFloat(a.montant_HT), 0).toFixed(2);
+      const totalTVA = updated.reduce((s, a) => s + parseFloat(a.montant_TVA), 0).toFixed(2);
+      const totalTTC = updated.reduce((s, a) => s + parseFloat(a.montant_TTC), 0).toFixed(2);
+      setDevisMontantHT(totalHT);
+      setDevisMontantTVA(totalTVA);
+      setDevisMontantTTC(totalTTC);
+      return updated;
+    });
+  }, [include_location, marginRateLocation, loading]);
+
   useEffect(() => {
     if (include_location && !loading) {
       const locationTab = document.getElementById('location-tab');
@@ -746,7 +787,7 @@ function Devis() {
               >
                 <td>{article.nom}</td>
                 <td>{article.description}</td>
-                <td>{article.prix_vente_HT} €</td>
+                <td>{getUnitHT(article).toFixed(2)} €</td>
               </tr>
             ))
           ) : (
