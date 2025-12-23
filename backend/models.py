@@ -37,6 +37,7 @@ class Devis(db.Model):
     montant_TTC = db.Column(db.Float(), nullable=False)
     statut = db.Column(db.String(50), nullable=False)
     date_paiement = db.Column(db.Date(), nullable=True)
+    envelope_id = db.Column(db.String(255), nullable=True)  # DocuSign envelope ID
     
     is_location = db.Column(db.Boolean, nullable=False, default=False)
     first_contribution_amount = db.Column(db.Float(), nullable=True)
