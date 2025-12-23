@@ -14,6 +14,7 @@ function ListeArticles() {
   const [article_prix_achat_HT, setArticlePrixAchatHT] = useState(null);
   const [article_prix_vente_HT, setArticlePrixVenteHT] = useState(null);
   const [article_taux_tva, setArticleTauxTVA] = useState(0.20);
+  const [vatRates, setVatRates] = useState([]);
 
   const [article_id, setArticleId] = useState("");
   const [article_nom_error, setArticleNomError] = useState("");
@@ -261,6 +262,19 @@ function ListeArticles() {
   // ### Fetch all articles on page load ###
   useEffect(() => {
     getAllArticles();
+    // Load VAT rates for the select (public endpoint)
+    httpClient
+      .get(`${process.env.REACT_APP_BACKEND_URL}/devis/tva`)
+      .then((resp) => {
+        const data = Array.isArray(resp.data?.data) ? resp.data.data : [];
+        setVatRates(data);
+        if (data.length > 0) {
+          setArticleTauxTVA((prev) => (prev ?? data[0].taux));
+        }
+      })
+      .catch((err) => {
+        console.error("Erreur chargement TVA:", err);
+      });
   }, []);
 
   // ### Filter Logic ###
@@ -354,10 +368,18 @@ function ListeArticles() {
         <select
           id="taux_tva"
           value={article_taux_tva}
-          onChange={(e) => setArticleTauxTVA(e.target.value)}
+          onChange={(e) => setArticleTauxTVA(Number(e.target.value))}
           className="form-control form-control-lg"
         >
-          <option value={0.20}>20%</option>
+          {vatRates.length === 0 ? (
+            <option value={0.20}>20%</option>
+          ) : (
+            vatRates.map((v) => (
+              <option key={v.id} value={v.taux}>
+                {(Number(v.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%
+              </option>
+            ))
+          )}
         </select>
       </div>
     </form>
@@ -431,7 +453,7 @@ function ListeArticles() {
                 <td>{article.description}</td>
                 <td>{article.prix_achat_HT} €</td>
                 <td>{article.prix_vente_HT} €</td>
-                <td>{article.taux_tva.taux * 100} %</td>
+                <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>
               </tr>
             ))
           ) : (

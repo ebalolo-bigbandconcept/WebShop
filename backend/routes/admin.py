@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from flask_bcrypt import Bcrypt
-from models import db, User, UserSchema, Parameters
+from models import db, User, UserSchema, Parameters, TauxTVA, Articles, DevisArticles
 from functools import wraps
 import logging
 from utils import validate_user_fields, _coerce_float, _coerce_int
@@ -242,3 +242,55 @@ def update_parameters():
     logging.info(f"Admin {session.get('user_id')} a mis a jour les parametres de l'application")
 
     return jsonify({"status": "ok"})
+
+
+# TVA management
+@admin_bp.route("/tva", methods=["GET"])
+@admin_required
+def list_tva():
+    vats = TauxTVA.query.order_by(TauxTVA.id.asc()).all()
+    return jsonify({"data": [{"id": v.id, "taux": v.taux} for v in vats]})
+
+
+@admin_bp.route("/tva", methods=["POST"])
+@admin_required
+def add_tva():
+    body = request.get_json(force=True) if request.data else {}
+    try:
+        taux = float(body.get("taux"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Taux invalide"}), 400
+
+    # Avoid duplicates
+    existing = TauxTVA.query.filter_by(taux=taux).first()
+    if existing:
+        return jsonify({"id": existing.id, "taux": existing.taux})
+
+    new_vat = TauxTVA(taux=taux)
+    db.session.add(new_vat)
+    db.session.commit()
+    logging.info(f"Admin {session.get('user_id')} a ajouté un taux TVA: {taux}")
+    return jsonify({"id": new_vat.id, "taux": new_vat.taux})
+
+
+@admin_bp.route("/tva/<int:tva_id>", methods=["DELETE"])
+@admin_required
+def delete_tva(tva_id: int):
+    vat = TauxTVA.query.get(tva_id)
+    if not vat:
+        return jsonify({"error": "Taux TVA introuvable"}), 404
+
+    art_refs = Articles.query.filter_by(taux_tva_id=tva_id).count()
+    devis_refs = DevisArticles.query.filter_by(taux_tva_id=tva_id).count()
+    if art_refs > 0 or devis_refs > 0:
+        return (
+            jsonify({
+                "error": f"Impossible de supprimer: {art_refs} article(s) et {devis_refs} ligne(s) de devis utilisent ce taux."
+            }),
+            409,
+        )
+
+    db.session.delete(vat)
+    db.session.commit()
+    logging.info(f"Admin {session.get('user_id')} a supprimé le taux TVA id={tva_id}")
+    return jsonify({"status": "deleted"})

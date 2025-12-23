@@ -22,6 +22,7 @@ function Devis() {
   const [articles_in_devis, setArticlesInDevis] = useState([]);
   const [selectedArticleIds, setSelectedArticleIds] = useState([]);
   const [selectAllLines, setSelectAllLines] = useState(false);
+  const [vatRates, setVatRates] = useState([]);
 
   // Article modal pagination and filter state
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -527,6 +528,15 @@ function Devis() {
       });
   }
 
+  const loadVatRates = async () => {
+    try {
+      const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/tva`);
+      setVatRates(Array.isArray(resp.data?.data) ? resp.data.data : []);
+    } catch (err) {
+      console.error("Erreur lors du chargement des TVA:", err);
+    }
+  }
+
   const recomputeLocationTotals = (apportValue = first_contribution_amount, includeFlag = include_location) => {
     if (!includeFlag) {
       setLocationMonthlyTotal(0);
@@ -574,6 +584,7 @@ function Devis() {
     getClientInfo();
     getAllArticles();
     getParameters();
+    loadVatRates();
     // fetch current devis on id change, but not if we're in the middle of creating a new one
     if (!isNewDevis || id_devis) {
       fetchDevisById(id_devis);
@@ -968,8 +979,19 @@ function Devis() {
       </div>
       <div className="d-flex align-items-center mb-3 mt-4">
         <span className="me-3">TVA sélectionnée:</span>
-        <button className="btn btn-outline-secondary me-2" onClick={() => applyVatToSelected(0.20)}>20%</button>
-        <button className="btn btn-outline-secondary" onClick={() => applyVatToSelected(0.10)}>10%</button>
+        {vatRates.length === 0 ? (
+          <span className="text-muted">Aucun taux disponible</span>
+        ) : (
+          vatRates.map((vat) => (
+            <button
+              key={vat.id}
+              className="btn btn-outline-secondary me-2"
+              onClick={() => applyVatToSelected(Number(vat.taux))}
+            >
+              {(Number(vat.taux) * 100).toFixed(2).replace(/\.0+$/, "")}%
+            </button>
+          ))
+        )}
       </div>
       <table className="table table-hover table-striped mt-4">
         <thead>
@@ -992,7 +1014,7 @@ function Devis() {
                 <td><input type="checkbox" checked={selectedArticleIds.includes(article.id)} onChange={() => toggleSelectLine(article.id)} /></td>
                 <td onClick={() => handleModifyArticle(article)}>{article.nom}{(article.taux_tva?.taux ?? 0) === 0.10 ? ' (Rénovation)' : ''}</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.quantite}</td>
-                <td onClick={() => handleModifyArticle(article)}>{((article.taux_tva?.taux ?? 0) * 100).toFixed(0)} %</td>
+                <td onClick={() => handleModifyArticle(article)}>{((Number(article.taux_tva?.taux ?? 0)) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.montant_HT} €</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.montant_TVA} €</td>
                 <td onClick={() => handleModifyArticle(article)}>{article.montant_TTC} €</td>

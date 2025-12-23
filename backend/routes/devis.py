@@ -34,6 +34,13 @@ def _resolve_tva_id(article_payload, articles_map):
     article = articles_map.get(article_payload.get("article_id"))
     return article.taux_tva_id if article else None
 
+
+# Public endpoint to list all VAT rates (no admin required)
+@devis_bp.route('/tva', methods=['GET'])
+def list_vat_public():
+    vats = TauxTVA.query.order_by(TauxTVA.id.asc()).all()
+    return jsonify({"data": [{"id": v.id, "taux": v.taux} for v in vats]})
+
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
 def get_every_devis():
