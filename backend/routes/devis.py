@@ -517,7 +517,6 @@ def external_send_pdf_sign(client_id, devis_id):
             'integrator_key': integrator_key,
             'account_id': account_id,
             'user_id': user_id,
-            'callback_url': callback_url,
             'signers': json.dumps([{
                 'email': email,
                 'name': f"{prenom} {nom}"
