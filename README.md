@@ -89,7 +89,7 @@ sudo docker compose up
 La première fois (ou après modification des modèles), exécutez les migrations :
 
 ```bash
-# Créer le dossier migrations
+# Créer le dossier migrations (si pas déjà fait)
 sudo docker compose exec backend flask db init
 
 # Générer la première migration
@@ -97,9 +97,6 @@ sudo docker compose exec backend flask db migrate -m "Initial migration"
 
 # Appliquer les migrations
 sudo docker compose exec backend flask db upgrade
-
-# Initialiser les données par défaut (admin, TVA, paramètres)
-sudo docker compose exec backend python init_db.py
 ```
 
 **Note importante**: Avec Flask-Migrate, `db.create_all()` n'est plus utilisé. Cela évite les redémarrages infinis du backend quand le schéma de la base de données change.

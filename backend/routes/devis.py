@@ -35,6 +35,15 @@ def _resolve_tva_id(article_payload, articles_map):
     return article.taux_tva_id if article else None
 
 
+def _compute_unit_price(article_obj, params, is_location):
+    if not article_obj:
+        return 0.0
+    if is_location:
+        rate = (params.margin_rate_location if params else 0.0) or 0.0
+        return float(article_obj.prix_achat_HT or 0.0) * rate
+    return float(article_obj.prix_vente_HT or 0.0)
+
+
 # Public endpoint to list all VAT rates (no admin required)
 @devis_bp.route('/tva', methods=['GET'])
 def list_vat_public():
@@ -149,6 +158,9 @@ def update_devis(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
         return jsonify({"error": "Devis non trouvé"}), 404
+
+    if devis.statut == "Signé":
+        return jsonify({"error": "Devis signé: modification interdite"}), 409
     
     devis.titre = request.json["title"]
     devis.description = request.json["description"]
@@ -164,13 +176,34 @@ def update_devis(devis_id):
     devis.location_total = request.json.get("location_total")
     devis.location_total_ht = request.json.get("location_total_ht")
     articles_data = request.json["articles"]
+    params = Parameters.query.first()
+    to_sign = devis.statut != "Signé" and request.json.get("statut") == "Signé"
     
     try:
         DevisArticles.query.filter_by(devis_id=devis.id).delete()
 
         articles_map = _build_article_map(articles_data)
+        snapshot_lines = []
+        total_ht = 0.0
+        total_tva = 0.0
+        total_ttc = 0.0
+
         for article in articles_data:
             tva_id = _resolve_tva_id(article, articles_map)
+            article_obj = articles_map.get(article["article_id"])
+            unit_price = _compute_unit_price(article_obj, params, devis.is_location)
+            taux_val = 0.0
+            if tva_id:
+                tva_obj = TauxTVA.query.get(tva_id)
+                taux_val = float(tva_obj.taux) if tva_obj else 0.0
+            elif article_obj and article_obj.taux_tva:
+                taux_val = float(article_obj.taux_tva.taux)
+
+            qty = float(article["quantite"])
+            line_ht = unit_price * qty
+            line_tva = line_ht * (taux_val or 0.0)
+            line_ttc = line_ht + line_tva
+
             devis_article = DevisArticles(
                 devis_id=devis.id,
                 article_id=article["article_id"],
@@ -178,16 +211,85 @@ def update_devis(devis_id):
                 taux_tva_id=tva_id,
                 commentaire=article.get('commentaire')
             )
+
+            if to_sign:
+                devis_article.prix_unitaire_ht_snapshot = unit_price
+                devis_article.taux_tva_snapshot = taux_val
+                devis_article.montant_ht_snapshot = line_ht
+                devis_article.montant_tva_snapshot = line_tva
+                devis_article.montant_ttc_snapshot = line_ttc
+
             db.session.add(devis_article)
 
+            total_ht += line_ht
+            total_tva += line_tva
+            total_ttc += line_ttc
+
+            if to_sign:
+                snapshot_lines.append({
+                    "article_id": article_obj.id if article_obj else article.get("article_id"),
+                    "nom": getattr(article_obj, "nom", ""),
+                    "description": getattr(article_obj, "description", ""),
+                    "quantite": qty,
+                    "taux_tva": taux_val,
+                    "prix_unitaire_ht": unit_price,
+                    "montant_ht": line_ht,
+                    "montant_tva": line_tva,
+                    "montant_ttc": line_ttc,
+                    "commentaire": article.get('commentaire') or "",
+                })
+
+        if to_sign:
+            devis.montant_HT = round(total_ht, 2)
+            devis.montant_TVA = round(total_tva, 2)
+            devis.montant_TTC = round(total_ttc, 2)
+            devis.signed_at = datetime.utcnow()
+            devis.signed_data = {
+                "lines": snapshot_lines,
+                "totals": {
+                    "ht": round(total_ht, 2),
+                    "tva": round(total_tva, 2),
+                    "ttc": round(total_ttc, 2),
+                },
+                "params": {
+                    "margin_rate": params.margin_rate if params else 0.0,
+                    "margin_rate_location": params.margin_rate_location if params else 0.0,
+                    "location_subscription_cost": devis.location_subscription_cost,
+                    "location_interests_cost": devis.location_interests_cost,
+                    "location_time": devis.location_time,
+                    "general_conditions_sales": params.general_conditions_sales if params else "",
+                },
+                "company": {
+                    "name": params.company_name if params else "",
+                    "address_line1": params.company_address_line1 if params else "",
+                    "address_line2": params.company_address_line2 if params else "",
+                    "zip": params.company_zip if params else "",
+                    "city": params.company_city if params else "",
+                    "phone": params.company_phone if params else "",
+                    "email": params.company_email if params else "",
+                    "iban": params.company_iban if params else "",
+                    "tva": params.company_tva if params else "",
+                    "siret": params.company_siret if params else "",
+                    "aprm": params.company_aprm if params else "",
+                },
+                "location": {
+                    "is_location": devis.is_location,
+                    "first_contribution_amount": devis.first_contribution_amount,
+                    "location_monthly_total": devis.location_monthly_total,
+                    "location_monthly_total_ht": devis.location_monthly_total_ht,
+                    "location_total": devis.location_total,
+                    "location_total_ht": devis.location_total_ht,
+                },
+            }
+
         db.session.commit()
-        
+
         logging.info(f"Devis modifié: {devis.titre} (id: {devis.id}) par l'utilisateur {session.get('user_id')}")
-    
+
         return jsonify({
             "id": devis.id
         })
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
@@ -198,6 +300,9 @@ def delete_devis(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
         return jsonify({"error": "Article non trouvé"}), 404
+
+    if devis.statut == "Signé":
+        return jsonify({"error": "Devis signé: suppression interdite"}), 409
     
     devis_nom = devis.titre
     # Delete devis articles first to avoid foreign key constraint violation
@@ -226,29 +331,45 @@ def get_devis_pdf(devis_id):
     devis_schema = DevisSchema()
     devis_data = devis_schema.dump(devis)
 
+    snapshot = devis.signed_data if devis.statut == "Signé" and getattr(devis, "signed_data", None) else None
+
     # Compute totals by VAT rate from per-line or article default
     vat_totals_map = {}
-    for item in devis_data.get('articles', []):
-        try:
-            taux = None
-            if item.get('taux_tva') and item['taux_tva'].get('taux') is not None:
-                taux = float(item['taux_tva']['taux'])
-            else:
-                taux = float(item['article']['taux_tva']['taux'])
+    if snapshot and snapshot.get("lines"):
+        for line in snapshot.get("lines", []):
+            try:
+                taux = float(line.get("taux_tva") or 0.0)
+                line_ht = float(line.get("montant_ht") or 0.0)
+                line_tva = float(line.get("montant_tva") or 0.0)
+                line_ttc = float(line.get("montant_ttc") or (line_ht + line_tva))
+                bucket = vat_totals_map.setdefault(taux, {"total_ht": 0.0, "total_tva": 0.0, "total_ttc": 0.0})
+                bucket["total_ht"] += line_ht
+                bucket["total_tva"] += line_tva
+                bucket["total_ttc"] += line_ttc
+            except Exception:
+                continue
+    else:
+        for item in devis_data.get('articles', []):
+            try:
+                taux = None
+                if item.get('taux_tva') and item['taux_tva'].get('taux') is not None:
+                    taux = float(item['taux_tva']['taux'])
+                else:
+                    taux = float(item['article']['taux_tva']['taux'])
 
-            qty = float(item.get('quantite') or 0)
-            unit_ht = float(item.get('article', {}).get('prix_vente_HT') or 0)
-            line_ht = qty * unit_ht
-            line_tva = line_ht * (taux or 0.0)
-            line_ttc = line_ht + line_tva
+                qty = float(item.get('quantite') or 0)
+                unit_ht = float(item.get('article', {}).get('prix_vente_HT') or 0)
+                line_ht = qty * unit_ht
+                line_tva = line_ht * (taux or 0.0)
+                line_ttc = line_ht + line_tva
 
-            bucket = vat_totals_map.setdefault(taux, {"total_ht": 0.0, "total_tva": 0.0, "total_ttc": 0.0})
-            bucket["total_ht"] += line_ht
-            bucket["total_tva"] += line_tva
-            bucket["total_ttc"] += line_ttc
-        except Exception:
-            # Skip malformed items silently for PDF rendering
-            continue
+                bucket = vat_totals_map.setdefault(taux, {"total_ht": 0.0, "total_tva": 0.0, "total_ttc": 0.0})
+                bucket["total_ht"] += line_ht
+                bucket["total_tva"] += line_tva
+                bucket["total_ttc"] += line_ttc
+            except Exception:
+                # Skip malformed items silently for PDF rendering
+                continue
 
     # Build a minimal map for 20% and 10% showing only total TVA
     vat_tva_totals = {}
@@ -258,23 +379,44 @@ def get_devis_pdf(devis_id):
 
     # Fetch parameters for general conditions, location duration and fees
     params = Parameters.query.first()
-    general_conditions = params.general_conditions_sales if params else ""
-    location_time = params.location_time if params else 0
-    subscription_ttc = params.location_subscription_cost if params else 0.0
-    maintenance_ttc = params.location_interests_cost if params else 0.0
-    company_info = {
-        "name": params.company_name if params else "",
-        "address_line1": params.company_address_line1 if params else "",
-        "address_line2": params.company_address_line2 if params else "",
-        "zip": params.company_zip if params else "",
-        "city": params.company_city if params else "",
-        "phone": params.company_phone if params else "",
-        "email": params.company_email if params else "",
-        "iban": params.company_iban if params else "",
-        "tva": params.company_tva if params else "",
-        "siret": params.company_siret if params else "",
-        "aprm": params.company_aprm if params else "",
-    }
+    if snapshot:
+        params_block = snapshot.get("params", {})
+        company_block = snapshot.get("company", {})
+        general_conditions = params_block.get("general_conditions_sales", "")
+        location_time = params_block.get("location_time", 0)
+        subscription_ttc = params_block.get("location_subscription_cost", 0.0)
+        maintenance_ttc = params_block.get("location_interests_cost", 0.0)
+        company_info = {
+            "name": company_block.get("name", ""),
+            "address_line1": company_block.get("address_line1", ""),
+            "address_line2": company_block.get("address_line2", ""),
+            "zip": company_block.get("zip", ""),
+            "city": company_block.get("city", ""),
+            "phone": company_block.get("phone", ""),
+            "email": company_block.get("email", ""),
+            "iban": company_block.get("iban", ""),
+            "tva": company_block.get("tva", ""),
+            "siret": company_block.get("siret", ""),
+            "aprm": company_block.get("aprm", ""),
+        }
+    else:
+        general_conditions = params.general_conditions_sales if params else ""
+        location_time = params.location_time if params else 0
+        subscription_ttc = params.location_subscription_cost if params else 0.0
+        maintenance_ttc = params.location_interests_cost if params else 0.0
+        company_info = {
+            "name": params.company_name if params else "",
+            "address_line1": params.company_address_line1 if params else "",
+            "address_line2": params.company_address_line2 if params else "",
+            "zip": params.company_zip if params else "",
+            "city": params.company_city if params else "",
+            "phone": params.company_phone if params else "",
+            "email": params.company_email if params else "",
+            "iban": params.company_iban if params else "",
+            "tva": params.company_tva if params else "",
+            "siret": params.company_siret if params else "",
+            "aprm": params.company_aprm if params else "",
+        }
 
     def _compute_location_totals(apport_value):
         articles_ttc = float(devis_data.get("montant_TTC") or 0.0)

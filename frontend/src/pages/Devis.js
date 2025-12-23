@@ -65,6 +65,15 @@ function Devis() {
   const { showToast } = useToast();
 
   const modalRef = useRef(null);
+  const isSigned = !isNewDevis && devis_status === "Signé";
+
+  const blockSignedEdit = () => {
+    if (isSigned) {
+      showToast({ message: "Devis signé : modification interdite.", variant: "warning" });
+      return true;
+    }
+    return false;
+  };
   const goBack = () => {
     navigate(-1);
   };

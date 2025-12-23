@@ -45,6 +45,8 @@ class Devis(db.Model):
     location_monthly_total_ht = db.Column(db.Float(), nullable=True)
     location_total = db.Column(db.Float(), nullable=True)
     location_total_ht = db.Column(db.Float(), nullable=True)
+    signed_at = db.Column(db.DateTime(), nullable=True)
+    signed_data = db.Column(db.JSON(), nullable=True)
     
     client = db.relationship('Clients', backref='devis', lazy=True)
     articles = db.relationship('DevisArticles', backref='devis', lazy=True)
@@ -68,6 +70,11 @@ class DevisArticles(db.Model):
     quantite = db.Column(db.Integer(), nullable=False)
     taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=True)
     commentaire = db.Column(db.Text, nullable=True)
+    prix_unitaire_ht_snapshot = db.Column(db.Float(), nullable=True)
+    taux_tva_snapshot = db.Column(db.Float(), nullable=True)
+    montant_ht_snapshot = db.Column(db.Float(), nullable=True)
+    montant_tva_snapshot = db.Column(db.Float(), nullable=True)
+    montant_ttc_snapshot = db.Column(db.Float(), nullable=True)
     
     article = db.relationship('Articles', backref='devis_articles', lazy=True)
     taux_tva = db.relationship('TauxTVA', lazy=True)
