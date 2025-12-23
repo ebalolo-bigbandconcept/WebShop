@@ -29,7 +29,7 @@ def admin_required(f):
 @admin_bp.route("/all-user", methods=['GET'])
 @admin_required
 def get_all_users():
-    users = User.query.all()
+    users = User.query.order_by(User.id.asc()).all()
     user_schema = UserSchema(many=True)
     user_data = user_schema.dump(users)
     return jsonify(data=user_data)

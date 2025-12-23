@@ -81,7 +81,9 @@ function AdminDashboard() {
     httpClient
       .get(`${process.env.REACT_APP_BACKEND_URL}/admin/all-user`)
       .then((resp) => {
-        setUsers(resp.data);
+        const items = Array.isArray(resp.data?.data) ? [...resp.data.data] : [];
+        items.sort((a, b) => (a.id || 0) - (b.id || 0));
+        setUsers({ data: items });
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {

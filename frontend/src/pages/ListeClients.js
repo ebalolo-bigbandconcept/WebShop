@@ -138,8 +138,11 @@ function ListeClients() {
     httpClient
       .get(`${process.env.REACT_APP_BACKEND_URL}/clients/all`)
       .then((resp) => {
-        setclients(resp.data);
-        setFilteredClients(resp.data.data || []);
+        const payload = resp.data;
+        setclients(payload);
+        const items = Array.isArray(payload?.data) ? [...payload.data] : [];
+        items.sort((a, b) => (a.id || 0) - (b.id || 0));
+        setFilteredClients(items);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -256,7 +259,7 @@ function ListeClients() {
   // ### Filter logic ###
   useEffect(() => {
     if (clients && clients.data) {
-      let currentClients = clients.data;
+      let currentClients = [...clients.data].sort((a, b) => (a.id || 0) - (b.id || 0));
 
       // Search term filter
       if (searchTerm) {

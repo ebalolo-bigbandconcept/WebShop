@@ -13,7 +13,7 @@ def get_all_clients():
     if tableEmpty:
         return jsonify({"error": "Aucun clients trouvé"}), 404
     
-    clients = Clients.query.all()
+    clients = Clients.query.order_by(Clients.id.asc()).all()
     clients_schema = ClientsSchema(many=True)
     clients_data = clients_schema.dump(clients)
     return jsonify(data=clients_data)

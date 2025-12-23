@@ -219,8 +219,10 @@ function ListeArticles() {
   const getAllArticles = async () => {
     try {
         const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/articles/all`);
-        setArticles(resp.data.data || []);
-        setFilteredArticles(resp.data.data || []);
+        const items = Array.isArray(resp.data?.data) ? [...resp.data.data] : [];
+        items.sort((a, b) => (a.id || 0) - (b.id || 0));
+        setArticles(items);
+        setFilteredArticles(items);
     } catch (error) {
         if (error.response && error.response.data && error.response.data.error) {
             if (error.response.data.error === "Aucuns articles trouvé") {
@@ -285,6 +287,7 @@ function ListeArticles() {
         );
     }
 
+    currentArticles = [...currentArticles].sort((a, b) => (a.id || 0) - (b.id || 0));
     setFilteredArticles(currentArticles);
     setCurrentPage(1);
   }, [articles, searchTerm]);

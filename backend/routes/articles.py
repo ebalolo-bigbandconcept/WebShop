@@ -21,7 +21,7 @@ def get_all_articles():
     if tableEmpty:
         return jsonify({"error": "Aucuns articles trouvé"}), 404
     
-    articles = Articles.query.all()
+    articles = Articles.query.order_by(Articles.id.asc()).all()
     articles_schema = ArticlesSchema(many=True)
     articles_data = articles_schema.dump(articles)
     return jsonify(data=articles_data)
