@@ -65,10 +65,10 @@ function Devis() {
   const { showToast } = useToast();
 
   const modalRef = useRef(null);
-  const isSigned = !isNewDevis && devis_status === "Signé";
+  const isLocked = !isNewDevis && devis?.statut === "Signé";
 
   const blockSignedEdit = () => {
-    if (isSigned) {
+    if (isLocked) {
       showToast({ message: "Devis signé : modification interdite.", variant: "warning" });
       return true;
     }
@@ -120,6 +120,7 @@ function Devis() {
   };
 
   const toggleSelectAllLines = () => {
+    if (isLocked) return;
     if (selectAllLines) {
       setSelectAllLines(false);
       setSelectedArticleIds([]);
@@ -131,6 +132,7 @@ function Devis() {
   };
 
   const toggleSelectLine = (id) => {
+    if (isLocked) return;
     setSelectedArticleIds((prev) => {
       const exists = prev.includes(id);
       const next = exists ? prev.filter((x) => x !== id) : [...prev, id];
@@ -142,6 +144,7 @@ function Devis() {
     modalRef.current && modalRef.current.open();
   };
   const applyVatToSelected = (taux) => {
+    if (blockSignedEdit()) return;
     if (selectedArticleIds.length === 0) return;
     const updated = articles_in_devis.map((article) => {
       if (!selectedArticleIds.includes(article.id)) return article;
@@ -180,6 +183,7 @@ function Devis() {
   }
 
   const handleAddArticle = () => {
+    if (blockSignedEdit()) return;
     setDELETE(false);
     setArticleDELETE(false);
     setArticleMODIFY(false);
@@ -190,6 +194,7 @@ function Devis() {
   };
 
   const handleModifyArticle = (article) => {
+    if (blockSignedEdit()) return;
     setDELETE(false);
     setArticleDELETE(false);
     setArticleMODIFY(true);
@@ -200,6 +205,7 @@ function Devis() {
   };
 
   const handleDeleteArticle = (article) => {
+    if (blockSignedEdit()) return;
     setDELETE(false);
     setArticleDELETE(true);
     setArticleMODIFY(false);
@@ -208,6 +214,7 @@ function Devis() {
   };
 
   const handleDeleteDevis = () => {
+    if (blockSignedEdit()) return;
     setDELETE(true);
     setArticleDELETE(false);
     setArticleMODIFY(false);
@@ -216,6 +223,7 @@ function Devis() {
 
   // ### Modify selected article in devis
   const modifyArticle = () => {
+    if (blockSignedEdit()) return;
     const isQuantityValid = articleQuantityVerif(article_quantite);
     
     if (isQuantityValid){
@@ -250,6 +258,7 @@ function Devis() {
   }
 
   const deleteArticle = () => {
+  if (blockSignedEdit()) return;
   if (!article_selected || !article_selected.id) return;
 
   // Filter out the selected article
@@ -282,6 +291,7 @@ function Devis() {
   // ### Add new article to devis ###
   
   const addNewArticle = async () => {
+    if (blockSignedEdit()) return;
     const isQuantityValid = articleQuantityVerif(article_quantite);
     const isArticleSelected = article_selected.length !== 0;
 
@@ -316,6 +326,7 @@ function Devis() {
 
   // ### Save devis to database ###
   const saveDevis = async () => {
+    if (blockSignedEdit()) return;
     setFormSubmited(true);
     const isTitleValid = devisTitleVerif(devis_title);
     const isDateValid = devisDateVerif(devis_date);
@@ -410,6 +421,7 @@ function Devis() {
 
   // ### Delete devis
   const deleteDevis = async () => {
+    if (blockSignedEdit()) return;
     const targetId = (devis && devis.id) ? devis.id : id_devis;
     if (!targetId) {
       showToast({ message: "Impossible de supprimer: aucun id de devis valide.", variant: "warning" });
@@ -594,11 +606,13 @@ function Devis() {
   };
 
   const handleLocationToggle = (checked) => {
+    if (blockSignedEdit()) return;
     setIncludeLocation(checked);
     recomputeLocationTotals(first_contribution_amount, checked);
   }
 
   const handleApportChange = (value) => {
+    if (blockSignedEdit()) return;
     const apport = parseFloat(value) || 0;
     setFirstContributionAmount(apport);
 
@@ -890,13 +904,13 @@ function Devis() {
             <div className="form-outline col-xl-4 col-6">
               <label className="form-label">Titre</label>
               <input type="text" id="titre" value={devis_title} onChange={(e) => {setDevisTitle(e.target.value);devisTitleVerif(e.target.value);}}
-                className={`form-control form-control-lg ${devis_title_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un titre pour le devis"/>
+                className={`form-control form-control-lg ${devis_title_error ? "is-invalid" : form_submited ? "is-valid": ""}`} placeholder="Entrer un titre pour le devis" disabled={isLocked}/>
               <div className="invalid-feedback">{devis_title_error}</div>
             </div>
             <div className="form-outline col-xl-3 col-6">
               <label className="form-label">Date</label>
               <input type="date" id="date" value={devis_date} onChange={(e) => {setDevisDate(e.target.value);devisDateVerif(e.target.value);}}
-                className={`form-control form-control-lg ${devis_date_error ? "is-invalid" : form_submited ? "is-valid": ""}`}/>
+                className={`form-control form-control-lg ${devis_date_error ? "is-invalid" : form_submited ? "is-valid": ""}`} disabled={isLocked}/>
               <div
               className="invalid-feedback">{devis_date_error}</div>
             </div>
@@ -905,7 +919,7 @@ function Devis() {
             <div className="form-outline col-xl-7 mt-4">
               <label className="form-label">Description</label>
               <textarea rows={3} id="description" value={devis_description} onChange={(e) => setDevisDescription(e.target.value)}
-                className={`form-control form-control-lg`} placeholder="Entrer une description pour le devis"/>
+                className={`form-control form-control-lg`} placeholder="Entrer une description pour le devis" disabled={isLocked}/>
             </div>
           </div>
           {id_devis && (
@@ -973,6 +987,7 @@ function Devis() {
                   id="includeLocation"
                   checked={include_location}
                   onChange={(e) => handleLocationToggle(e.target.checked)}
+                  disabled={isLocked}
                 />
                 <label className="form-check-label" htmlFor="includeLocation">
                   Location
@@ -1002,7 +1017,7 @@ function Devis() {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <span className="fw-bold">Apport:</span>
                   <div className="d-flex align-items-center">
-                    <input type="number" className="form-control form-control-sm" style={{width: '100px'}} value={first_contribution_amount} onChange={(e) => handleApportChange(e.target.value)} step="0.01" min="0" />
+                    <input type="number" className="form-control form-control-sm" style={{width: '100px'}} value={first_contribution_amount} onChange={(e) => handleApportChange(e.target.value)} step="0.01" min="0" disabled={isLocked} />
                     <span className="ms-2">€</span>
                   </div>
                 </div>
@@ -1037,6 +1052,7 @@ function Devis() {
               key={vat.id}
               className="btn btn-outline-secondary me-2"
               onClick={() => applyVatToSelected(Number(vat.taux))}
+              disabled={isLocked}
             >
               {(Number(vat.taux) * 100).toFixed(2).replace(/\.0+$/, "")}%
             </button>
@@ -1046,7 +1062,7 @@ function Devis() {
       <table className="table table-hover table-striped mt-4">
         <thead>
           <tr>
-            <th scope="col"><input type="checkbox" checked={selectAllLines} onChange={toggleSelectAllLines} /></th>
+            <th scope="col"><input type="checkbox" checked={selectAllLines} onChange={toggleSelectAllLines} disabled={isLocked} /></th>
             <th scope="col">Article</th>
             <th scope="col">Quantité</th>
             <th scope="col">TVA</th>
@@ -1061,13 +1077,13 @@ function Devis() {
           {articles_in_devis.length > 0 ? (
             articles_in_devis.map((article) => (
               <tr key={article.id}>
-                <td><input type="checkbox" checked={selectedArticleIds.includes(article.id)} onChange={() => toggleSelectLine(article.id)} /></td>
-                <td onClick={() => handleModifyArticle(article)}>{article.nom}{(article.taux_tva?.taux ?? 0) === 0.10 ? ' (Rénovation)' : ''}</td>
-                <td onClick={() => handleModifyArticle(article)}>{article.quantite}</td>
-                <td onClick={() => handleModifyArticle(article)}>{((Number(article.taux_tva?.taux ?? 0)) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>
-                <td onClick={() => handleModifyArticle(article)}>{article.montant_HT} €</td>
-                <td onClick={() => handleModifyArticle(article)}>{article.montant_TVA} €</td>
-                <td onClick={() => handleModifyArticle(article)}>{article.montant_TTC} €</td>
+                <td><input type="checkbox" checked={selectedArticleIds.includes(article.id)} onChange={() => toggleSelectLine(article.id)} disabled={isLocked} /></td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.nom}{(article.taux_tva?.taux ?? 0) === 0.10 ? ' (Rénovation)' : ''}</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.quantite}</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{((Number(article.taux_tva?.taux ?? 0)) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_HT} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TVA} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TTC} €</td>
                 <td>
                   <input
                     type="text"
@@ -1078,9 +1094,10 @@ function Devis() {
                       setArticlesInDevis(prev => prev.map(a => a.id === article.id ? { ...a, commentaire: value } : a));
                     }}
                     placeholder="Commentaire"
+                    disabled={isLocked}
                   />
                 </td>
-                <td onClick={() => handleDeleteArticle(article)}><img src={trashCan} alt="trashcan"></img></td>
+                <td onClick={() => { if (!isLocked) handleDeleteArticle(article); }}><img src={trashCan} alt="trashcan"></img></td>
               </tr>
             ))
           ) : (
@@ -1091,11 +1108,11 @@ function Devis() {
         </tbody>
       </table>
       <div className="d-flex justify-content-between">
-        <button className="btn btn-primary" onClick={handleAddArticle}>+ Ajouter un article</button>
+        <button className="btn btn-primary" onClick={handleAddArticle} disabled={isLocked}>+ Ajouter un article</button>
         <div>
-          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis}> Supprimer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}> Supprimer le devis</button> : ""}
           {!isNewDevis ? <button className="btn btn-success me-4" onClick={() => navigate(`/devis/${id_client}/${id_devis}/pdf`)}>Générer le devis</button> : ""}
-          <button className="btn btn-success" onClick={saveDevis}> Enregistrer le devis</button>
+          <button className="btn btn-success" onClick={saveDevis} disabled={isLocked && !isNewDevis}> Enregistrer le devis</button>
         </div>
       </div>
       <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-lg" backdrop="static" keyboard={false}>
