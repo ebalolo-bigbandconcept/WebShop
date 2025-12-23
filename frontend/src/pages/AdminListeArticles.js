@@ -10,7 +10,7 @@ function ListeArticles() {
 
   const [form_submited, setFormSubmited] = useState(false);
   const [article_nom, setArticleNom] = useState(null);
-  const [article_description, setArticleDescription] = useState(null);
+  const [article_description, setArticleDescription] = useState("");
   const [article_prix_achat_HT, setArticlePrixAchatHT] = useState(null);
   const [article_prix_vente_HT, setArticlePrixVenteHT] = useState(null);
   const [article_taux_tva, setArticleTauxTVA] = useState(0.20);
@@ -49,10 +49,7 @@ function ListeArticles() {
   }
   
   const articleDescriptionVerif = async (value) => {
-    if (value === "") {
-      setArticleDescriptionError("Veuillez entrer une description");
-      return false;
-    }
+    // Description is optional
     setArticleDescriptionError("");
     return true;
   }
