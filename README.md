@@ -166,6 +166,16 @@ flask db downgrade base
 flask db upgrade
 ```
 
+### Backup et restauration de la base de données (production)
+
+```bash
+# Backup de la base de données
+sudo docker compose -f docker-compose.prod.yml exec db pg_dump -U user users_db > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restauration
+sudo docker compose -f docker-compose.prod.yml exec -T db psql -U user users_db < backup_20240127_120000.sql
+```
+
 #### Exemple : Ajouter un champ à un modèle existant
 
 **Étape 1** : Modifier le modèle dans `backend/models.py`
