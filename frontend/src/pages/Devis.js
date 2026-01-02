@@ -39,7 +39,7 @@ function Devis() {
   const [devis_montant_TVA, setDevisMontantTVA] = useState(0);
   const [devis_montant_TTC, setDevisMontantTTC] = useState(0);
   const [devis_status, setDevisStatus] = useState("Non signé");
-  const [include_location, setIncludeLocation] = useState(false);
+  const [include_location, setIncludeLocation] = useState(true);
   const [first_contribution_amount, setFirstContributionAmount] = useState(0);
   const [location_subscription_cost, setLocationSubscriptionCost] = useState(0);
   const [location_interests_cost, setLocationInterestsCost] = useState(0);
@@ -75,7 +75,12 @@ function Devis() {
     return false;
   };
   const goBack = () => {
-    navigate(-1);
+    const state = location.state;
+    if (state && state.from) {
+      navigate(state.from, { replace: true });
+    } else {
+      navigate(-1);
+    }
   };
 
   const articleQuantityVerif = (value) => {
@@ -956,13 +961,11 @@ function Devis() {
                 Articles
               </button>
             </li>
-            {include_location && (
-              <li className="nav-item" role="presentation">
-                <button className="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected="false">
-                  Location
-                </button>
-              </li>
-            )}
+            <li className="nav-item" role="presentation">
+              <button className="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected="false">
+                Location
+              </button>
+            </li>
           </ul>
 
           <div className="tab-content" id="totalsTabContent">
@@ -979,24 +982,9 @@ function Devis() {
                 <span className="fw-bold fs-5">Montant total TTC:</span>
                 <span className="ms-2 fs-5 fw-bold">{devis_montant_TTC} €</span>
               </div>
-              <hr />
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="includeLocation"
-                  checked={include_location}
-                  onChange={(e) => handleLocationToggle(e.target.checked)}
-                  disabled={isLocked}
-                />
-                <label className="form-check-label" htmlFor="includeLocation">
-                  Location
-                </label>
-              </div>
             </div>
 
-            {include_location && (
-              <div className="tab-pane fade" id="location-pane" role="tabpanel" aria-labelledby="location-tab">
+            <div className="tab-pane fade" id="location-pane" role="tabpanel" aria-labelledby="location-tab">
                 <div className="mb-3">
                   <small className="text-muted">
                     Durée location: {Math.floor(location_time / 12)} an{Math.floor(location_time / 12) !== 1 ? 's' : ''}{location_time % 12 > 0 ? ` ${location_time % 12} mois` : ''}
@@ -1037,8 +1025,7 @@ function Devis() {
                   <span className="fw-bold fs-5">Total Location TTC:</span>
                   <span className="ms-2 fs-5 fw-bold">{devis_location_total} €</span>
                 </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -1111,7 +1098,7 @@ function Devis() {
         <button className="btn btn-primary" onClick={handleAddArticle} disabled={isLocked}>+ Ajouter un article</button>
         <div>
           {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}> Supprimer le devis</button> : ""}
-          {!isNewDevis ? <button className="btn btn-success me-4" onClick={() => navigate(`/devis/${id_client}/${id_devis}/pdf`)}>Générer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-success me-4" onClick={() => navigate(`/devis/${id_client}/${id_devis}/pdf`, { state: location.state })}>Générer le devis</button> : ""}
           <button className="btn btn-success" onClick={saveDevis} disabled={isLocked && !isNewDevis}> Enregistrer le devis</button>
         </div>
       </div>

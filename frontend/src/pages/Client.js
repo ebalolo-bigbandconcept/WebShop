@@ -228,7 +228,7 @@ function Client() {
     httpClient
       .get(`${process.env.REACT_APP_BACKEND_URL}/devis/new-id`)
       .then((resp) => {
-        navigate({ pathname: `/devis/${client.id}/${resp.data.id}` });
+        navigate(`/devis/${client.id}/${resp.data.id}`, { state: { from: `/client/${client.id}` } });
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -344,7 +344,6 @@ function Client() {
               <td>{devis.id}</td>
             <td>
               {devis.titre}
-              {devis.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
             </td>
               <td>{devis.description}</td>
               <td>{devis.date}</td>

@@ -156,7 +156,6 @@ function ListeDevis() {
                 <td>{d.client.nom} {d.client.prenom}</td>
                 <td>
                   {d.titre}
-                  {d.is_location ? <span className="badge bg-info text-dark ms-2">Location</span> : null}
                 </td>
                 <td>{d.description}</td>
                 <td>{d.date}</td>

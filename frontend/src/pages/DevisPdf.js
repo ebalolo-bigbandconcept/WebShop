@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 import httpClient from "../components/httpClient";
 import { useToast } from "../components/Toast";
 
 
 function DevisPdfPreview() {
   const { id_client, id_devis } = useParams();
+  const location = useLocation();
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
   const navigate = useNavigate();
@@ -86,7 +87,7 @@ function DevisPdfPreview() {
           </select>
           <button className="btn btn-success" onClick={handleSendToDocuSign}>Envoyer le PDF</button>
         </div>
-        <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`)}>Retour</button>
+        <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`, { replace: true, state: location.state })}>Retour</button>
       </div>
       {pdfUrl && (
         <iframe
