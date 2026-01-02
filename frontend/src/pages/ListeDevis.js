@@ -10,24 +10,38 @@ function ListeDevis() {
   
   const { showToast } = useToast();
 
-  const getDisplayTotal = (d) => {
-    if (!d.is_location) return d.montant_TTC;
-    const baseHT = getLocationHT(d);
-    return (parseFloat(baseHT) * 1.2).toFixed(2);
+  const isLocationScenario = (d) =>
+    ["location_without_apport", "location_with_apport"].includes(d.selected_scenario);
+
+  const getVatFactor = (d) => {
+    const ht = parseFloat(d.montant_HT || 0);
+    const ttc = parseFloat(d.montant_TTC || 0);
+    if (ht > 0) {
+      const factor = ttc / ht;
+      return factor > 0 ? factor : 1.2;
+    }
+    return 1.2;
   };
 
   const getLocationHT = (d) => {
-    if (!d.is_location) return d.montant_HT;
+    if (!isLocationScenario(d)) return (parseFloat(d.montant_HT) || 0).toFixed(2);
     const apport = parseFloat(d.first_contribution_amount || 0);
+    const vatFactor = getVatFactor(d);
     if (d.location_total_ht != null) return (parseFloat(d.location_total_ht) + apport).toFixed(2);
-    const totalTTC = d.location_total ?? d.montant_TTC;
-    const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
+    const totalTTC = d.location_total != null ? parseFloat(d.location_total) : parseFloat(d.montant_TTC || 0);
     const baseHT = totalTTC / vatFactor;
     return (baseHT + apport).toFixed(2);
   };
 
+  const getDisplayTotal = (d) => {
+    if (!isLocationScenario(d)) return (parseFloat(d.montant_TTC) || 0).toFixed(2);
+    const ht = parseFloat(getLocationHT(d));
+    const vatFactor = getVatFactor(d);
+    return (ht * vatFactor).toFixed(2);
+  };
+
   const getLocationTVA = (d) => {
-    if (!d.is_location) return d.montant_TVA;
+    if (!isLocationScenario(d)) return (parseFloat(d.montant_TVA) || 0).toFixed(2);
     const ht = parseFloat(getLocationHT(d));
     const ttc = parseFloat(getDisplayTotal(d));
     return (ttc - ht).toFixed(2);
@@ -117,6 +131,7 @@ function ListeDevis() {
           <select className="form-select form-select-lg" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">Tous</option>
             <option value="Non signé">Non signé</option>
+            <option value="En attente de signature">En attente de signature</option>
             <option value="Signé">Signé</option>
           </select>
         </div>
@@ -162,7 +177,15 @@ function ListeDevis() {
                 <td>{getLocationHT(d)} €</td>
                 <td>{getLocationTVA(d)} €</td>
                 <td>{getDisplayTotal(d)} €</td>
-                <td>{d.statut}</td>
+                <td>
+                  <span className={`badge ${
+                    d.statut === 'Signé' ? 'bg-success' : 
+                    d.statut === 'En attente de signature' ? 'bg-warning text-dark' : 
+                    'bg-danger'
+                  }`}>
+                    {d.statut}
+                  </span>
+                </td>
               </tr>
             ))
           ) : (

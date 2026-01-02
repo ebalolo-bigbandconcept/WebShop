@@ -40,6 +40,7 @@ class Devis(db.Model):
     envelope_id = db.Column(db.String(255), nullable=True)  # DocuSign envelope ID
     
     is_location = db.Column(db.Boolean, nullable=False, default=False)
+    selected_scenario = db.Column(db.String(50), nullable=True)  # "direct", "location_without_apport", "location_with_apport"
     first_contribution_amount = db.Column(db.Float(), nullable=True)
     location_monthly_total = db.Column(db.Float(), nullable=True)
     location_monthly_total_ht = db.Column(db.Float(), nullable=True)

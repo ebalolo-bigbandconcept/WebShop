@@ -191,7 +191,7 @@ def update_devis(devis_id):
         for article in articles_data:
             tva_id = _resolve_tva_id(article, articles_map)
             article_obj = articles_map.get(article["article_id"])
-            unit_price = _compute_unit_price(article_obj, params, devis.is_location)
+            unit_price = _compute_unit_price(article_obj, params, False)  # Always use normal pricing for devis storage
             taux_val = 0.0
             if tva_id:
                 tva_obj = TauxTVA.query.get(tva_id)
@@ -349,6 +349,9 @@ def get_devis_pdf(devis_id):
             except Exception:
                 continue
     else:
+        # Determine if we should use location pricing
+        use_location_pricing = selected_scenario in {"location_without_apport", "location_with_apport"}
+        
         for item in devis_data.get('articles', []):
             try:
                 taux = None
@@ -358,7 +361,15 @@ def get_devis_pdf(devis_id):
                     taux = float(item['article']['taux_tva']['taux'])
 
                 qty = float(item.get('quantite') or 0)
-                unit_ht = float(item.get('article', {}).get('prix_vente_HT') or 0)
+                
+                # Use location pricing for location scenarios
+                if use_location_pricing:
+                    prix_achat = float(item.get('article', {}).get('prix_achat_HT') or 0)
+                    margin_rate_location = (params.margin_rate_location if params else 0.0) or 0.0
+                    unit_ht = prix_achat * margin_rate_location if prix_achat > 0 and margin_rate_location > 0 else float(item.get('article', {}).get('prix_vente_HT') or 0)
+                else:
+                    unit_ht = float(item.get('article', {}).get('prix_vente_HT') or 0)
+                
                 line_ht = qty * unit_ht
                 line_tva = line_ht * (taux or 0.0)
                 line_ttc = line_ht + line_tva
@@ -482,6 +493,51 @@ def get_devis_pdf(devis_id):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=devis_{devis_id}.pdf"
     return response
+
+# Save the selected scenario to the devis
+@devis_bp.route('/select-scenario/<devis_id>', methods=['POST'])
+def select_scenario(devis_id):
+    """
+    Save the client's selected scenario for this devis.
+    Prevents scenario from being changed once locked.
+    """
+    devis = Devis.query.filter_by(id=devis_id).first()
+    if not devis:
+        return jsonify({"error": "Devis non trouvé"}), 404
+
+    data = request.get_json()
+    scenario = data.get("scenario", "direct").strip()
+
+    # Validate scenario
+    valid_scenarios = {"direct", "location_without_apport", "location_with_apport"}
+    if scenario not in valid_scenarios:
+        return jsonify({"error": f"Invalid scenario. Must be one of {valid_scenarios}"}), 400
+
+    # Prevent changing scenario if already signed
+    if devis.statut == "Signé":
+        return jsonify({
+            "error": "Cannot change scenario for a signed devis",
+            "current_scenario": devis.selected_scenario
+        }), 409
+
+    # Prevent changing scenario if already selected (lock it)
+    if devis.selected_scenario and devis.selected_scenario != scenario:
+        return jsonify({
+            "error": "Scenario already locked. Cannot change after first selection",
+            "locked_scenario": devis.selected_scenario,
+            "attempted_scenario": scenario
+        }), 409
+
+    # Save the selected scenario
+    devis.selected_scenario = scenario
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": f"Scenario '{scenario}' successfully selected and locked",
+        "devis_id": devis_id,
+        "selected_scenario": scenario
+    }), 200
 
 ### DocuSign routes ###
 

@@ -39,7 +39,7 @@ function Devis() {
   const [devis_montant_TVA, setDevisMontantTVA] = useState(0);
   const [devis_montant_TTC, setDevisMontantTTC] = useState(0);
   const [devis_status, setDevisStatus] = useState("Non signé");
-  const [include_location, setIncludeLocation] = useState(true);
+  const [selected_scenario, setSelectedScenario] = useState(null); // tracks which scenario client selected
   const [first_contribution_amount, setFirstContributionAmount] = useState(0);
   const [location_subscription_cost, setLocationSubscriptionCost] = useState(0);
   const [location_interests_cost, setLocationInterestsCost] = useState(0);
@@ -66,6 +66,9 @@ function Devis() {
 
   const modalRef = useRef(null);
   const isLocked = !isNewDevis && devis?.statut === "Signé";
+  const isPendingOrSigned = devis_status === "En attente de signature" || devis_status === "Signé";
+  const isLocationDisabled = isPendingOrSigned && selected_scenario === "direct";
+  const isApportDisabled = isPendingOrSigned && selected_scenario === "location_without_apport";
 
   const blockSignedEdit = () => {
     if (isLocked) {
@@ -349,12 +352,12 @@ function Devis() {
         montant_TTC: devis_montant_TTC,
         statut: devis_status,
         client_id: id_client,
-        is_location: include_location,
-        first_contribution_amount: include_location ? first_contribution_amount : null,
-        location_monthly_total: include_location ? location_monthly_total : null,
-        location_monthly_total_ht: include_location ? location_monthly_total_ht : null,
-        location_total: include_location ? devis_location_total : null,
-        location_total_ht: include_location ? devis_location_total_ht : null,
+        is_location: true,
+        first_contribution_amount: first_contribution_amount,
+        location_monthly_total: location_monthly_total,
+        location_monthly_total_ht: location_monthly_total_ht,
+        location_total: devis_location_total,
+        location_total_ht: devis_location_total_ht,
         articles: articles_in_devis.map(article => ({
           article_id: article.id,
           quantite: article.quantite,
@@ -476,7 +479,7 @@ function Devis() {
       setDevisMontantTVA(data.montant_TVA);
       setDevisMontantTTC(data.montant_TTC);
       setDevisStatus(data.statut);
-      setIncludeLocation(data.is_location || false);
+      setSelectedScenario(data.selected_scenario || null); // load selected scenario if already chosen
       setFirstContributionAmount(data.first_contribution_amount || 0);
       setLocationMonthlyTotal(data.location_monthly_total || 0);
       setDevisLocationTotal(data.location_total || 0);
@@ -509,7 +512,11 @@ function Devis() {
         setLoading(false);
         throw error; // Re-throw to allow retry logic in saveDevis
       }
-      console.error(error);
+      if (error.response && error.response.data && error.response.data.error) {
+        showToast({ message: error.response.data.error, variant: "danger" });
+      } else {
+        showToast({ message: "Une erreur est survenue lors du chargement du devis.", variant: "danger" });
+      }
       setLoading(false);
       throw error; // Re-throw to allow retry logic
     }
@@ -558,17 +565,16 @@ function Devis() {
         setMarginRateLocation(resp.data.marginRateLocation || 0);
       })
       .catch((error) => {
-        console.error("Error fetching parameters:", error);
+        if (error.response && error.response.data && error.response.data.error) {
+          showToast({ message: error.response.data.error, variant: "danger" });
+        } else {
+          showToast({ message: "Erreur lors du chargement des paramètres.", variant: "danger" });
+        }
       });
   }
 
   const getUnitHT = (article) => {
     const unitSale = Number(article.prix_vente_HT) || 0;
-    const unitBuy = Number(article.prix_achat_HT) || 0;
-    const locRate = Number(marginRateLocation) || 0;
-    if (include_location && locRate > 0 && unitBuy > 0) {
-      return unitBuy * locRate;
-    }
     return unitSale;
   };
 
@@ -577,19 +583,15 @@ function Devis() {
       const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/tva`);
       setVatRates(Array.isArray(resp.data?.data) ? resp.data.data : []);
     } catch (err) {
-      console.error("Erreur lors du chargement des TVA:", err);
+      if (err.response && err.response.data && err.response.data.error) {
+        showToast({ message: err.response.data.error, variant: "danger" });
+      } else {
+        showToast({ message: "Erreur lors du chargement des taux de TVA.", variant: "danger" });
+      }
     }
   }
 
-  const recomputeLocationTotals = (apportValue = first_contribution_amount, includeFlag = include_location) => {
-    if (!includeFlag) {
-      setLocationMonthlyTotal(0);
-      setLocationMonthlyTotalHt(0);
-      setDevisLocationTotal(0);
-      setDevisLocationTotalHt(0);
-      return;
-    }
-
+  const recomputeLocationTotals = (apportValue = first_contribution_amount) => {
     const articlesTTC = parseFloat(devis_montant_TTC) || 0;
     const subscriptionTTC = parseFloat(location_subscription_cost) || 0;
     const interestsTTC = parseFloat(location_interests_cost) || 0;
@@ -610,20 +612,11 @@ function Devis() {
     setLocationMonthlyTotal(monthlyTTC);
   };
 
-  const handleLocationToggle = (checked) => {
-    if (blockSignedEdit()) return;
-    setIncludeLocation(checked);
-    recomputeLocationTotals(first_contribution_amount, checked);
-  }
-
   const handleApportChange = (value) => {
     if (blockSignedEdit()) return;
     const apport = parseFloat(value) || 0;
     setFirstContributionAmount(apport);
-
-    if (include_location) {
-      recomputeLocationTotals(apport, true);
-    }
+    recomputeLocationTotals(apport);
   }
 
   useEffect(() => {
@@ -678,7 +671,6 @@ function Devis() {
     setDevisMontantTVA(devis.montant_TVA);
     setDevisMontantTTC(devis.montant_TTC);
     setDevisStatus(devis.statut);
-    setIncludeLocation(devis.is_location || false);
     setFirstContributionAmount(devis.first_contribution_amount || 0);
     setLocationMonthlyTotal(devis.location_monthly_total || 0);
     setDevisLocationTotal(devis.location_total || 0);
@@ -707,7 +699,15 @@ function Devis() {
     if (!loading) {
       recomputeLocationTotals();
     }
-  }, [include_location, devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_interests_cost, location_time, first_contribution_amount, loading]);
+  }, [devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_interests_cost, location_time, first_contribution_amount, loading]);
+
+  // Handle forced apport to 0 for location_without_apport when pending/signed
+  useEffect(() => {
+    if (isApportDisabled && first_contribution_amount !== 0) {
+      setFirstContributionAmount(0);
+      // Recompute will be triggered by the dependency array of the previous useEffect
+    }
+  }, [isApportDisabled]);
 
   // Recalculate line amounts and totals when location mode or its margin changes
   useEffect(() => {
@@ -730,16 +730,7 @@ function Devis() {
       setDevisMontantTTC(totalTTC);
       return updated;
     });
-  }, [include_location, marginRateLocation, loading]);
-
-  useEffect(() => {
-    if (include_location && !loading) {
-      const locationTab = document.getElementById('location-tab');
-      if (locationTab) {
-        locationTab.click();
-      }
-    }
-  }, [include_location, loading]);
+  }, [marginRateLocation, loading]);
 
   const modalTitle = DELETE
     ? 'Supprimer le devis'
@@ -930,6 +921,16 @@ function Devis() {
           {id_devis && (
             <div className="mt-4 d-flex flex-wrap align-items-center gap-3">
               <h3 className={`m-0 ${devis_status === "Non signé" || devis_status === "En attente de signature" ? "text-danger" : devis_status === "Signé" ? "text-success" : "text-warning"}`}>{devis_status}</h3>
+              {selected_scenario && (
+                <span className="badge bg-info">
+                  Scénario sélectionné: <strong>{
+                    selected_scenario === "direct" ? "Paiement direct" :
+                    selected_scenario === "location_without_apport" ? "Location sans apport" :
+                    selected_scenario === "location_with_apport" ? "Location avec apport" :
+                    selected_scenario
+                  }</strong>
+                </span>
+              )}
               {(devis_status === "Non signé" || devis_status === "En attente de signature") && (
                 <div className="form-check mb-0 d-flex align-items-center gap-2">
                   <input
@@ -962,7 +963,7 @@ function Devis() {
               </button>
             </li>
             <li className="nav-item" role="presentation">
-              <button className="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected="false">
+              <button className={`nav-link ${isLocationDisabled ? 'disabled' : ''}`} id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected="false" disabled={isLocationDisabled}>
                 Location
               </button>
             </li>
@@ -1005,7 +1006,7 @@ function Devis() {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <span className="fw-bold">Apport:</span>
                   <div className="d-flex align-items-center">
-                    <input type="number" className="form-control form-control-sm" style={{width: '100px'}} value={first_contribution_amount} onChange={(e) => handleApportChange(e.target.value)} step="0.01" min="0" disabled={isLocked} />
+                    <input type="number" className="form-control form-control-sm" style={{width: '100px'}} value={isApportDisabled ? 0 : first_contribution_amount} onChange={(e) => handleApportChange(e.target.value)} step="0.01" min="0" disabled={isLocked || isApportDisabled} />
                     <span className="ms-2">€</span>
                   </div>
                 </div>

@@ -37,24 +37,38 @@ function Client() {
 
   const { showToast } = useToast();
 
+  const isLocationScenario = (d) =>
+    ["location_without_apport", "location_with_apport"].includes(d.selected_scenario);
+
+  const getVatFactor = (d) => {
+    const ht = parseFloat(d.montant_HT || 0);
+    const ttc = parseFloat(d.montant_TTC || 0);
+    if (ht > 0) {
+      const factor = ttc / ht;
+      return factor > 0 ? factor : 1.2;
+    }
+    return 1.2;
+  };
+
   const getLocationHT = (d) => {
-    if (!d.is_location) return d.montant_HT;
+    if (!isLocationScenario(d)) return (parseFloat(d.montant_HT) || 0).toFixed(2);
     const apport = parseFloat(d.first_contribution_amount || 0);
+    const vatFactor = getVatFactor(d);
     if (d.location_total_ht != null) return (parseFloat(d.location_total_ht) + apport).toFixed(2);
-    const totalTTC = d.location_total ?? d.montant_TTC;
-    const vatFactor = d.montant_HT > 0 ? d.montant_TTC / d.montant_HT : 1;
+    const totalTTC = d.location_total != null ? parseFloat(d.location_total) : parseFloat(d.montant_TTC || 0);
     const baseHT = totalTTC / vatFactor;
     return (baseHT + apport).toFixed(2);
   };
 
   const getDisplayTotal = (d) => {
-    if (!d.is_location) return d.montant_TTC;
+    if (!isLocationScenario(d)) return (parseFloat(d.montant_TTC) || 0).toFixed(2);
     const ht = parseFloat(getLocationHT(d));
-    return (ht * 1.2).toFixed(2);
+    const vatFactor = getVatFactor(d);
+    return (ht * vatFactor).toFixed(2);
   };
 
   const getLocationTVA = (d) => {
-    if (!d.is_location) return d.montant_TVA;
+    if (!isLocationScenario(d)) return (parseFloat(d.montant_TVA) || 0).toFixed(2);
     const ht = parseFloat(getLocationHT(d));
     const ttc = parseFloat(getDisplayTotal(d));
     return (ttc - ht).toFixed(2);
@@ -213,9 +227,10 @@ function Client() {
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
             if (error.response.status === 409 && !forceValue){
+              showToast({ message: error.response.data.error, variant: "warning" });
               handleForce();
             }else{
-              console.log(error.response.data.error)
+              showToast({ message: error.response.data.error, variant: "danger" });
             }
           } else {
             showToast({ message: "Une erreur est survenue.", variant: "danger" });
@@ -350,7 +365,15 @@ function Client() {
               <td>{getLocationHT(devis)} €</td>
               <td>{getLocationTVA(devis)} €</td>
             <td>{getDisplayTotal(devis)} €</td>
-              <td>{devis.statut}</td>
+              <td>
+                <span className={`badge ${
+                  devis.statut === 'Signé' ? 'bg-success' : 
+                  devis.statut === 'En attente de signature' ? 'bg-warning text-dark' : 
+                  'bg-danger'
+                }`}>
+                  {devis.statut}
+                </span>
+              </td>
               </tr>
             ))
             ) : (

@@ -11,7 +11,11 @@ function DevisPdfPreview() {
   const [pdfBlob, setPdfBlob] = useState(null);
   const navigate = useNavigate();
   const [scenario, setScenario] = useState("direct"); // "direct", "location_without_apport", "location_with_apport"
+  const [devisStatus, setDevisStatus] = useState(null);
+  const [lockedScenario, setLockedScenario] = useState(null);
   const { showToast } = useToast();
+
+  const isLockedStatus = devisStatus === "En attente de signature" || devisStatus === "Signé";
 
   const handlePdf = async (selectedScenario = scenario) => {
     const params = new URLSearchParams();
@@ -30,7 +34,7 @@ function DevisPdfPreview() {
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
-          console.log(error.response.data.error);
+          showToast({ message: error.response.data.error, variant: "danger" });
         } else {
           showToast({ message: "Une erreur est survenue lors de la création du pdf.", variant: "danger" });
         }
@@ -38,36 +42,91 @@ function DevisPdfPreview() {
   }
 
   const handleScenarioChange = (newScenario) => {
+    if (isLockedStatus) {
+      showToast({ message: "Le devis est déjà envoyé ou signé: scénario verrouillé.", variant: "warning" });
+      return;
+    }
     setScenario(newScenario);
     handlePdf(newScenario);
   }
 
-  const handleSendToDocuSign = () => {
+  const handleSendToDocuSign = async () => {
+    if (isLockedStatus) {
+      showToast({ message: "Envoi bloqué: devis déjà en attente de signature ou signé.", variant: "warning" });
+      return;
+    }
+
     if (!pdfBlob) {
       showToast({ message: "PDF non disponible.", variant: "warning" });
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", pdfBlob, `devis_${id_devis}.pdf`)
-    
-    httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/external/${id_client}/${id_devis}`,formData)
-      .then((resp) => {
-        showToast({ message: `Document envoyé ! Envelope ID: ${resp.data.envelope_id}`, variant: "success" });
-      })
-      .catch((error) => {
-        if (error.response && error.response.data && error.response.data.error) {
-          console.log(error.response.data.error);
-        } else {
-          showToast({ message: "Une erreur est survenue lors de l'envoie du pdf.", variant: "danger" });
-        }
-      });
+    try {
+      // First, lock in the selected scenario
+      await httpClient.post(
+        `${process.env.REACT_APP_BACKEND_URL}/devis/select-scenario/${id_devis}`,
+        { scenario }
+      );
+
+      // Then send to DocuSign
+      const formData = new FormData();
+      formData.append("file", pdfBlob, `devis_${id_devis}.pdf`)
+      
+      httpClient
+        .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/external/${id_client}/${id_devis}`, formData)
+        .then((resp) => {
+          showToast({ message: `Document envoyé ! Envelope ID: ${resp.data.envelope_id}`, variant: "success" });
+        })
+        .catch((error) => {
+          if (error.response && error.response.data && error.response.data.error) {
+            showToast({ message: error.response.data.error, variant: "danger" });
+          } else {
+            showToast({ message: "Une erreur est survenue lors de l'envoie du pdf.", variant: "danger" });
+          }
+        });
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        showToast({ message: error.response.data.error, variant: "danger" });
+      } else {
+        showToast({ message: "Erreur lors de la sélection du scénario.", variant: "danger" });
+      }
+    }
   }
 
   useEffect(() => {
-    handlePdf()
-  }, []);
+    const fetchDevisInfo = async () => {
+      try {
+        const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${id_devis}`);
+        const data = resp.data;
+        const status = data.statut;
+        const selected = data.selected_scenario;
+        setDevisStatus(status);
+
+        const locked = status === "En attente de signature" || status === "Signé";
+        if (locked && selected) {
+          setScenario(selected);
+          setLockedScenario(selected);
+          handlePdf(selected);
+          return;
+        }
+        handlePdf();
+      } catch (error) {
+        if (error.response && error.response.data && error.response.data.error) {
+          showToast({ message: error.response.data.error, variant: "danger" });
+        } else {
+          showToast({ message: "Erreur lors du chargement du devis.", variant: "danger" });
+        }
+      }
+    };
+
+    fetchDevisInfo();
+
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [id_devis]);
 
   return (
     <div>
@@ -79,13 +138,14 @@ function DevisPdfPreview() {
             className="form-select"
             style={{ width: "auto", display: "inline-block" }}
             value={scenario}
+            disabled={isLockedStatus}
             onChange={(e) => handleScenarioChange(e.target.value)}
           >
             <option value="direct">Paiement direct</option>
             <option value="location_without_apport">Location sans apport</option>
             <option value="location_with_apport">Location avec apport</option>
           </select>
-          <button className="btn btn-success" onClick={handleSendToDocuSign}>Envoyer le PDF</button>
+          <button className="btn btn-success" disabled={isLockedStatus} onClick={handleSendToDocuSign}>Envoyer le PDF</button>
         </div>
         <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`, { replace: true, state: location.state })}>Retour</button>
       </div>
