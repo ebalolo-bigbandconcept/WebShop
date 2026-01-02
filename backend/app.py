@@ -6,7 +6,8 @@ from flask_migrate import Migrate
 from config import ApplicationConfig
 from models import db, ma, User, TauxTVA, Parameters
 from dotenv import load_dotenv
-import os, logging
+import os
+import logging
 from routes.admin import admin_bp
 from routes.articles import articles_bp
 from routes.auth import auth_bp
@@ -25,7 +26,7 @@ if not ADMIN_MAIL or not ADMIN_PASSWORD:
     raise ValueError("ADMIN_MAIL et ADMIN_PASSWORD doivent être définis dans les variables d'environnement ou les secrets Docker.")
 
 # Config App
-app = Flask(__name__,template_folder="pdf")
+app = Flask(__name__, template_folder="pdf")
 app.config.from_object(ApplicationConfig)
 CORS(app, origins=[FRONTEND_URL], supports_credentials=True)
 bcrypt = Bcrypt()
@@ -36,7 +37,7 @@ server_session = Session(app)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[logging.FileHandler("app.log"),logging.StreamHandler()]
+    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()]
 )
 
 # Config BDD
@@ -61,7 +62,13 @@ def init_default_data():
 
             if table_empty_user:
                 hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode('utf-8')
-                admin_user = User(nom='Admin',prenom='Admin',email=ADMIN_MAIL,mdp=hashed_admin_password,role='Administrateur')
+                admin_user = User(
+                    nom='Admin',
+                    prenom='Admin',
+                    email=ADMIN_MAIL,
+                    mdp=hashed_admin_password,
+                    role='Administrateur'
+                )
                 db.session.add(admin_user)
                 db.session.commit()
             

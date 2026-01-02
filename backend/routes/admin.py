@@ -10,7 +10,7 @@ admin_bp = Blueprint('admin_bp', __name__, url_prefix='/api/admin')
 
 bcrypt = Bcrypt()
 
-# Admin role required decorator           
+# Admin role required decorator
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -24,8 +24,9 @@ def admin_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
-  
-  # Get all users info route
+
+
+# Get all users info route
 @admin_bp.route("/all-user", methods=['GET'])
 @admin_required
 def get_all_users():
@@ -56,7 +57,13 @@ def add_user():
     
     # Création du nouvel utilisateur du mot de passe.
     hashed_password = bcrypt.generate_password_hash(mdp).decode('utf-8')
-    new_user = User(email=email,prenom=prenom,nom=nom,mdp=hashed_password,role=role)
+    new_user = User(
+        email=email,
+        prenom=prenom,
+        nom=nom,
+        mdp=hashed_password,
+        role=role
+    )
     db.session.add(new_user)
     db.session.commit()
     logging.info(f"Admin {session.get('user_id')} a créé un nouvel utilisateur: {new_user.email} (id: {new_user.id}, rôle: {new_user.role})")

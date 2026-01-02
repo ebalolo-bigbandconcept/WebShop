@@ -37,10 +37,8 @@ function App() {
         if (isMounted) setUser(resp.data);
       } catch (error) {
         if (error.response && error.response.data.error === "Unauthorized") {
-          console.log("No user logged in.");
+          // No user logged in
           navigate("/");
-        }else{
-          console.error("Error fetching user:", error);
         }
         if (isMounted) setUser(null);
       } finally {

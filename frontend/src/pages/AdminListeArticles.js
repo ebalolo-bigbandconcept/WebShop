@@ -112,7 +112,6 @@ function ListeArticles() {
           taux_tva: article_taux_tva,
         })
         .then((resp) => {
-          console.log(resp);
           handleClose();
           showToast({ message: "Article ajouté", variant: "success" });
           getAllArticles();
@@ -170,7 +169,6 @@ function ListeArticles() {
           taux_tva: article_taux_tva,
         })
         .then((resp) => {
-          console.log(resp);
           handleClose();
           showToast({ message: "Article mis à jour", variant: "success" });
           getAllArticles();
@@ -200,7 +198,6 @@ function ListeArticles() {
     httpClient
       .post(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${article_id}`)
       .then((resp) => {
-        console.log(resp);
         handleClose();
         showToast({ message: "Article supprimé", variant: "success" });
         getAllArticles();
@@ -272,7 +269,7 @@ function ListeArticles() {
         }
       })
       .catch((err) => {
-        console.error("Erreur chargement TVA:", err);
+        showToast({ message: "Erreur lors du chargement des taux de TVA", variant: "danger" });
       });
   }, []);
 

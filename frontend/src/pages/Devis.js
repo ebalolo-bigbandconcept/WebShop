@@ -404,7 +404,7 @@ function Devis() {
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
-            console.log(error.response.data.error);
+            showToast({ message: error.response.data.error, variant: "danger" });
           } else {
             showToast({ message: "Une erreur est survenue lors de la création du devis.", variant: "danger" });
           }
@@ -418,7 +418,7 @@ function Devis() {
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
-            console.log(error.response.data.error);
+            showToast({ message: error.response.data.error, variant: "danger" });
           } else {
             showToast({ message: "Une erreur est survenue lors de la mise à jour du devis.", variant: "danger" });
           }
@@ -663,7 +663,6 @@ function Devis() {
 
   useEffect(() => {
   if (devis && !isNewDevis) {
-    console.log("Update devis")
     setDevisTitle(devis.titre);
     setDevisDescription(devis.description);
     setDevisDate(devis.date);

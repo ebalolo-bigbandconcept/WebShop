@@ -40,7 +40,16 @@ def add_client():
         return jsonify({
             "error": "L'adresse e-mail est déjà utilisée par un autre client."}), 409  # 409 Conflict
     
-    new_client = Clients(nom=nom,prenom=prenom,rue=rue,ville=ville,code_postal=code_postal,telephone=telephone,email=email,caduque=False)
+    new_client = Clients(
+        nom=nom,
+        prenom=prenom,
+        rue=rue,
+        ville=ville,
+        code_postal=code_postal,
+        telephone=telephone,
+        email=email,
+        caduque=False
+    )
     db.session.add(new_client)
     db.session.commit()
     logging.info(f"Nouvel client ajouté: {new_client.email} (id: {new_client.id}) par l'utilisateur {session.get('user_id')}")

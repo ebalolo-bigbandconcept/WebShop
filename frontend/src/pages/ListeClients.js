@@ -186,7 +186,6 @@ function ListeClients() {
           force: forceValue,
         })
         .then((resp) => {
-          console.log(resp);
           handleClose();
           showToast({ message: "Client créé avec succès", variant: "success" });
           getAllUsersInfo();

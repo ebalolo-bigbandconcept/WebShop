@@ -68,7 +68,13 @@ def add_article():
     if error:
         return jsonify({"error": error}), 400
     
-    new_article = Articles(nom=nom,description=description,prix_achat_HT=prix_achat_HT,prix_vente_HT=prix_vente_HT,taux_tva_id=taux_tva_id)
+    new_article = Articles(
+        nom=nom,
+        description=description,
+        prix_achat_HT=prix_achat_HT,
+        prix_vente_HT=prix_vente_HT,
+        taux_tva_id=taux_tva_id
+    )
     db.session.add(new_article)
     db.session.commit()
     logging.info(f"Nouvel article ajouté: {new_article.nom} (id: {new_article.id}) par l'utilisateur {session.get('user_id')}")

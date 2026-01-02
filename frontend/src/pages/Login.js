@@ -50,14 +50,14 @@ function Login({ setUser }) {
       })
       .then(function (response) {
         setUser(response.data);
-        console.log("Connexion réussie.");
         navigate("/liste-clients");
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
           if (error.response.data.error === "Email invalide") {
             setEmailError("Email invalide");
-          }if(error.response.data.error === "Mot de passe invalide"){
+          }
+          if (error.response.data.error === "Mot de passe invalide") {
             setPasswordError("Mot de passe invalide");
           }
         } else {

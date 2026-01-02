@@ -112,7 +112,6 @@ function ManageUser() {
         .then((resp) => {
           showToast({ message: "Utilisateur modifié avec succès", variant: "success" });
           navigate("/admin/dashboard");
-          console.log(resp.data);
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -140,7 +139,6 @@ function ManageUser() {
       .then((resp) => {
         showToast({ message: "Utilisateur supprimé avec succès", variant: "success" });
         navigate("/admin/dashboard");
-        console.log(resp.data);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {

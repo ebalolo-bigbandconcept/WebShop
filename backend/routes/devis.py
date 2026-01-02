@@ -1,9 +1,13 @@
-from flask import Blueprint, request, jsonify, session, render_template, make_response, redirect
+from flask import Blueprint, request, jsonify, session, render_template
 from models import db, Devis, DevisSchema, DevisArticles, Clients, Articles, TauxTVA, Parameters
 from datetime import datetime
 from weasyprint import HTML
 from PyPDF2 import PdfMerger
-import io, logging, os, requests, json
+import io
+import logging
+import os
+import requests
+import json
 
 # Create a Blueprint for authentication-related routes
 devis_bp = Blueprint('devis_bp', __name__, url_prefix='/api/devis')

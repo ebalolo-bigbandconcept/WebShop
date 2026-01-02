@@ -65,7 +65,7 @@ function AdminParameters() {
         setVats(tvaResp.data?.data ?? []);
       } catch (err) {
         if (!isMounted) return;
-        console.error("Erreur lors du chargement des parametres", err);
+        showToast({ message: "Erreur lors du chargement des paramètres", variant: "danger" });
       } finally {
         if (isMounted) setLoading(false);
       }

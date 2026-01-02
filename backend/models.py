@@ -107,7 +107,7 @@ class Parameters(db.Model):
     company_siret = db.Column(db.String(64), nullable=False, default="")
     company_aprm = db.Column(db.String(64), nullable=False, default="")
 
-# Marshmallow Schema to strucuture the JSON response
+# Marshmallow Schema to structure the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User

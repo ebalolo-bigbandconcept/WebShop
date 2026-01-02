@@ -220,7 +220,6 @@ function Client() {
           headers: {"Content-Type": "application/json"},
         })
         .then((resp) => {
-          console.log(resp.data);
           showToast({ message: "Les modifications ont bien été enregistrées.", variant: "success" });
           getClientInfo();
         })
