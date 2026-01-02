@@ -66,14 +66,14 @@ networks:
 
 secrets:
   SECRET_KEY:
-    file: ./.env_prod_secrets/SECRET_KEY
+    file: ./.env_prod_secrets/SECRET_KEY.txt
   ADMIN_MAIL:
-    file: ./.env_prod_secrets/ADMIN_MAIL
+    file: ./.env_prod_secrets/ADMIN_MAIL.txt
   ADMIN_PASSWORD:
-    file: ./.env_prod_secrets/ADMIN_PASSWORD
+    file: ./.env_prod_secrets/ADMIN_PASSWORD.txt
   DOCUSIGN_ACCOUNT_ID:
-    file: ./.env_prod_secrets/DOCUSIGN_ACCOUNT_ID
+    file: ./.env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt
   DOCUSIGN_USER_ID:
-    file: ./.env_prod_secrets/DOCUSIGN_USER_ID
+    file: ./.env_prod_secrets/DOCUSIGN_USER_ID.txt
   DOCUSIGN_INTEGRATION_KEY:
-    file: ./.env_prod_secrets/DOCUSIGN_INTEGRATION_KEY
+    file: ./.env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt

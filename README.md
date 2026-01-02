@@ -323,18 +323,18 @@ Créez des fichiers séparés pour chaque secret :
 
 ```bash
 # Clé secrète (remplacez par votre clé générée)
-echo "votre_cle_secrete_generee" > SECRET_KEY
+echo "votre_cle_secrete_generee" > SECRET_KEY.txt
 
 # Email admin
-echo "admin@votredomaine.com" > ADMIN_MAIL
+echo "admin@votredomaine.com" > ADMIN_MAIL.txt
 
 # Mot de passe admin (8+ caractères, maj/min/chiffre/spécial)
-echo "VotreMotDePasseSecure123!" > ADMIN_PASSWORD
+echo "VotreMotDePasseSecure123!" > ADMIN_PASSWORD.txt
 
 # DocuSign secrets
-echo "votre_docusign_account_id" > DOCUSIGN_ACCOUNT_ID
-echo "votre_docusign_user_id" > DOCUSIGN_USER_ID
-echo "votre_docusign_integration_key" > DOCUSIGN_INTEGRATION_KEY
+echo "votre_docusign_account_id" > DOCUSIGN_ACCOUNT_ID.txt
+echo "votre_docusign_user_id" > DOCUSIGN_USER_ID.txt
+echo "votre_docusign_integration_key" > DOCUSIGN_INTEGRATION_KEY.txt
 ```
 
 **Note**: Les secrets sont automatiquement lus par Docker depuis `/run/secrets/` dans les conteneurs.
