@@ -290,18 +290,18 @@
   </tr>
 </table>
 
-{% if devis.is_location and selected_scenario %}
+<div style="clear: both;"></div>
+
+{% if selected_scenario %}
   {% if selected_scenario == "direct" %}
-    <div style="clear: both;"></div>
     <table class="payment-options">
-      <tr><th colspan="2">Total TTC</th></tr>
+      <tr><th colspan="2">Paiement direct</th></tr>
       <tr>
-        <td>Paiement direct</td>
+        <td>Total TTC</td>
         <td>{{ "{:.2f}".format(payment_options.direct.total_ttc or 0) }} €</td>
       </tr>
     </table>
   {% elif selected_scenario == "location_without_apport" %}
-    <div style="clear: both;"></div>
     <div class="location-box" style="margin-top: 16px;">
       <table>
         <tr><th colspan="2">Location sans apport</th></tr>
@@ -312,7 +312,6 @@
       </table>
     </div>
   {% elif selected_scenario == "location_with_apport" %}
-    <div style="clear: both;"></div>
     <div class="location-box" style="margin-top: 16px;">
       <table>
         <tr><th colspan="2">Location avec apport</th></tr>
@@ -325,7 +324,6 @@
     </div>
   {% endif %}
 {% elif devis.is_location %}
-  <div style="clear: both;"></div>
   <div class="location-box">
     <div class="location-row"><strong>Location</strong><span></span></div>
     <div class="location-row"><span>Durée</span><span>{{ location_time }} mois</span></div>
@@ -335,9 +333,9 @@
   </div>
 {% else %}
   <table class="payment-options">
-    <tr><th colspan="2">Total TTC</th></tr>
+    <tr><th colspan="2">Paiement direct</th></tr>
     <tr>
-      <td>Paiement direct</td>
+      <td>Total TTC</td>
       <td>{{ "{:.2f}".format(devis.montant_TTC or 0) }} €</td>
     </tr>
   </table>
