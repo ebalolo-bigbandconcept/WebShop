@@ -361,7 +361,7 @@ def get_devis_pdf(devis_id):
         # Determine if we should use location pricing
         use_location_pricing = selected_scenario in {"location_without_apport", "location_with_apport"}
         
-        for item in devis_data.get('articles', []):
+        for idx, item in enumerate(devis_data.get('articles', [])):
             try:
                 taux = None
                 if item.get('taux_tva') and item['taux_tva'].get('taux') is not None:
@@ -387,8 +387,11 @@ def get_devis_pdf(devis_id):
                 bucket["total_ht"] += line_ht
                 bucket["total_tva"] += line_tva
                 bucket["total_ttc"] += line_ttc
-            except Exception:
+                
+                logging.info(f"Article {idx} processed: taux={taux}, qty={qty}, unit_ht={unit_ht}, line_tva={line_tva}")
+            except Exception as e:
                 # Skip malformed items silently for PDF rendering
+                logging.error(f"Error processing article {idx}: {str(e)}", exc_info=True)
                 continue
     
     logging.info(f"Final vat_totals_map after building: {vat_totals_map}")
