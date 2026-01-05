@@ -482,32 +482,19 @@ def get_devis_pdf(devis_id):
     logging.info(f"Selected scenario: {selected_scenario}")
     
     if selected_scenario in {"location_without_apport", "location_with_apport"}:
-        # Copy article-level VAT breakdown
-        logging.info(f"Processing location scenario")
+        # Calculate location totals first
+        location_without = _compute_location_totals(0.0)
+        location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
+        
+        # Build VAT recap based on actual location totals
+        # For location scenarios, we show the total VAT breakdown
         vat_tva_totals = {}
-        for taux, bucket in vat_totals_map.items():
-            vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
-        logging.info(f"Location scenario - vat_tva_totals after copying articles: {vat_tva_totals}")
+        # Get the location totals for current scenario
+        current_location_total = location_without if selected_scenario == "location_without_apport" else location_with
         
-        # Add subscription and maintenance VAT (at 20%)
-        subscription_ht = float(subscription_ttc or 0.0) / 1.20
-        maintenance_ht = float(maintenance_ttc or 0.0) / 1.20
-        extra_vat_20 = round((subscription_ht + maintenance_ht) * 0.20, 2)
-        
-        if extra_vat_20 > 0:
-            vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + extra_vat_20, 2)
-            logging.info(f"Added extra VAT 20%: {extra_vat_20}, total 20% now: {vat_tva_totals[0.20]}")
-        
-        logging.info(f"Location scenario - final vat_tva_totals: {vat_tva_totals}")
-        
-        # Calculate location totals
-        if selected_scenario == "location_without_apport":
-            location_without = _compute_location_totals(0.0)
-            location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
-        else:
-            location_without = _compute_location_totals(0.0)
-            location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
+        # Show 20% VAT for the location total
+        vat_tva_totals[0.20] = current_location_total["total_tva"]
         
         payment_options = {
             "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
