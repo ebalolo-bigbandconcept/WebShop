@@ -361,7 +361,7 @@ function Client() {
               {devis.titre}
             </td>
               <td>{devis.description}</td>
-              <td>{devis.date}</td>
+              <td>{new Date(devis.date).toLocaleDateString('fr-FR')}</td>
               <td>{devis.signed_at ? new Date(devis.signed_at).toLocaleDateString('fr-FR') : ''}</td>
               <td>{getLocationHT(devis)} €</td>
               <td>{getLocationTVA(devis)} €</td>

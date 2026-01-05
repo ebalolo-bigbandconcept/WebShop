@@ -174,7 +174,7 @@ function ListeDevis() {
                   {d.titre}
                 </td>
                 <td>{d.description}</td>
-                <td>{d.date}</td>
+                <td>{new Date(d.date).toLocaleDateString('fr-FR')}</td>
                 <td>{d.signed_at ? new Date(d.signed_at).toLocaleDateString('fr-FR') : ''}</td>
                 <td>{getLocationHT(d)} €</td>
                 <td>{getLocationTVA(d)} €</td>
