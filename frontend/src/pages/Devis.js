@@ -1009,22 +1009,6 @@ function Devis() {
                     <span className="ms-2">€</span>
                   </div>
                 </div>
-                <div className="d-flex justify-content-between align-items-center mb-2 border-top pt-2">
-                  <span className="fw-bold">Mensuel HT:</span>
-                  <span className="ms-2 fw-bold">{location_monthly_total_ht} €</span>
-                </div>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="fw-bold">Mensuel TTC:</span>
-                  <span className="ms-2 fw-bold">{location_monthly_total} €</span>
-                </div>
-                <div className="d-flex justify-content-between align-items-center border-top pt-2">
-                  <span className="fw-bold fs-6">Total Location HT:</span>
-                  <span className="ms-2 fw-bold">{devis_location_total_ht} €</span>
-                </div>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span className="fw-bold fs-5">Total Location TTC:</span>
-                  <span className="ms-2 fs-5 fw-bold">{devis_location_total} €</span>
-                </div>
             </div>
           </div>
         </div>
