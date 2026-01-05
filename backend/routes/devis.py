@@ -487,14 +487,19 @@ def get_devis_pdf(devis_id):
         location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
         
         # Build VAT recap based on actual location totals
-        # For location scenarios, we show the total VAT breakdown
+        # For location scenarios, we show all VAT rates from articles
         vat_tva_totals = {}
+        
+        # Copy article-level VAT breakdown (from location pricing)
+        for taux, bucket in vat_totals_map.items():
+            vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
         # Get the location totals for current scenario
         current_location_total = location_without if selected_scenario == "location_without_apport" else location_with
+        location_vat = current_location_total["total_tva"]
         
-        # Show 20% VAT for the location total
-        vat_tva_totals[0.20] = current_location_total["total_tva"]
+        # Add location VAT at 20% (VAT on subscription, maintenance, and location adjustments)
+        vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + location_vat, 2)
         
         payment_options = {
             "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
