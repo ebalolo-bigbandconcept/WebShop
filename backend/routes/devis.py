@@ -166,6 +166,9 @@ def update_devis(devis_id):
     if devis.statut == "Signé":
         return jsonify({"error": "Devis signé: modification interdite"}), 409
     
+    # Check if status is changing to "Signé" BEFORE updating the status
+    to_sign = devis.statut != "Signé" and request.json.get("statut") == "Signé"
+    
     devis.titre = request.json["title"]
     devis.description = request.json["description"]
     devis.date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
@@ -181,7 +184,6 @@ def update_devis(devis_id):
     devis.location_total_ht = request.json.get("location_total_ht")
     articles_data = request.json["articles"]
     params = Parameters.query.first()
-    to_sign = devis.statut != "Signé" and request.json.get("statut") == "Signé"
     
     try:
         DevisArticles.query.filter_by(devis_id=devis.id).delete()
@@ -716,6 +718,7 @@ def docusign_webhook():
         # Update devis status based on DocuSign status
         if status == "completed":
             devis.statut = "Signé"
+            devis.signed_at = datetime.now(datetime.timezone.utc)
             if signed_at:
                 try:
                     devis.date_paiement = datetime.fromisoformat(signed_at.replace('Z', '+00:00')).date()
