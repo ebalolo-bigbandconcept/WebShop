@@ -430,20 +430,37 @@ def get_devis_pdf(devis_id):
     def _compute_location_totals(apport_value):
         apport = float(apport_value or 0.0)
         
-        # Get the base total (articles HT from vat_totals_map)
-        articles_ht = sum(bucket["total_ht"] for bucket in vat_totals_map.values())
-        
-        # Subscription and maintenance are given as TTC, convert to HT (assuming 20% VAT)
-        subscription_ht = float(subscription_ttc or 0.0) / 1.20
-        maintenance_ht = float(maintenance_ttc or 0.0) / 1.20
-        
-        # Total HT = articles HT + subscription HT + maintenance HT - apport
-        total_ht_value = articles_ht + subscription_ht + maintenance_ht - apport
-        total_ht_value = max(total_ht_value, 0.0)
-        
-        # Calculate TVA at 20%
-        total_tva_value = total_ht_value * 0.20
-        total_ttc_value = total_ht_value + total_tva_value
+        # If we have stored location totals, use them as the base and adjust for apport
+        if devis_data.get("location_total") and devis_data.get("location_total_ht"):
+            # These are the stored totals (likely with the devis's original apport)
+            stored_total_ht = float(devis_data.get("location_total_ht") or 0.0)
+            stored_total_ttc = float(devis_data.get("location_total") or 0.0)
+            stored_apport = float(devis_data.get("first_contribution_amount") or 0.0)
+            
+            # Calculate the base (without any apport)
+            base_total_ht = stored_total_ht + stored_apport
+            base_total_ttc = stored_total_ttc + stored_apport
+            
+            # Apply the requested apport
+            total_ht_value = base_total_ht - apport
+            total_ttc_value = base_total_ttc - apport
+            total_ht_value = max(total_ht_value, 0.0)
+            total_ttc_value = max(total_ttc_value, 0.0)
+        else:
+            # Fallback: calculate from articles if stored values don't exist
+            # Get articles total TTC
+            articles_ttc = float(devis_data.get("montant_TTC") or 0.0)
+            
+            # Subscription and maintenance are already TTC
+            subscription_ttc_value = float(subscription_ttc or 0.0)
+            maintenance_ttc_value = float(maintenance_ttc or 0.0)
+            
+            # Total TTC = articles TTC + subscription + maintenance - apport
+            total_ttc_value = articles_ttc + subscription_ttc_value + maintenance_ttc_value - apport
+            total_ttc_value = max(total_ttc_value, 0.0)
+            
+            # Convert TTC to HT (assuming 20% VAT)
+            total_ht_value = total_ttc_value / 1.20
 
         monthly_ht = (total_ht_value / location_time) if location_time else 0.0
         monthly_ttc = (total_ttc_value / location_time) if location_time else 0.0
@@ -453,7 +470,7 @@ def get_devis_pdf(devis_id):
             "monthly_ttc": round(monthly_ttc, 2),
             "total_ht": round(total_ht_value, 2),
             "total_ttc": round(total_ttc_value, 2),
-            "total_tva": round(total_tva_value, 2),
+            "total_tva": round(total_ttc_value - total_ht_value, 2),
             "apport": round(apport, 2),
         }
 
