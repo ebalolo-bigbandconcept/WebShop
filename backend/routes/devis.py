@@ -386,12 +386,6 @@ def get_devis_pdf(devis_id):
                 # Skip malformed items silently for PDF rendering
                 continue
 
-    # Build a minimal map for 20% and 10% showing only total TVA
-    vat_tva_totals = {}
-    for wanted in (0.20, 0.10):
-        if wanted in vat_totals_map:
-            vat_tva_totals[wanted] = round(vat_totals_map[wanted]["total_tva"], 2)
-
     # Fetch parameters for general conditions, location duration and fees
     params = Parameters.query.first()
     if snapshot:
@@ -434,12 +428,21 @@ def get_devis_pdf(devis_id):
         }
 
     def _compute_location_totals(apport_value):
-        articles_ttc = float(devis_data.get("montant_TTC") or 0.0)
+        # Get articles total HT from vat_totals_map
+        articles_ht = sum(bucket["total_ht"] for bucket in vat_totals_map.values())
+        
+        # Subscription and maintenance are given as TTC, convert to HT (assuming 20% VAT)
+        subscription_ht = float(subscription_ttc or 0.0) / 1.20
+        maintenance_ht = float(maintenance_ttc or 0.0) / 1.20
         apport = float(apport_value or 0.0)
 
-        total_ht_value = articles_ttc + float(subscription_ttc or 0.0) + float(maintenance_ttc or 0.0) - apport
+        # Total HT = articles HT + subscription HT + maintenance HT - apport
+        total_ht_value = articles_ht + subscription_ht + maintenance_ht - apport
         total_ht_value = max(total_ht_value, 0.0)
-        total_ttc_value = total_ht_value * 1.20
+        
+        # Calculate TVA at 20%
+        total_tva_value = total_ht_value * 0.20
+        total_ttc_value = total_ht_value + total_tva_value
 
         monthly_ht = (total_ht_value / location_time) if location_time else 0.0
         monthly_ttc = (total_ttc_value / location_time) if location_time else 0.0
@@ -449,14 +452,42 @@ def get_devis_pdf(devis_id):
             "monthly_ttc": round(monthly_ttc, 2),
             "total_ht": round(total_ht_value, 2),
             "total_ttc": round(total_ttc_value, 2),
+            "total_tva": round(total_tva_value, 2),
             "apport": round(apport, 2),
         }
 
-    payment_options = {
-        "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
-        "location_without_apport": _compute_location_totals(0.0),
-        "location_with_apport": _compute_location_totals(devis_data.get("first_contribution_amount")),
-    }
+    # Build a minimal map for 20% and 10% showing only total TVA
+    # For location scenarios, recalculate the VAT based on the final totals
+    vat_tva_totals = {}
+    payment_options = {}
+    
+    if selected_scenario in {"location_without_apport", "location_with_apport"}:
+        # Calculate location totals
+        location_without = _compute_location_totals(0.0)
+        location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
+        
+        payment_options = {
+            "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
+            "location_without_apport": location_without,
+            "location_with_apport": location_with,
+        }
+        
+        # For location, all VAT is at 20% on the final total
+        if selected_scenario == "location_without_apport":
+            vat_tva_totals[0.20] = location_without["total_tva"]
+        else:
+            vat_tva_totals[0.20] = location_with["total_tva"]
+    else:
+        # For direct purchase, use the article-level VAT breakdown
+        for wanted in (0.20, 0.10):
+            if wanted in vat_totals_map:
+                vat_tva_totals[wanted] = round(vat_totals_map[wanted]["total_tva"], 2)
+        
+        payment_options = {
+            "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
+            "location_without_apport": _compute_location_totals(0.0),
+            "location_with_apport": _compute_location_totals(devis_data.get("first_contribution_amount")),
+        }
 
     # Render HTML using Jinja2 template
     html_out = render_template(
