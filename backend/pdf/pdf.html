@@ -261,18 +261,14 @@
   <tr>
     <th colspan="2"><strong>Récapitulatif TVA</strong></th>
   </tr>
-  {% if vat_tva_totals and 0.20 in vat_tva_totals %}
-  <tr>
-    <td>TVA 20%</td>
-    <td class="right">{{ "{:.2f}".format(vat_tva_totals[0.20] or 0) }}€</td>
-  </tr>
-  {% endif %}
-  {% if vat_tva_totals and 0.10 in vat_tva_totals %}
-  <tr>
-    <td>TVA 10%</td>
-    <td class="right">{{ "{:.2f}".format(vat_tva_totals[0.10] or 0) }}€</td>
-  </tr>
-  {% endif %}
+  {% for taux in [0.20, 0.10, 0.05, 0.055] %}
+    {% if vat_tva_totals and taux in vat_tva_totals %}
+    <tr>
+      <td>TVA {{ "{:.0%}".format(taux) }}</td>
+      <td class="right">{{ "{:.2f}".format(vat_tva_totals[taux] or 0) }}€</td>
+    </tr>
+    {% endif %}
+  {% endfor %}
 </table>
 
 <table class="totals">

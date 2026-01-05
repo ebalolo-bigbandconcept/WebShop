@@ -467,12 +467,17 @@ def get_devis_pdf(devis_id):
         for taux, bucket in vat_totals_map.items():
             vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
+        logging.info(f"Location scenario - vat_tva_totals before adding subscription: {vat_tva_totals}")
+        logging.info(f"Location scenario - vat_totals_map: {vat_totals_map}")
+        
         # Add subscription and maintenance VAT (at 20%)
         subscription_ht = float(subscription_ttc or 0.0) / 1.20
         maintenance_ht = float(maintenance_ttc or 0.0) / 1.20
         extra_vat_20 = round((subscription_ht + maintenance_ht) * 0.20, 2)
         
         vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + extra_vat_20, 2)
+        
+        logging.info(f"Location scenario - vat_tva_totals after adding subscription: {vat_tva_totals}")
         
         # Calculate location totals
         location_without = _compute_location_totals(0.0)
@@ -485,9 +490,8 @@ def get_devis_pdf(devis_id):
         }
     else:
         # For direct purchase, use the article-level VAT breakdown
-        for wanted in (0.20, 0.10):
-            if wanted in vat_totals_map:
-                vat_tva_totals[wanted] = round(vat_totals_map[wanted]["total_tva"], 2)
+        for taux, bucket in vat_totals_map.items():
+            vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
         payment_options = {
             "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
