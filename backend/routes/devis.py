@@ -486,18 +486,12 @@ def get_devis_pdf(devis_id):
         logging.info(f"Location scenario - final vat_tva_totals: {vat_tva_totals}")
         
         # Calculate location totals
-        location_without = _compute_location_totals(0.0)
-        location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
-        
-        payment_options = {
-            "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
-            "location_without_apport": location_without,
-            "location_with_apport": location_with,
-        }
-        
-        # Calculate location totals
-        location_without = _compute_location_totals(0.0)
-        location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
+        if selected_scenario == "location_without_apport":
+            location_without = _compute_location_totals(0.0)
+            location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
+        else:
+            location_without = _compute_location_totals(0.0)
+            location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
         
         payment_options = {
             "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
