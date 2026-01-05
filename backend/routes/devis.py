@@ -342,11 +342,8 @@ def get_devis_pdf(devis_id):
     
     # Compute totals by VAT rate from per-line or article default
     vat_totals_map = {}
-    logging.info(f"Building vat_totals_map - snapshot exists: {snapshot is not None}")
-    logging.info(f"Building vat_totals_map - snapshot.get('lines'): {snapshot.get('lines') if snapshot else 'N/A'}")
     
     if snapshot and snapshot.get("lines"):
-        logging.info(f"Using snapshot lines to build vat_totals_map")
         for line in snapshot.get("lines", []):
             try:
                 taux = float(line.get("taux_tva") or 0.0)
@@ -360,11 +357,10 @@ def get_devis_pdf(devis_id):
             except Exception:
                 continue
     else:
-        logging.info(f"Using articles to build vat_totals_map - article count: {len(devis_data.get('articles', []))}")
         # Determine if we should use location pricing
         use_location_pricing = selected_scenario in {"location_without_apport", "location_with_apport"}
         
-        for idx, item in enumerate(devis_data.get('articles', [])):
+        for item in devis_data.get('articles', []):
             try:
                 taux = None
                 if item.get('taux_tva') and item['taux_tva'].get('taux') is not None:
@@ -390,14 +386,9 @@ def get_devis_pdf(devis_id):
                 bucket["total_ht"] += line_ht
                 bucket["total_tva"] += line_tva
                 bucket["total_ttc"] += line_ttc
-                
-                logging.info(f"Article {idx} processed: taux={taux}, qty={qty}, unit_ht={unit_ht}, line_tva={line_tva}")
-            except Exception as e:
+            except Exception:
                 # Skip malformed items silently for PDF rendering
-                logging.error(f"Error processing article {idx}: {str(e)}", exc_info=True)
                 continue
-    
-    logging.info(f"Final vat_totals_map after building: {vat_totals_map}")
     
     # Additional parameter fetching for conditions, location duration and fees
     if snapshot:
@@ -493,6 +484,26 @@ def get_devis_pdf(devis_id):
     logging.info(f"Before scenario check - vat_totals_map: {vat_totals_map}")
     logging.info(f"Selected scenario: {selected_scenario}")
     
+    # For location scenarios, recalculate article prices with location pricing
+    articles_to_display = devis_data.get('articles', [])
+    if selected_scenario in {"location_without_apport", "location_with_apport"}:
+        # Create a copy of articles with location pricing
+        articles_to_display = []
+        for item in devis_data.get('articles', []):
+            try:
+                prix_achat = float(item.get('article', {}).get('prix_achat_HT') or 0)
+                margin_rate_location = (params.margin_rate_location if params else 0.0) or 0.0
+                unit_ht_location = prix_achat * margin_rate_location if prix_achat > 0 and margin_rate_location > 0 else float(item.get('article', {}).get('prix_vente_HT') or 0)
+                
+                # Create modified article with location pricing
+                modified_item = item.copy()
+                if 'article' in modified_item:
+                    modified_item['article'] = modified_item['article'].copy()
+                    modified_item['article']['prix_vente_HT'] = unit_ht_location
+                articles_to_display.append(modified_item)
+            except Exception:
+                articles_to_display.append(item)
+    
     if selected_scenario in {"location_without_apport", "location_with_apport"}:
         # Calculate location totals first
         location_without = _compute_location_totals(0.0)
@@ -506,18 +517,12 @@ def get_devis_pdf(devis_id):
         for taux, bucket in vat_totals_map.items():
             vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
-        logging.info(f"Location scenario - vat_tva_totals after copying articles: {vat_tva_totals}")
-        
         # Get the location totals for current scenario
         current_location_total = location_without if selected_scenario == "location_without_apport" else location_with
         location_vat = current_location_total["total_tva"]
         
-        logging.info(f"Location scenario - location_vat: {location_vat}")
-        
         # Add location VAT at 20% (VAT on subscription, maintenance, and location adjustments)
         vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + location_vat, 2)
-        
-        logging.info(f"Location scenario - final vat_tva_totals: {vat_tva_totals}")
         
         payment_options = {
             "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
@@ -535,10 +540,14 @@ def get_devis_pdf(devis_id):
             "location_with_apport": _compute_location_totals(devis_data.get("first_contribution_amount")),
         }
 
+    # Create a copy of devis_data with modified articles for location scenarios
+    devis_display = devis_data.copy()
+    devis_display['articles'] = articles_to_display
+
     # Render HTML using Jinja2 template
     html_out = render_template(
         "pdf.html",
-        devis=devis_data,
+        devis=devis_display,
         vat_tva_totals=vat_tva_totals,
         general_conditions=general_conditions,
         location_time=location_time,
