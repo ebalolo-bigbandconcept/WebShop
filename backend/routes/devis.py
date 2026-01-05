@@ -337,6 +337,9 @@ def get_devis_pdf(devis_id):
 
     snapshot = devis.signed_data if devis.statut == "Signé" and getattr(devis, "signed_data", None) else None
 
+    # Fetch parameters early for general conditions, location duration and fees
+    params = Parameters.query.first()
+    
     # Compute totals by VAT rate from per-line or article default
     vat_totals_map = {}
     logging.info(f"Building vat_totals_map - snapshot exists: {snapshot is not None}")
@@ -395,9 +398,8 @@ def get_devis_pdf(devis_id):
                 continue
     
     logging.info(f"Final vat_totals_map after building: {vat_totals_map}")
-
-    # Fetch parameters for general conditions, location duration and fees
-    params = Parameters.query.first()
+    
+    # Additional parameter fetching for conditions, location duration and fees
     if snapshot:
         params_block = snapshot.get("params", {})
         company_block = snapshot.get("company", {})
