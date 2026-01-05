@@ -494,12 +494,18 @@ def get_devis_pdf(devis_id):
         for taux, bucket in vat_totals_map.items():
             vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
+        logging.info(f"Location scenario - vat_tva_totals after copying articles: {vat_tva_totals}")
+        
         # Get the location totals for current scenario
         current_location_total = location_without if selected_scenario == "location_without_apport" else location_with
         location_vat = current_location_total["total_tva"]
         
+        logging.info(f"Location scenario - location_vat: {location_vat}")
+        
         # Add location VAT at 20% (VAT on subscription, maintenance, and location adjustments)
         vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + location_vat, 2)
+        
+        logging.info(f"Location scenario - final vat_tva_totals: {vat_tva_totals}")
         
         payment_options = {
             "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
