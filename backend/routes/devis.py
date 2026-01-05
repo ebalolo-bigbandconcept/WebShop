@@ -428,26 +428,15 @@ def get_devis_pdf(devis_id):
         }
 
     def _compute_location_totals(apport_value):
-        # Use stored location totals from the devis if available
-        if devis_data.get("location_total") and devis_data.get("location_total_ht"):
-            return {
-                "monthly_ht": round(float(devis_data.get("location_monthly_total_ht") or 0.0), 2),
-                "monthly_ttc": round(float(devis_data.get("location_monthly_total") or 0.0), 2),
-                "total_ht": round(float(devis_data.get("location_total_ht") or 0.0), 2),
-                "total_ttc": round(float(devis_data.get("location_total") or 0.0), 2),
-                "total_tva": round(float(devis_data.get("location_total") or 0.0) - float(devis_data.get("location_total_ht") or 0.0), 2),
-                "apport": round(float(apport_value or 0.0), 2),
-            }
+        apport = float(apport_value or 0.0)
         
-        # Fallback: calculate from articles if stored values don't exist
-        # Get articles total HT from vat_totals_map
+        # Get the base total (articles HT from vat_totals_map)
         articles_ht = sum(bucket["total_ht"] for bucket in vat_totals_map.values())
         
         # Subscription and maintenance are given as TTC, convert to HT (assuming 20% VAT)
         subscription_ht = float(subscription_ttc or 0.0) / 1.20
         maintenance_ht = float(maintenance_ttc or 0.0) / 1.20
-        apport = float(apport_value or 0.0)
-
+        
         # Total HT = articles HT + subscription HT + maintenance HT - apport
         total_ht_value = articles_ht + subscription_ht + maintenance_ht - apport
         total_ht_value = max(total_ht_value, 0.0)
