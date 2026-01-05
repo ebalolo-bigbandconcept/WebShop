@@ -461,23 +461,38 @@ def get_devis_pdf(devis_id):
     vat_tva_totals = {}
     payment_options = {}
     
+    logging.info(f"Before scenario check - vat_totals_map: {vat_totals_map}")
+    logging.info(f"Selected scenario: {selected_scenario}")
+    
     if selected_scenario in {"location_without_apport", "location_with_apport"}:
         # Copy article-level VAT breakdown
+        logging.info(f"Processing location scenario")
         vat_tva_totals = {}
         for taux, bucket in vat_totals_map.items():
             vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
-        logging.info(f"Location scenario - vat_tva_totals before adding subscription: {vat_tva_totals}")
-        logging.info(f"Location scenario - vat_totals_map: {vat_totals_map}")
+        logging.info(f"Location scenario - vat_tva_totals after copying articles: {vat_tva_totals}")
         
         # Add subscription and maintenance VAT (at 20%)
         subscription_ht = float(subscription_ttc or 0.0) / 1.20
         maintenance_ht = float(maintenance_ttc or 0.0) / 1.20
         extra_vat_20 = round((subscription_ht + maintenance_ht) * 0.20, 2)
         
-        vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + extra_vat_20, 2)
+        if extra_vat_20 > 0:
+            vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + extra_vat_20, 2)
+            logging.info(f"Added extra VAT 20%: {extra_vat_20}, total 20% now: {vat_tva_totals[0.20]}")
         
-        logging.info(f"Location scenario - vat_tva_totals after adding subscription: {vat_tva_totals}")
+        logging.info(f"Location scenario - final vat_tva_totals: {vat_tva_totals}")
+        
+        # Calculate location totals
+        location_without = _compute_location_totals(0.0)
+        location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
+        
+        payment_options = {
+            "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
+            "location_without_apport": location_without,
+            "location_with_apport": location_with,
+        }
         
         # Calculate location totals
         location_without = _compute_location_totals(0.0)
