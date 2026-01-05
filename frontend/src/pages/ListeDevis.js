@@ -157,6 +157,7 @@ function ListeDevis() {
             <th scope="col">Devis</th>
             <th scope="col">Description</th>
             <th scope="col">Date</th>
+            <th scope="col">Date de signature</th>
             <th scope="col">Montant HT</th>
             <th scope="col">Montat TVA</th>
             <th scope="col">Montant TTC</th>
@@ -174,6 +175,7 @@ function ListeDevis() {
                 </td>
                 <td>{d.description}</td>
                 <td>{d.date}</td>
+                <td>{d.signed_at ? new Date(d.signed_at).toLocaleDateString('fr-FR') : ''}</td>
                 <td>{getLocationHT(d)} €</td>
                 <td>{getLocationTVA(d)} €</td>
                 <td>{getDisplayTotal(d)} €</td>
@@ -190,7 +192,7 @@ function ListeDevis() {
             ))
           ) : (
             <tr>
-              <td colSpan="9">Aucun devis trouvé</td>
+              <td colSpan="10">Aucun devis trouvé</td>
             </tr>
             )}
         </tbody>

@@ -345,6 +345,7 @@ function Client() {
             <th scope="col">Titre</th>
             <th scope="col">Description</th>
             <th scope="col">Date</th>
+            <th scope="col">Date de signature</th>
             <th scope="col">Montant HT</th>
             <th scope="col">Montant TVA</th>
             <th scope="col">Montant TTC</th>
@@ -361,6 +362,7 @@ function Client() {
             </td>
               <td>{devis.description}</td>
               <td>{devis.date}</td>
+              <td>{devis.signed_at ? new Date(devis.signed_at).toLocaleDateString('fr-FR') : ''}</td>
               <td>{getLocationHT(devis)} €</td>
               <td>{getLocationTVA(devis)} €</td>
             <td>{getDisplayTotal(devis)} €</td>
@@ -377,7 +379,7 @@ function Client() {
             ))
             ) : (
             <tr>
-              <td colSpan={8}>Aucun devis trouvé</td>
+              <td colSpan="9">Aucun devis trouvé</td>
             </tr>
             )}
           </tbody>
