@@ -496,6 +496,30 @@ def get_devis_pdf(devis_id):
         
         logging.info(f"Location scenario - vat_tva_totals after copying articles: {vat_tva_totals}")
         
+        # If vat_totals_map is empty, try to rebuild from articles
+        if not vat_tva_totals:
+            for item in devis_data.get('articles', []):
+                try:
+                    taux = None
+                    if item.get('taux_tva') and item['taux_tva'].get('taux') is not None:
+                        taux = float(item['taux_tva']['taux'])
+                    else:
+                        taux = float(item['article']['taux_tva']['taux'])
+                    
+                    qty = float(item.get('quantite') or 0)
+                    
+                    # Use location pricing for location scenarios
+                    prix_achat = float(item.get('article', {}).get('prix_achat_HT') or 0)
+                    margin_rate_location = (params.margin_rate_location if params else 0.0) or 0.0
+                    unit_ht = prix_achat * margin_rate_location if prix_achat > 0 and margin_rate_location > 0 else float(item.get('article', {}).get('prix_vente_HT') or 0)
+                    
+                    line_ht = qty * unit_ht
+                    line_tva = line_ht * (taux or 0.0)
+                    
+                    vat_tva_totals[taux] = round((vat_tva_totals.get(taux, 0.0) or 0.0) + line_tva, 2)
+                except Exception:
+                    continue
+        
         # Get the location totals for current scenario
         current_location_total = location_without if selected_scenario == "location_without_apport" else location_with
         location_vat = current_location_total["total_tva"]
