@@ -365,7 +365,7 @@ function AdminParameters() {
 
           <div className={`tab-pane fade ${activeTab === "tva" ? "show active" : ""}`}>
             <div className="row g-3">
-              <div className="col-md-6">
+              <div className="col-md-2">
                 <label className="form-label">Ajouter un taux de TVA</label>
                 <div className="input-group">
                   <input

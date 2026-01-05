@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session, render_template
+from flask import Blueprint, request, jsonify, session, render_template, make_response
 from models import db, Devis, DevisSchema, DevisArticles, Clients, Articles, TauxTVA, Parameters
 from datetime import datetime
 from weasyprint import HTML
