@@ -260,9 +260,9 @@ def update_devis(devis_id):
                 "params": {
                     "margin_rate": params.margin_rate if params else 0.0,
                     "margin_rate_location": params.margin_rate_location if params else 0.0,
-                    "location_subscription_cost": devis.location_subscription_cost,
-                    "location_interests_cost": devis.location_interests_cost,
-                    "location_time": devis.location_time,
+                    "location_subscription_cost": params.location_subscription_cost if params else 0.0,
+                    "location_interests_cost": params.location_interests_cost if params else 0.0,
+                    "location_time": params.location_time if params else 0,
                     "general_conditions_sales": params.general_conditions_sales if params else "",
                 },
                 "company": {
