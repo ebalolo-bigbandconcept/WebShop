@@ -339,7 +339,11 @@ def get_devis_pdf(devis_id):
 
     # Compute totals by VAT rate from per-line or article default
     vat_totals_map = {}
+    logging.info(f"Building vat_totals_map - snapshot exists: {snapshot is not None}")
+    logging.info(f"Building vat_totals_map - snapshot.get('lines'): {snapshot.get('lines') if snapshot else 'N/A'}")
+    
     if snapshot and snapshot.get("lines"):
+        logging.info(f"Using snapshot lines to build vat_totals_map")
         for line in snapshot.get("lines", []):
             try:
                 taux = float(line.get("taux_tva") or 0.0)
@@ -353,6 +357,7 @@ def get_devis_pdf(devis_id):
             except Exception:
                 continue
     else:
+        logging.info(f"Using articles to build vat_totals_map - article count: {len(devis_data.get('articles', []))}")
         # Determine if we should use location pricing
         use_location_pricing = selected_scenario in {"location_without_apport", "location_with_apport"}
         
@@ -385,6 +390,8 @@ def get_devis_pdf(devis_id):
             except Exception:
                 # Skip malformed items silently for PDF rendering
                 continue
+    
+    logging.info(f"Final vat_totals_map after building: {vat_totals_map}")
 
     # Fetch parameters for general conditions, location duration and fees
     params = Parameters.query.first()
@@ -495,30 +502,6 @@ def get_devis_pdf(devis_id):
             vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
         logging.info(f"Location scenario - vat_tva_totals after copying articles: {vat_tva_totals}")
-        
-        # If vat_totals_map is empty, try to rebuild from articles
-        if not vat_tva_totals:
-            for item in devis_data.get('articles', []):
-                try:
-                    taux = None
-                    if item.get('taux_tva') and item['taux_tva'].get('taux') is not None:
-                        taux = float(item['taux_tva']['taux'])
-                    else:
-                        taux = float(item['article']['taux_tva']['taux'])
-                    
-                    qty = float(item.get('quantite') or 0)
-                    
-                    # Use location pricing for location scenarios
-                    prix_achat = float(item.get('article', {}).get('prix_achat_HT') or 0)
-                    margin_rate_location = (params.margin_rate_location if params else 0.0) or 0.0
-                    unit_ht = prix_achat * margin_rate_location if prix_achat > 0 and margin_rate_location > 0 else float(item.get('article', {}).get('prix_vente_HT') or 0)
-                    
-                    line_ht = qty * unit_ht
-                    line_tva = line_ht * (taux or 0.0)
-                    
-                    vat_tva_totals[taux] = round((vat_tva_totals.get(taux, 0.0) or 0.0) + line_tva, 2)
-                except Exception:
-                    continue
         
         # Get the location totals for current scenario
         current_location_total = location_without if selected_scenario == "location_without_apport" else location_with
