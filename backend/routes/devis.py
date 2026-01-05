@@ -543,6 +543,16 @@ def get_devis_pdf(devis_id):
     # Create a copy of devis_data with modified articles for location scenarios
     devis_display = devis_data.copy()
     devis_display['articles'] = articles_to_display
+    
+    # For location scenarios, update the article totals to match location pricing
+    if selected_scenario in {"location_without_apport", "location_with_apport"}:
+        articles_ht_total = sum(bucket["total_ht"] for bucket in vat_totals_map.values())
+        articles_tva_total = sum(bucket["total_tva"] for bucket in vat_totals_map.values())
+        articles_ttc_total = articles_ht_total + articles_tva_total
+        
+        devis_display['montant_HT'] = round(articles_ht_total, 2)
+        devis_display['montant_TVA'] = round(articles_tva_total, 2)
+        devis_display['montant_TTC'] = round(articles_ttc_total, 2)
 
     # Render HTML using Jinja2 template
     html_out = render_template(
