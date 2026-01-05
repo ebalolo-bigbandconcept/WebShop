@@ -457,11 +457,23 @@ def get_devis_pdf(devis_id):
         }
 
     # Build a minimal map for 20% and 10% showing only total TVA
-    # For location scenarios, recalculate the VAT based on the final totals
+    # For location scenarios, preserve article VAT breakdown and add subscription/maintenance VAT
     vat_tva_totals = {}
     payment_options = {}
     
     if selected_scenario in {"location_without_apport", "location_with_apport"}:
+        # Copy article-level VAT breakdown
+        vat_tva_totals = {}
+        for taux, bucket in vat_totals_map.items():
+            vat_tva_totals[taux] = round(bucket["total_tva"], 2)
+        
+        # Add subscription and maintenance VAT (at 20%)
+        subscription_ht = float(subscription_ttc or 0.0) / 1.20
+        maintenance_ht = float(maintenance_ttc or 0.0) / 1.20
+        extra_vat_20 = round((subscription_ht + maintenance_ht) * 0.20, 2)
+        
+        vat_tva_totals[0.20] = round((vat_tva_totals.get(0.20, 0.0) or 0.0) + extra_vat_20, 2)
+        
         # Calculate location totals
         location_without = _compute_location_totals(0.0)
         location_with = _compute_location_totals(devis_data.get("first_contribution_amount"))
@@ -471,12 +483,6 @@ def get_devis_pdf(devis_id):
             "location_without_apport": location_without,
             "location_with_apport": location_with,
         }
-        
-        # For location, all VAT is at 20% on the final total
-        if selected_scenario == "location_without_apport":
-            vat_tva_totals[0.20] = location_without["total_tva"]
-        else:
-            vat_tva_totals[0.20] = location_with["total_tva"]
     else:
         # For direct purchase, use the article-level VAT breakdown
         for wanted in (0.20, 0.10):
