@@ -300,18 +300,18 @@
   {% elif selected_scenario == "location_without_apport" %}
     <div class="location-box" style="margin-top: 16px;">
       <table>
-        <tr><th colspan="2">Location sans apport</th></tr>
+        <tr><th colspan="2">Location sans apport ({{ location_time }} mois)</th></tr>
         <tr><td>Mensuel HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ht or 0) }} €</td></tr>
-        <tr><td>Mensuel TTC</td><td class="right">{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ttc or 0) }} €</td></tr>
+        <tr><td><strong>Mensuel TTC</strong></td><td class="right"><strong>{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ttc or 0) }} €</strong></td></tr>
       </table>
     </div>
   {% elif selected_scenario == "location_with_apport" %}
     <div class="location-box" style="margin-top: 16px;">
       <table>
-        <tr><th colspan="2">Location avec apport</th></tr>
+        <tr><th colspan="2">Location avec apport ({{ location_time }} mois)</th></tr>
         <tr><td>Apport</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.apport or 0) }} €</td></tr>
         <tr><td>Mensuel HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ht or 0) }} €</td></tr>
-        <tr><td>Mensuel TTC</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ttc or 0) }} €</td></tr>
+        <tr><td><strong>Mensuel TTC</strong></td><td class="right"><strong>{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ttc or 0) }} €</strong></td></tr>
       </table>
     </div>
   {% endif %}
