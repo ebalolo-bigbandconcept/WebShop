@@ -434,18 +434,17 @@ def get_devis_pdf(devis_id):
         if devis_data.get("location_total") and devis_data.get("location_total_ht"):
             # These are the stored totals (likely with the devis's original apport)
             stored_total_ht = float(devis_data.get("location_total_ht") or 0.0)
-            stored_total_ttc = float(devis_data.get("location_total") or 0.0)
             stored_apport = float(devis_data.get("first_contribution_amount") or 0.0)
             
-            # Calculate the base (without any apport)
+            # Calculate the base HT (without any apport)
             base_total_ht = stored_total_ht + stored_apport
-            base_total_ttc = stored_total_ttc + stored_apport
             
             # Apply the requested apport
             total_ht_value = base_total_ht - apport
-            total_ttc_value = base_total_ttc - apport
             total_ht_value = max(total_ht_value, 0.0)
-            total_ttc_value = max(total_ttc_value, 0.0)
+            
+            # Calculate TTC from HT (assuming 20% VAT)
+            total_ttc_value = total_ht_value * 1.20
         else:
             # Fallback: calculate from articles if stored values don't exist
             # Get articles total TTC
@@ -455,12 +454,12 @@ def get_devis_pdf(devis_id):
             subscription_ttc_value = float(subscription_ttc or 0.0)
             maintenance_ttc_value = float(maintenance_ttc or 0.0)
             
-            # Total TTC = articles TTC + subscription + maintenance - apport
-            total_ttc_value = articles_ttc + subscription_ttc_value + maintenance_ttc_value - apport
-            total_ttc_value = max(total_ttc_value, 0.0)
+            # Total HT = articles TTC + subscription + maintenance - apport
+            total_ht_value = articles_ttc + subscription_ttc_value + maintenance_ttc_value - apport
+            total_ht_value = max(total_ht_value, 0.0)
             
-            # Convert TTC to HT (assuming 20% VAT)
-            total_ht_value = total_ttc_value / 1.20
+            # Calculate TTC from HT (multiply by 1.20)
+            total_ttc_value = total_ht_value * 1.20
 
         monthly_ht = (total_ht_value / location_time) if location_time else 0.0
         monthly_ttc = (total_ttc_value / location_time) if location_time else 0.0
