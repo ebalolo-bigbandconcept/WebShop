@@ -126,9 +126,12 @@
     padding: 8px 0;
     font-size: 10px;
     line-height: 1.4;
-    font-style: italic;
     text-decoration: underline;
     text-align: justify;
+  }
+  .vat-note em {
+    font-style: italic;
+    font-size: inherit;
   }
 
   /* Payment options table */
@@ -301,7 +304,7 @@
 
 {% if vat_tva_totals and 0.10 in vat_tva_totals %}
 <div class="vat-note">
-  En qualité de preneur de la prestation, j’atteste que les travaux réalisés se rapportent à des locaux à usage d’habitation achevés depuis plus de deux ans et respectent les conditions prévues par les articles 279-0 bis et 278-0 bis A du code général des impôts, et notamment que les travaux effectués sur une période de deux ans au plus n’ont ni concouru à la production d’un immeuble neuf au sens du 2° du I de l’article du code général des impôts, ni même conduit à augmenter la surface de plancher des locaux existants de plus de 10 %.
+  <em>En qualité de preneur de la prestation, j’atteste que les travaux réalisés se rapportent à des locaux à usage d’habitation achevés depuis plus de deux ans et respectent les conditions prévues par les articles 279-0 bis et 278-0 bis A du code général des impôts, et notamment que les travaux effectués sur une période de deux ans au plus n’ont ni concouru à la production d’un immeuble neuf au sens du 2° du I de l’article du code général des impôts, ni même conduit à augmenter la surface de plancher des locaux existants de plus de 10 %.</em>
 </div>
 {% endif %}
 
