@@ -300,7 +300,7 @@
     <td>Total TTC</td>
     <td>{{ "{:.2f}".format(devis.montant_TTC or 0) }} €</td>
   </tr>
-  {% if selected_scenario == "direct" and remise and remise > 0 %}
+  {% if remise and remise > 0 %}
   <tr>
     <td>Remise</td>
     <td>- {{ "{:.2f}".format(remise) }} €</td>

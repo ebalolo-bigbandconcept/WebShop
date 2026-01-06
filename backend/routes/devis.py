@@ -348,14 +348,13 @@ def get_devis_pdf(devis_id):
     # Fetch parameters early for general conditions, location duration and fees
     params = Parameters.query.first()
 
-    # Remise applies only to direct payment scenario
+    # Remise should always be considered (even if no scenario selected)
     try:
         remise_value = float(snapshot.get("remise")) if snapshot and snapshot.get("remise") is not None else float(devis_data.get("remise") or 0.0)
     except Exception:
         remise_value = 0.0
-    apply_remise = (selected_scenario == "direct")
     direct_base_ttc = float(devis_data.get("montant_TTC") or devis.montant_TTC or 0.0)
-    direct_ttc_after_remise = max(direct_base_ttc - (remise_value if apply_remise else 0.0), 0.0)
+    direct_ttc_after_remise = max(direct_base_ttc - remise_value, 0.0)
     
     # Compute totals by VAT rate from per-line or article default
     vat_totals_map = {}
@@ -547,7 +546,7 @@ def get_devis_pdf(devis_id):
         devis_display['montant_TVA'] = round(articles_tva_total, 2)
         devis_display['montant_TTC'] = round(articles_ttc_total, 2)
 
-    effective_remise = remise_value if selected_scenario == "direct" else 0.0
+    effective_remise = remise_value
     ttc_after_remise_display = max(float(devis_display.get('montant_TTC') or 0.0) - effective_remise, 0.0)
     devis_display['remise'] = round(effective_remise, 2)
     devis_display['ttc_after_remise'] = round(ttc_after_remise_display, 2)
