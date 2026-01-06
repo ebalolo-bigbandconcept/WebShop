@@ -108,6 +108,7 @@ def create_devis():
     montant_HT = request.json["montant_HT"]
     montant_TVA = request.json["montant_TVA"]
     montant_TTC = request.json["montant_TTC"]
+    remise = float(request.json.get("remise", 0.0) or 0.0)
     statut = request.json["statut"]
     client_id = request.json["client_id"]
     articles_data = request.json["articles"]
@@ -126,6 +127,7 @@ def create_devis():
         montant_HT=montant_HT,
         montant_TVA=montant_TVA,
         montant_TTC=montant_TTC,
+        remise=remise,
         statut=statut,
         is_location=is_location,
         first_contribution_amount=first_contribution_amount,
@@ -175,6 +177,7 @@ def update_devis(devis_id):
     devis.montant_HT = request.json["montant_HT"]
     devis.montant_TVA = request.json["montant_TVA"]
     devis.montant_TTC = request.json["montant_TTC"]
+    devis.remise = float(request.json.get("remise", devis.remise) or 0.0)
     devis.statut = request.json["statut"]
     devis.is_location = request.json.get("is_location", False)
     devis.first_contribution_amount = request.json.get("first_contribution_amount")
@@ -184,6 +187,7 @@ def update_devis(devis_id):
     devis.location_total_ht = request.json.get("location_total_ht")
     articles_data = request.json["articles"]
     params = Parameters.query.first()
+    remise_value = float(request.json.get("remise") or 0.0)
     
     try:
         DevisArticles.query.filter_by(devis_id=devis.id).delete()
@@ -256,7 +260,9 @@ def update_devis(devis_id):
                     "ht": round(total_ht, 2),
                     "tva": round(total_tva, 2),
                     "ttc": round(total_ttc, 2),
+                    "ttc_after_remise": round(max(total_ttc - remise_value, 0.0), 2),
                 },
+                "remise": round(remise_value, 2),
                 "params": {
                     "margin_rate": params.margin_rate if params else 0.0,
                     "margin_rate_location": params.margin_rate_location if params else 0.0,
@@ -341,6 +347,15 @@ def get_devis_pdf(devis_id):
 
     # Fetch parameters early for general conditions, location duration and fees
     params = Parameters.query.first()
+
+    # Remise applies only to direct payment scenario
+    try:
+        remise_value = float(snapshot.get("remise")) if snapshot and snapshot.get("remise") is not None else float(devis_data.get("remise") or 0.0)
+    except Exception:
+        remise_value = 0.0
+    apply_remise = (selected_scenario == "direct")
+    direct_base_ttc = float(devis_data.get("montant_TTC") or devis.montant_TTC or 0.0)
+    direct_ttc_after_remise = max(direct_base_ttc - (remise_value if apply_remise else 0.0), 0.0)
     
     # Compute totals by VAT rate from per-line or article default
     vat_totals_map = {}
@@ -503,7 +518,7 @@ def get_devis_pdf(devis_id):
             vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
         payment_options = {
-            "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
+            "direct": {"total_ttc": round(direct_ttc_after_remise, 2)},
             "location_without_apport": location_without,
             "location_with_apport": location_with,
         }
@@ -513,7 +528,7 @@ def get_devis_pdf(devis_id):
             vat_tva_totals[taux] = round(bucket["total_tva"], 2)
         
         payment_options = {
-            "direct": {"total_ttc": round(float(devis_data.get("montant_TTC") or 0.0), 2)},
+            "direct": {"total_ttc": round(direct_ttc_after_remise, 2)},
             "location_without_apport": _compute_location_totals(0.0),
             "location_with_apport": _compute_location_totals(devis_data.get("first_contribution_amount")),
         }
@@ -532,6 +547,11 @@ def get_devis_pdf(devis_id):
         devis_display['montant_TVA'] = round(articles_tva_total, 2)
         devis_display['montant_TTC'] = round(articles_ttc_total, 2)
 
+    effective_remise = remise_value if selected_scenario == "direct" else 0.0
+    ttc_after_remise_display = max(float(devis_display.get('montant_TTC') or 0.0) - effective_remise, 0.0)
+    devis_display['remise'] = round(effective_remise, 2)
+    devis_display['ttc_after_remise'] = round(ttc_after_remise_display, 2)
+
     # Render HTML using Jinja2 template
     html_out = render_template(
         "pdf.html",
@@ -542,6 +562,8 @@ def get_devis_pdf(devis_id):
         company=company_info,
         selected_scenario=selected_scenario,
         payment_options=payment_options,
+        remise=devis_display.get("remise", 0.0),
+        ttc_after_remise=ttc_after_remise_display,
     )
     
     # Calculate the absolute path to the folder containing your template and static files

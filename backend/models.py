@@ -35,6 +35,7 @@ class Devis(db.Model):
     montant_HT = db.Column(db.Float(), nullable=False)
     montant_TVA = db.Column(db.Float(), nullable=False)
     montant_TTC = db.Column(db.Float(), nullable=False)
+    remise = db.Column(db.Float(), nullable=True, default=0.0)
     statut = db.Column(db.String(50), nullable=False)
     date_paiement = db.Column(db.Date(), nullable=True)
     envelope_id = db.Column(db.String(255), nullable=True)  # DocuSign envelope ID

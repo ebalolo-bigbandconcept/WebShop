@@ -300,6 +300,16 @@
     <td>Total TTC</td>
     <td>{{ "{:.2f}".format(devis.montant_TTC or 0) }} €</td>
   </tr>
+  {% if selected_scenario == "direct" and remise and remise > 0 %}
+  <tr>
+    <td>Remise</td>
+    <td>- {{ "{:.2f}".format(remise) }} €</td>
+  </tr>
+  <tr>
+    <td><strong>Total TTC après remise</strong></td>
+    <td><strong>{{ "{:.2f}".format(ttc_after_remise or 0) }} €</strong></td>
+  </tr>
+  {% endif %}
 </table>
 
 {% if vat_tva_totals and 0.10 in vat_tva_totals %}
@@ -315,7 +325,7 @@
     <table class="payment-options">
       <tr><th colspan="2">Paiement direct</th></tr>
       <tr>
-        <td><strong>Total TTC</strong></td>
+        <td><strong>Total TTC (après remise)</strong></td>
         <td><strong>{{ "{:.2f}".format(payment_options.direct.total_ttc or 0) }} €</strong></td>
       </tr>
     </table>

@@ -38,6 +38,7 @@ function Devis() {
   const [devis_montant_HT, setDevisMontantHT] = useState(0);
   const [devis_montant_TVA, setDevisMontantTVA] = useState(0);
   const [devis_montant_TTC, setDevisMontantTTC] = useState(0);
+  const [devis_remise, setDevisRemise] = useState(0);
   const [devis_status, setDevisStatus] = useState("Non signé");
   const [selected_scenario, setSelectedScenario] = useState(null); // tracks which scenario client selected
   const [first_contribution_amount, setFirstContributionAmount] = useState(0);
@@ -350,6 +351,7 @@ function Devis() {
         montant_HT: devis_montant_HT,
         montant_TVA: devis_montant_TVA,
         montant_TTC: devis_montant_TTC,
+        remise: devis_remise,
         statut: devis_status,
         client_id: id_client,
         is_location: true,
@@ -478,6 +480,7 @@ function Devis() {
       setDevisMontantHT(data.montant_HT);
       setDevisMontantTVA(data.montant_TVA);
       setDevisMontantTTC(data.montant_TTC);
+      setDevisRemise(data.remise || 0);
       setDevisStatus(data.statut);
       setSelectedScenario(data.selected_scenario || null); // load selected scenario if already chosen
       setFirstContributionAmount(data.first_contribution_amount || 0);
@@ -619,6 +622,13 @@ function Devis() {
     recomputeLocationTotals(apport);
   }
 
+  const handleRemiseChange = (value) => {
+    if (blockSignedEdit()) return;
+    const parsed = parseFloat(value);
+    const safeValue = !isNaN(parsed) && parsed >= 0 ? parsed : 0;
+    setDevisRemise(safeValue);
+  }
+
   useEffect(() => {
     getClientInfo();
     getAllArticles();
@@ -669,6 +679,7 @@ function Devis() {
     setDevisMontantHT(devis.montant_HT);
     setDevisMontantTVA(devis.montant_TVA);
     setDevisMontantTTC(devis.montant_TTC);
+    setDevisRemise(devis.remise || 0);
     setDevisStatus(devis.statut);
     setFirstContributionAmount(devis.first_contribution_amount || 0);
     setLocationMonthlyTotal(devis.location_monthly_total || 0);
@@ -878,6 +889,8 @@ function Devis() {
     </div>
   );
 
+  const totalTtcAfterRemise = Math.max((parseFloat(devis_montant_TTC) || 0) - (parseFloat(devis_remise) || 0), 0).toFixed(2);
+
   if (loading) return <div>Chargement...</div>;
 
   return (
@@ -978,9 +991,29 @@ function Devis() {
                 <span className="fw-bold">Montant total TVA:</span>
                 <span className="ms-2">{devis_montant_TVA} €</span>
               </div>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="fw-bold fs-6">Montant total TTC:</span>
+                <span className="ms-2 fw-bold">{devis_montant_TTC} €</span>
+              </div>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="fw-bold">Remise (paiement direct):</span>
+                <div className="d-flex align-items-center">
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    style={{ width: '110px' }}
+                    value={devis_remise}
+                    onChange={(e) => handleRemiseChange(e.target.value)}
+                    min="0"
+                    step="0.01"
+                    disabled={isLocked}
+                  />
+                  <span className="ms-2">€</span>
+                </div>
+              </div>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <span className="fw-bold fs-5">Montant total TTC:</span>
-                <span className="ms-2 fs-5 fw-bold">{devis_montant_TTC} €</span>
+                <span className="fw-bold fs-5">Total TTC après remise:</span>
+                <span className="ms-2 fs-5 fw-bold">{totalTtcAfterRemise} €</span>
               </div>
             </div>
 
