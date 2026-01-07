@@ -99,6 +99,15 @@ class Parameters(db.Model):
     general_conditions_sales = db.Column(db.Text, nullable=False, default="")
     company_name = db.Column(db.String(200), nullable=False, default="")
     company_address_line1 = db.Column(db.String(200), nullable=False, default="")
+    company_address_line2 = db.Column(db.String(200), nullable=False, default="")
+    company_zip = db.Column(db.String(20), nullable=False, default="")
+    company_city = db.Column(db.String(100), nullable=False, default="")
+    company_phone = db.Column(db.String(50), nullable=False, default="")
+    company_email = db.Column(db.String(200), nullable=False, default="")
+    company_iban = db.Column(db.String(64), nullable=False, default="")
+    company_tva = db.Column(db.String(64), nullable=False, default="")
+    company_siret = db.Column(db.String(64), nullable=False, default="")
+    company_aprm = db.Column(db.String(64), nullable=False, default="")
 
 
 class EnvelopeTracking(db.Model):
@@ -130,15 +139,6 @@ class EnvelopeTracking(db.Model):
             'notified_at': self.notified_at.isoformat() if self.notified_at else None,
             'notification_status': self.notification_status
         }
-    company_address_line2 = db.Column(db.String(200), nullable=False, default="")
-    company_zip = db.Column(db.String(20), nullable=False, default="")
-    company_city = db.Column(db.String(100), nullable=False, default="")
-    company_phone = db.Column(db.String(50), nullable=False, default="")
-    company_email = db.Column(db.String(200), nullable=False, default="")
-    company_iban = db.Column(db.String(64), nullable=False, default="")
-    company_tva = db.Column(db.String(64), nullable=False, default="")
-    company_siret = db.Column(db.String(64), nullable=False, default="")
-    company_aprm = db.Column(db.String(64), nullable=False, default="")
 
 # Marshmallow Schema to structure the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):

@@ -208,26 +208,28 @@ def get_envelope_definition(document, recipients, webhook_url):
     Returns:
         EnvelopeDefinition: Configured envelope definition
     """
-    # Add event notification for webhook
-    event_notification = EventNotification(
-        url=webhook_url,
-        logging_enabled="true",
-        require_acknowledgment="true",
-        use_soap_interface="false",
-        include_certificate_with_soap="false",
-        sign_message_with_x509_cert="false",
-        include_documents="true",
-        include_envelope_void_reason="true",
-        include_time_zone="true",
-        include_sender_account_as_custom_field="true",
-        include_document_fields="true",
-        include_certificate_of_completion="true",
-        envelope_events=[
-            EnvelopeEvent(envelope_event_status_code="completed"),
-            EnvelopeEvent(envelope_event_status_code="declined"),
-            EnvelopeEvent(envelope_event_status_code="voided")
-        ]
-    )
+    # Webhook disabled for now (HTTPS required by DocuSign)
+    # Will be re-enabled when proper HTTPS domain is configured
+    event_notification = None
+    # event_notification = EventNotification(
+    #     url=webhook_url,
+    #     logging_enabled="true",
+    #     require_acknowledgment="true",
+    #     use_soap_interface="false",
+    #     include_certificate_with_soap="false",
+    #     sign_message_with_x509_cert="false",
+    #     include_documents="true",
+    #     include_envelope_void_reason="true",
+    #     include_time_zone="true",
+    #     include_sender_account_as_custom_field="true",
+    #     include_document_fields="true",
+    #     include_certificate_of_completion="true",
+    #     envelope_events=[
+    #         EnvelopeEvent(envelope_event_status_code="completed"),
+    #         EnvelopeEvent(envelope_event_status_code="declined"),
+    #         EnvelopeEvent(envelope_event_status_code="voided")
+    #     ]
+    # )
     
     envelope_definition = EnvelopeDefinition(
         email_subject="Veuillez signer le document",
