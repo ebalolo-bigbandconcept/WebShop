@@ -446,9 +446,6 @@ sudo docker compose -f docker-compose.prod.yml exec backend python init_db.py
 # Vérifier que tout fonctionne
 sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
-
-# Supprimer les fichier dans .env_prod_secrets
-sudo rm -rf .env_prod_secrets
 ```
 
 ### 6. Accès à l'Application
