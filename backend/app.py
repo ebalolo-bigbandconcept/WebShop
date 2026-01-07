@@ -13,6 +13,7 @@ from routes.articles import articles_bp
 from routes.auth import auth_bp
 from routes.clients import clients_bp
 from routes.devis import devis_bp
+from routes.docusign import docusign_bp
 
 # CONSTANTS
 load_dotenv()
@@ -51,6 +52,7 @@ app.register_blueprint(articles_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(clients_bp)
 app.register_blueprint(devis_bp)
+app.register_blueprint(docusign_bp)
 
 # Initialize default data (only if tables exist)
 # This will be called after migrations are run

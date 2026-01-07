@@ -640,10 +640,16 @@ def select_scenario(devis_id):
 
 ### DocuSign routes ###
 
-# Send PDF to external service for signing
+# Send PDF for signing via integrated DocuSign service
 @devis_bp.route('/pdf/send/external/<client_id>/<devis_id>', methods=['POST'])
 def external_send_pdf_sign(client_id, devis_id):
+    """
+    Send PDF for signing via DocuSign
+    Kept for backward compatibility - now uses integrated DocuSign service
+    """
     try:
+        from services.docusign_service import send_envelope_for_signing
+        
         file = request.files['file']
         client = Clients.query.filter_by(id=client_id).first()
         if not client:
@@ -657,35 +663,30 @@ def external_send_pdf_sign(client_id, devis_id):
         nom = client.nom
         prenom = client.prenom
 
-        # Get other Docusign credentials from environment variables
+        # Get DocuSign credentials from environment variables or Docker secrets
         integrator_key = open("/run/secrets/DOCUSIGN_INTEGRATION_KEY").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_INTEGRATION_KEY") else os.getenv("DOCUSIGN_INTEGRATION_KEY")
         account_id = open("/run/secrets/DOCUSIGN_ACCOUNT_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_ACCOUNT_ID") else os.getenv("DOCUSIGN_ACCOUNT_ID")
         user_id = open("/run/secrets/DOCUSIGN_USER_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_USER_ID") else os.getenv("DOCUSIGN_USER_ID")
-        
-        # Build callback URL for webhook notifications
-        backend_url = os.getenv("BACKEND_URL", "http://backend:5000")
-        callback_url = f"{backend_url}/api/devis/docusign/webhook"
 
-        # Prepare files and data for the external service
-        files = {'file': (file.filename, file.read(), file.content_type)}
-        data = {
-            'integrator_key': integrator_key,
-            'account_id': account_id,
-            'user_id': user_id,
-            'signers': json.dumps([{
+        if not all([integrator_key, account_id, user_id]):
+            return jsonify({"error": "DocuSign credentials not configured"}), 500
+
+        # Use integrated DocuSign service
+        result = send_envelope_for_signing(
+            pdf_bytes=file.read(),
+            signers_data=json.dumps([{
                 'email': email,
                 'name': f"{prenom} {nom}"
-            }])
-        }
-            
-
-        # Make the POST request to the external service
-        target_url = os.getenv("DOCUSIGN_SERVER_IP") + "/send-pdf"
-        response = requests.post(target_url, files=files, data=data)
-        response.raise_for_status()
+            }]),
+            integrator_key=integrator_key,
+            account_id=account_id,
+            user_id=user_id,
+            callback_url=None,  # Webhook is internal now
+            requester_host=request.headers.get('Origin', request.remote_addr),
+            filename=file.filename or "devis.pdf"
+        )
         
-        response_data = response.json()
-        envelope_id = response_data.get('envelope_id')
+        envelope_id = result.get('envelope_id')
         
         # Store envelope_id in the devis and update status
         if envelope_id:
@@ -694,20 +695,17 @@ def external_send_pdf_sign(client_id, devis_id):
             db.session.commit()
             logging.info(f"Devis {devis_id} envoyé pour signature. Envelope ID: {envelope_id}")
         
-        logging.info(response_data)
-        
-        # Return the JSON response from the external service
-        return jsonify(response_data), response.status_code
+        return jsonify(result), 200
     
-    except requests.exceptions.RequestException as e:
-        logging.exception(f"Erreur lors de l'appel au service externe: {e}")
-        return jsonify({"error": f"Erreur lors de l'appel au service externe: {e}"}), 500
+    except ValueError as e:
+        logging.error(f"Validation error: {e}")
+        return jsonify({"error": str(e)}), 400
     
     except Exception as e:
-        logging.exception("Erreur lors de l'envoi du PDF via le service externe:")
+        logging.exception("Erreur lors de l'envoi du PDF pour signature:")
         return jsonify({"error": str(e)}), 500
 
-# Webhook endpoint to receive DocuSign status updates
+# Webhook endpoint to receive DocuSign status updates from integrated service
 @devis_bp.route('/docusign/webhook', methods=['POST'])
 def docusign_webhook():
     """

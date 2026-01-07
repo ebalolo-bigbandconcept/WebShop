@@ -5,6 +5,8 @@ services:
       dockerfile: backend/Dockerfile
     env_file:
       - .env
+    environment:
+      - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/docusign_private_key
     ports:
       - "5000:5000"
     depends_on:
@@ -12,6 +14,8 @@ services:
     volumes:
       - ./backend:/app # Mount backend code for development
       - db_data:/app/instance
+    secrets:
+      - docusign_private_key
 
   frontend:
     build:
@@ -37,3 +41,7 @@ volumes:
 networks:
   default:
     driver: bridge
+
+secrets:
+  docusign_private_key:
+    file: ./docusign/private.pem

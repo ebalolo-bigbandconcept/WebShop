@@ -398,7 +398,48 @@ server {
 
 > `Optionnel`: Vous pouvez changer le port 80 si nécessaire, mais il faudra le faire aussi dans `docker-compose.prod.yml`.
 
-#### 4. Configurer le Pare-feu
+#### 4. DocuSign (intégration interne)
+
+Mise en place de l'API DocuSign interne (dossier `docusign/`), à déployer sur le même serveur.
+
+1) Créer l'intégration DocuSign
+
+- Créez une application intégrée sur DocuSign (My Apps & Keys → Add App and Integration Key).
+- Choisissez **Private custom integration**, générez les clés RSA (`public.pem`, `private.pem`).
+- Ajoutez la Redirect URI : `https://www.google.com` et autorisez HTTP POST.
+
+2) Consentement OAuth (une seule fois par utilisateur)
+
+```bash
+https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id={your_integration_id}&redirect_uri=https://www.google.com
+```
+
+3) Secrets et clé privée
+
+```bash
+sudo docker swarm init                                # si le swarm n'est pas déjà initialisé
+sudo docker secret create docusign_private_key private.pem
+sudo rm private.pem                                   # retirez la clé en clair
+```
+
+Ajoutez/maintenez les secrets côté WebShop : `DOCUSIGN_ACCOUNT_ID`, `DOCUSIGN_USER_ID`, `DOCUSIGN_INTEGRATION_KEY` (déjà prévus dans `.env_prod_secrets`).
+
+4) Déployer le service DocuSign interne
+
+```bash
+cd docusign
+sudo docker build -f dockerfile.prod -t docusign-api:prod .
+sudo docker stack deploy -c docker-compose.prod.yml docusign_stack
+```
+
+Le service écoute sur le port `5001`. Ouvrez le port si nécessaire (voir pare-feu ci-dessous).
+
+5) Pointer le backend vers ce service
+
+- Dans `docker-compose.prod.yml`, réglez `DOCUSIGN_SERVER_IP` sur l'URL publique/privée du service : `http://<host_ou_ip>:5001/api`.
+- Pour les webhooks sortants, ajoutez `INTERNAL_API_BASE_URL=https://<votre-domaine>` dans l'environnement du service DocuSign (fichier `.env` du dossier `docusign/`).
+
+#### 5. Configurer le Pare-feu
 
 Configurez le pare-feu pour autoriser le trafic HTTP (port 80) et HTTPS (port 443 si utilisé) :
 
@@ -410,7 +451,7 @@ sudo ufw enable
 sudo ufw status
 ```
 
-#### 5. Déployer en Production
+#### 6. Déployer en Production
 
 ```bash
 # Build les images de production
@@ -430,7 +471,7 @@ sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
 ```
 
-### 6. Accès à l'Application
+### 7. Accès à l'Application
 
 - Frontend : [http://votre_domaine_ou_ip](http://votre_domaine_ou_ip)
 - Backend : [http://votre_domaine_ou_ip:5000](http://votre_domaine_ou_ip:5000)
