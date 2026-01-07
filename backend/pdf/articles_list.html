@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<title>Liste des Articles - Artech Sécurité</title>
+<style>
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #222;
+  }
+
+  /* Container for header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  .header img {
+    height: 60px;
+  }
+  .header .date {
+    font-size: 12px;
+  }
+
+  /* Title */
+  h1 {
+    text-align: center;
+    font-size: 16px;
+    margin: 10px 0 20px 0;
+    color: #4f688b;
+  }
+
+  /* Main table styles */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    font-size: 11px;
+  }
+  th, td {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  th {
+    background-color: #4f688b;
+    color: white;
+    font-weight: bold;
+  }
+  tbody tr:nth-child(even) {
+    background-color: #efefef;
+  }
+  td.left-align {
+    text-align: left;
+  }
+  td.right-align {
+    text-align: right;
+  }
+
+  /* Footer with page number */
+  footer {
+    position: fixed;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 11px;
+    color: #555;
+  }
+  .footer-center {
+    flex: 1;
+    text-align: center;
+  }
+  .footer-right {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .page-number:before {
+    content: "Page ";
+  }
+  .page-number:after {
+    content: counter(page);
+  }
+  @page {
+    counter-reset: page 1;
+  }
+
+  .summary {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+  }
+  .summary p {
+    margin: 5px 0;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <img src="logo.jpg" alt="Artech Sécurité Logo" />
+  <div class="date">{{ date }}</div>
+</header>
+
+<h1>Liste des Articles de Référence</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 5%">#</th>
+      <th style="width: 30%">Article</th>
+      <th style="width: 20%">Référence</th>
+      <th style="width: 15%">Prix d'achat HT</th>
+      <th style="width: 15%">Prix de vente HT</th>
+      <th style="width: 10%">TVA</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for article in articles %}
+    <tr>
+      <td>{{ article.id }}</td>
+      <td class="left-align">{{ article.nom }}</td>
+      <td class="left-align">{{ article.reference }}</td>
+      <td class="right-align">{{ "{:.2f}".format(article.prix_achat_HT or 0) }} €</td>
+      <td class="right-align">{{ "{:.2f}".format(article.prix_vente_HT or 0) }} €</td>
+      <td>{{ "{:.0%}".format(article.taux_tva.taux if article.taux_tva else 0.20) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="summary">
+  <p><strong>Total articles :</strong> {{ articles|length }}</p>
+  <p><strong>Date d'export :</strong> {{ date }}</p>
+</div>
+
+<footer>
+  <div class="footer-center">{{ company_name }} - Liste des Articles</div>
+  <div class="footer-right"><span class="page-number"></span></div>
+</footer>
+
+</body>
+</html>

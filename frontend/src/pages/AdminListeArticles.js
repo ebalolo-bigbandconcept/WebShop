@@ -194,6 +194,30 @@ function ListeArticles() {
     showModal();
   }
 
+  const exportArticlesPDF = async () => {
+    try {
+      const response = await httpClient.get(
+        `${process.env.REACT_APP_BACKEND_URL}/articles/export-pdf`,
+        { responseType: 'blob' }
+      );
+      
+      // Create blob and download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `articles_list_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showToast({ message: "Liste des articles téléchargée avec succès", variant: "success" });
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || "Erreur lors du téléchargement de la liste";
+      showToast({ message: errorMessage, variant: "danger" });
+    }
+  }
+
   const deleteArticle = async () => {
     httpClient
       .post(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${article_id}`)
@@ -427,7 +451,8 @@ function ListeArticles() {
             </div>
         </div>
       </div>
-      <div className="d-flex justify-content-end w-100">
+      <div className="d-flex justify-content-end w-100 gap-2">
+        <button className="btn btn-lg btn-info mt-4" onClick={exportArticlesPDF}>Exporter</button>
         <button className="btn btn-lg btn-success mt-4" onClick={handleCreateArticle}>+ Ajouter un nouvel article</button>
       </div>
       <table className="table table-hover table-striped mt-4">

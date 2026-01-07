@@ -1,8 +1,11 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, render_template, make_response
 from models import db, Articles, ArticlesSchema, TauxTVA, Parameters
 import logging
 from .admin import admin_required
 from utils import validate_article_fields
+from weasyprint import HTML
+from datetime import datetime
+import os
 
 # Create a Blueprint for articles-related routes
 articles_bp = Blueprint('articles_bp', __name__, url_prefix='/api/articles')
@@ -146,3 +149,60 @@ def delete_article(article_id):
     return jsonify({
         "200": "Article successfully deleted."
     })
+
+# Export all articles as PDF
+@articles_bp.route("/export-pdf", methods=['GET'])
+def export_articles_pdf():
+    # Check if user is authenticated
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    try:
+        articles = Articles.query.order_by(Articles.id.asc()).all()
+        
+        if not articles:
+            return jsonify({"error": "Aucuns articles trouvé"}), 404
+        
+        # Get company info from parameters
+        params = Parameters.query.first()
+        company_name = params.company_name if params else "Artech Sécurité"
+        
+        # Format current date
+        current_date = datetime.now().strftime("%d/%m/%Y")
+        
+        # Prepare articles data
+        articles_data = []
+        for article in articles:
+            articles_data.append({
+                'id': article.id,
+                'nom': article.nom,
+                'reference': article.reference,
+                'prix_achat_HT': article.prix_achat_HT,
+                'prix_vente_HT': article.prix_vente_HT,
+                'taux_tva': article.taux_tva
+            })
+        
+        # Render HTML using Jinja2 template
+        html_out = render_template(
+            "articles_list.html",
+            articles=articles_data,
+            date=current_date,
+            company_name=company_name
+        )
+        
+        # Calculate the absolute path to the pdf folder
+        base_path = '/app/pdf/'
+        
+        # Generate PDF
+        pdf_bytes = HTML(string=html_out, base_url=base_path).write_pdf()
+        
+        # Return PDF as response
+        response = make_response(pdf_bytes)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = f"attachment; filename=articles_list_{current_date.replace('/', '-')}.pdf"
+        return response
+    
+    except Exception as e:
+        logging.error(f"Error generating articles PDF: {e}")
+        return jsonify({"error": "Erreur lors de la génération du PDF"}), 500
