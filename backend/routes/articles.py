@@ -50,7 +50,7 @@ def add_article():
         return jsonify({"error": "Unauthorized"}), 401
     
     nom = request.json["nom"]
-    description = request.json["description"]
+    reference = request.json["reference"]
     prix_achat_HT = request.json["prix_achat_HT"]
     taux_tva = request.json["taux_tva"]
     
@@ -64,13 +64,13 @@ def add_article():
     margin_rate = params.margin_rate if params else 0.0
     prix_vente_HT = float(prix_achat_HT) * margin_rate
     
-    error = validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux_tva_id)
+    error = validate_article_fields(nom, reference, prix_achat_HT, prix_vente_HT, taux_tva_id)
     if error:
         return jsonify({"error": error}), 400
     
     new_article = Articles(
         nom=nom,
-        description=description,
+        reference=reference,
         prix_achat_HT=prix_achat_HT,
         prix_vente_HT=prix_vente_HT,
         taux_tva_id=taux_tva_id
@@ -96,7 +96,7 @@ def modify_article(article_id):
         return jsonify({"error": "Article non trouvé"}), 404
     
     new_nom = request.json["nom"]
-    new_description = request.json["description"]
+    new_reference = request.json["reference"]
     new_prix_achat_HT = request.json["prix_achat_HT"]
     new_taux_tva = request.json["taux_tva"]
     
@@ -109,12 +109,12 @@ def modify_article(article_id):
     margin_rate = params.margin_rate if params else 0.0
     new_prix_vente_HT = float(new_prix_achat_HT) * margin_rate
     
-    error = validate_article_fields(new_nom, new_description, new_prix_achat_HT, new_prix_vente_HT, new_taux_tva_id)
+    error = validate_article_fields(new_nom, new_reference, new_prix_achat_HT, new_prix_vente_HT, new_taux_tva_id)
     if error:
         return jsonify({"error": error}), 400
     
     article.nom = new_nom
-    article.description = new_description
+    article.reference = new_reference
     article.prix_achat_HT = new_prix_achat_HT
     article.prix_vente_HT = new_prix_vente_HT
     article.taux_tva_id = new_taux_tva_id

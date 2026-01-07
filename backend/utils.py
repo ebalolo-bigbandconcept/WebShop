@@ -35,10 +35,10 @@ def validate_client_fields(nom, prenom, rue, ville, code_postal, telephone, emai
         return "Le téléphone doit contenir entre 1 et 20 caractères."
     return None
 
-def validate_article_fields(nom, description, prix_achat_HT, prix_vente_HT, taux_tva_id):
+def validate_article_fields(nom, reference, prix_achat_HT, prix_vente_HT, taux_tva_id):
     if len(nom) < 1 or len(nom) > 200:
         return "Le nom de l'article doit contenir entre 1 et 200 caractères."
-    # Description becomes optional; allow empty string
+    # Reference becomes optional; allow empty string
     if float(prix_achat_HT) < 0:
         return "Le prix d'achat HT ne peut pas être négatif."
     if float(prix_vente_HT) < 0:

@@ -58,7 +58,7 @@ class Articles(db.Model):
     __tablename__ = "articles"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     nom = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    reference = db.Column(db.Text, nullable=False)
     prix_achat_HT = db.Column(db.Float(), nullable=False)
     prix_vente_HT = db.Column(db.Float(), nullable=False)
     taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)

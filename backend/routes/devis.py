@@ -239,7 +239,7 @@ def update_devis(devis_id):
                 snapshot_lines.append({
                     "article_id": article_obj.id if article_obj else article.get("article_id"),
                     "nom": getattr(article_obj, "nom", ""),
-                    "description": getattr(article_obj, "description", ""),
+                    "reference": getattr(article_obj, "reference", ""),
                     "quantite": qty,
                     "taux_tva": taux_val,
                     "prix_unitaire_ht": unit_price,

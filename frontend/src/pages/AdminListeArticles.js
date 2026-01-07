@@ -10,7 +10,7 @@ function ListeArticles() {
 
   const [form_submited, setFormSubmited] = useState(false);
   const [article_nom, setArticleNom] = useState(null);
-  const [article_description, setArticleDescription] = useState("");
+  const [article_reference, setArticleReference] = useState("");
   const [article_prix_achat_HT, setArticlePrixAchatHT] = useState(null);
   const [article_prix_vente_HT, setArticlePrixVenteHT] = useState(null);
   const [article_taux_tva, setArticleTauxTVA] = useState(0.20);
@@ -18,7 +18,7 @@ function ListeArticles() {
 
   const [article_id, setArticleId] = useState("");
   const [article_nom_error, setArticleNomError] = useState("");
-  const [article_description_error, setArticleDescriptionError] = useState("");
+  const [article_reference_error, setArticleReferenceError] = useState("");
   const [article_prix_achat_HT_error, setArticlePrixAchatHTError] = useState("");
   const [article_prix_vente_HT_error, setArticlePrixVenteHTError] = useState("");
 
@@ -48,9 +48,9 @@ function ListeArticles() {
     return true;
   }
   
-  const articleDescriptionVerif = async (value) => {
-    // Description is optional
-    setArticleDescriptionError("");
+  const articleReferenceVerif = async (value) => {
+    // Reference is optional
+    setArticleReferenceError("");
     return true;
   }
 
@@ -98,16 +98,16 @@ function ListeArticles() {
     setFormSubmited(true);
 
     const isArticleNomValid = await articleNomVerif(article_nom);
-    const isArticleDescriptionValid = await articleDescriptionVerif(article_description);
+    const isArticleReferenceValid = await articleReferenceVerif(article_reference);
     const isArticlePrixAchatHTValid = await articlePrixAchatHTVerif(article_prix_achat_HT);
 
-    const isFormValid = isArticleNomValid && isArticleDescriptionValid && isArticlePrixAchatHTValid;
+    const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid;
 
     if (isFormValid) {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/articles/create`, {
           nom: article_nom,
-          description: article_description,
+          reference: article_reference,
           prix_achat_HT: article_prix_achat_HT,
           taux_tva: article_taux_tva,
         })
@@ -137,7 +137,7 @@ function ListeArticles() {
       .then((resp) => {
         setArticleId(resp.data.id);
         setArticleNom(resp.data.nom);
-        setArticleDescription(resp.data.description);
+        setArticleReference(resp.data.reference);
         setArticlePrixAchatHT(resp.data.prix_achat_HT);
         setArticlePrixVenteHT(resp.data.prix_vente_HT);
         setArticleTauxTVA(resp.data.taux_tva.taux);
@@ -156,15 +156,15 @@ function ListeArticles() {
     setFormSubmited(true);
 
     const isArticleNomValid = await articleNomVerif(article_nom);
-    const isArticleDescriptionValid = await articleDescriptionVerif(article_description);
+    const isArticleReferenceValid = await articleReferenceVerif(article_reference);
     const isArticlePrixAchatHTValid = await articlePrixAchatHTVerif(article_prix_achat_HT);
-    const isFormValid = isArticleNomValid && isArticleDescriptionValid && isArticlePrixAchatHTValid;
+    const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid;
 
     if (isFormValid) {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/articles/update/${article_id}`, {
           nom: article_nom,
-          description: article_description,
+          reference: article_reference,
           prix_achat_HT: article_prix_achat_HT,
           taux_tva: article_taux_tva,
         })
@@ -240,13 +240,13 @@ function ListeArticles() {
     modalRef.current && modalRef.current.close();
     setFormSubmited(false);
     setArticleNom("");
-    setArticleDescription("");
+    setArticleReference("");
     setArticlePrixAchatHT("");
     setArticlePrixVenteHT("");
     setArticleTauxTVA(0.20);
 
     setArticleNomError("");
-    setArticleDescriptionError("");
+    setArticleReferenceError("");
     setArticlePrixAchatHTError("");
     setArticlePrixVenteHTError("");
 
@@ -280,7 +280,7 @@ function ListeArticles() {
     if (searchTerm) {
         currentArticles = currentArticles.filter(art => 
             art.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            art.description.toLowerCase().includes(searchTerm.toLowerCase())
+            art.reference.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }
 
@@ -328,15 +328,15 @@ function ListeArticles() {
         <div className="invalid-feedback">{article_nom_error}</div>
       </div>
       <div className="form-outline col-12 mt-4">
-        <label className="form-label">Description</label>
+        <label className="form-label">Référence</label>
         <textarea
-          id="prénom"
-          value={article_description}
-          onChange={(e) => { setArticleDescription(e.target.value); articleDescriptionVerif(e.target.value); }}
-          className={`form-control form-control-lg ${article_description_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
-          placeholder="Entrer une description"
+          id="reference"
+          value={article_reference}
+          onChange={(e) => { setArticleReference(e.target.value); articleReferenceVerif(e.target.value); }}
+          className={`form-control form-control-lg ${article_reference_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Entrer une référence"
         />
-        <div className="invalid-feedback">{article_description_error}</div>
+        <div className="invalid-feedback">{article_reference_error}</div>
       </div>
       <div className="form-outline col-lg-5 col-4 mt-4">
         <label className="form-label">Prix d'achat HT</label>
@@ -411,7 +411,7 @@ function ListeArticles() {
 
       <div className="row mb-3 align-items-center">
         <div className="col-md-9">
-          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, description..."
+          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, référence..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
         </div>
         <div className="col-md-3">
@@ -435,7 +435,7 @@ function ListeArticles() {
           <tr>
             <th scope="col">#</th>
             <th scope="col">Article</th>
-            <th scope="col">Description</th>
+            <th scope="col">Référence</th>
             <th scope="col">Prix d'achat HT</th>
             <th scope="col">Prix de vente HT</th>
             <th scope="col">TVA</th>
@@ -447,7 +447,7 @@ function ListeArticles() {
               <tr key={article.id} onClick={() => {handleModifyArticle(article.id)}}>
                 <td>{article.id}</td>
                 <td>{article.nom}</td>
-                <td>{article.description}</td>
+                <td>{article.reference}</td>
                 <td>{article.prix_achat_HT} €</td>
                 <td>{article.prix_vente_HT} €</td>
                 <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>

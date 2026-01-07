@@ -802,7 +802,7 @@ function Devis() {
         <thead>
           <tr>
             <th scope="col">Article</th>
-            <th scope="col">Description</th>
+            <th scope="col">Référence</th>
             <th scope="col">Montant u. HT</th>
           </tr>
         </thead>
@@ -815,7 +815,7 @@ function Devis() {
                 onClick={() => { setArticleSelected(article); }}
               >
                 <td>{article.nom}</td>
-                <td>{article.description}</td>
+                <td>{article.reference}</td>
                 <td>{getUnitHT(article).toFixed(2)} €</td>
               </tr>
             ))
