@@ -1,2 +1,4 @@
 .env
 .env_prod_secrets
+.vscode/
+node_modules/

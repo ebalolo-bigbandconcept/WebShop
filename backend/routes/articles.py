@@ -200,7 +200,7 @@ def export_articles_pdf():
         # Return PDF as response
         response = make_response(pdf_bytes)
         response.headers["Content-Type"] = "application/pdf"
-        response.headers["Content-Disposition"] = f"attachment; filename=articles_list_{current_date.replace('/', '-')}.pdf"
+        response.headers["Content-Disposition"] = f"attachment; filename=liste_articles_{current_date.replace('/', '-')}.pdf"
         return response
     
     except Exception as e:
