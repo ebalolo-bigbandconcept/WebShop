@@ -387,6 +387,8 @@ sudo docker compose -f docker-compose.prod.yml logs -f
 
 ## Support HTTPS avec Let's Encrypt
 
+> **Note importante** : Remplacez `your-domain.tld` par votre vrai domaine dans toutes les commandes ci-dessous.
+
 ### 1. Préparer la configuration
 
 - Mettez à jour [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine réel :
@@ -397,11 +399,9 @@ ssl_certificate /etc/letsencrypt/live/your-domain.tld/fullchain.pem;
 ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
 ```
 
-- Ouvrez les ports 80/443 sur le serveur (pare-feu) pour éviter les erreurs "connection refused" pendant l'ACME challenge.
-
 ### 2. Bootstrap (éviter le crash Nginx avant le vrai certificat)
 
-Nginx ne doit pas tomber en échec si le certificat n'existe pas encore. Générez un certificat autosigné éphémère partagé via le volume `letsencrypt` :
+Générez un certificat autosigné éphémère partagé via le volume `letsencrypt` :
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
@@ -413,7 +413,7 @@ sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot 
            -out /etc/letsencrypt/live/your-domain.tld/fullchain.pem"
 ```
 
-### 3. Démarrer les services (proxy doit écouter sur 80)
+### 3. Démarrer les services
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml up -d --force-recreate proxy
@@ -428,7 +428,7 @@ sudo ss -ltnp | grep ':80'
 
 ### 4. Obtenir le vrai certificat (webroot)
 
-Si vous avez déjà un dossier `live/your-domain.tld` (ancien autosigné), supprimez-le avant de lancer certbot pour éviter l'erreur "live directory exists" :
+Supprimer l'ancien certificat autosigné avant de lancer certbot :
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
@@ -455,23 +455,38 @@ sudo docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload
 
 ### 6. Renouvellement automatique
 
-Tâche cron recommandée :
+Les certificats Let's Encrypt expirent après 90 jours. Configurez une tâche cron pour les renouveler automatiquement.
+
+#### 6.1 Ouvrir l'éditeur crontab
 
 ```bash
-# Run at 3 AM daily
-0 3 * * * cd /path/to/WebShop && \
-  docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot && \
-  docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload
+crontab -e
 ```
 
-### 7. Vérifications
+#### 6.2 Ajouter la tâche de renouvellement
 
-- ✅ Accès HTTPS et certificat valide
-- ✅ Pas de mixed-content
-- ✅ Cookies avec flag `Secure`
-- ✅ Logs Nginx : `sudo docker compose -f docker-compose.prod.yml logs -f proxy`
+Ajoutez cette ligne à la fin du fichier crontab :
 
----
+> **Note importante** : Remplacez `/path/to/WebShop` par le chemin absolu de votre projet.
+
+```bash
+# Renouvellement Let's Encrypt à 3h du matin tous les jours
+0 3 * * * cd /path/to/WebShop && docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot && docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload >> /var/log/certbot-renew.log 2>&1
+```
+
+#### 6.4 Vérifier la tâche cron
+
+```bash
+crontab -l
+```
+
+#### 6.5 Tester le renouvellement manuellement
+
+```bash
+sudo docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot --dry-run
+```
+
+Le flag `--dry-run` teste le renouvellement sans modifier les certificats réels.
 
 ## Sauvegarde et restauration
 
