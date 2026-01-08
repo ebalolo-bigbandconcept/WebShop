@@ -13,7 +13,7 @@ import os
 import json
 import requests
 from datetime import datetime
-from models import db, EnvelopeTracking
+from models import db, EnvelopeTracking, Devis, DevisArticles, Parameters, TauxTVA
 
 logger = logging.getLogger(__name__)
 
@@ -208,28 +208,26 @@ def get_envelope_definition(document, recipients, webhook_url):
     Returns:
         EnvelopeDefinition: Configured envelope definition
     """
-    # Webhook disabled for now (HTTPS required by DocuSign)
-    # Will be re-enabled when proper HTTPS domain is configured
-    event_notification = None
-    # event_notification = EventNotification(
-    #     url=webhook_url,
-    #     logging_enabled="true",
-    #     require_acknowledgment="true",
-    #     use_soap_interface="false",
-    #     include_certificate_with_soap="false",
-    #     sign_message_with_x509_cert="false",
-    #     include_documents="true",
-    #     include_envelope_void_reason="true",
-    #     include_time_zone="true",
-    #     include_sender_account_as_custom_field="true",
-    #     include_document_fields="true",
-    #     include_certificate_of_completion="true",
-    #     envelope_events=[
-    #         EnvelopeEvent(envelope_event_status_code="completed"),
-    #         EnvelopeEvent(envelope_event_status_code="declined"),
-    #         EnvelopeEvent(envelope_event_status_code="voided")
-    #     ]
-    # )
+    # Webhook enabled - requires HTTPS backend
+    event_notification = EventNotification(
+        url=webhook_url,
+        logging_enabled="true",
+        require_acknowledgment="true",
+        use_soap_interface="false",
+        include_certificate_with_soap="false",
+        sign_message_with_x509_cert="false",
+        include_documents="true",
+        include_envelope_void_reason="true",
+        include_time_zone="true",
+        include_sender_account_as_custom_field="true",
+        include_document_fields="true",
+        include_certificate_of_completion="true",
+        envelope_events=[
+            EnvelopeEvent(envelope_event_status_code="completed"),
+            EnvelopeEvent(envelope_event_status_code="declined"),
+            EnvelopeEvent(envelope_event_status_code="voided")
+        ]
+    )
     
     envelope_definition = EnvelopeDefinition(
         email_subject="Veuillez signer le document",
@@ -244,7 +242,7 @@ def get_envelope_definition(document, recipients, webhook_url):
 
 
 def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_id, user_id, 
-                             callback_url=None, requester_host=None, filename="Document à signer"):
+                             callback_url=None, requester_host=None, filename="Document à signer", devis_id=None):
     """
     Send a PDF for signing via DocuSign.
     
@@ -257,6 +255,7 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         callback_url: URL to notify when signing completes
         requester_host: Origin of the request
         filename: Name of the document
+        devis_id: ID of the devis being signed (for auto-update)
         
     Returns:
         dict: Response containing envelope_id, webhook_url, tracking_id
@@ -298,13 +297,14 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         try:
             tracking = EnvelopeTracking(
                 envelope_id=results.envelope_id,
+                devis_id=devis_id,
                 callback_url=callback_url,
                 requester_host=requester_host,
                 status='sent'
             )
             db.session.add(tracking)
             db.session.commit()
-            logger.info(f"Stored tracking info for envelope {results.envelope_id}")
+            logger.info(f"Stored tracking info for envelope {results.envelope_id} (devis_id={devis_id})")
         except Exception as db_error:
             logger.error(f"Failed to store tracking info: {db_error}")
             db.session.rollback()
@@ -320,6 +320,108 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         raise e
     except ApiException as e:
         logger.error(f"DocuSign API error: {e}")
+        raise e
+
+
+def create_devis_signed_snapshot(devis):
+    """
+    Create a signed_data snapshot for a devis, capturing its current state.
+    Similar logic to the update_devis endpoint.
+    
+    Args:
+        devis: Devis model instance
+        
+    Returns:
+        dict: Snapshot data to store in signed_data field
+    """
+    try:
+        params = Parameters.query.first()
+        remise_value = float(devis.remise or 0.0)
+        
+        snapshot_lines = []
+        total_ht = 0.0
+        total_tva = 0.0
+        total_ttc = 0.0
+        
+        # Recalculate based on current articles
+        for article in devis.articles:
+            article_obj = article.article if article.article else None
+            
+            # Get unit price
+            unit_price = 0.0
+            if article_obj:
+                unit_price = float(article_obj.prix_vente_HT or 0.0)
+            
+            # Get VAT rate
+            taux_val = 0.0
+            if article.taux_tva:
+                taux_val = float(article.taux_tva.taux)
+            elif article_obj and article_obj.taux_tva:
+                taux_val = float(article_obj.taux_tva.taux)
+            
+            qty = float(article.quantite)
+            line_ht = unit_price * qty
+            line_tva = line_ht * (taux_val or 0.0)
+            line_ttc = line_ht + line_tva
+            
+            total_ht += line_ht
+            total_tva += line_tva
+            total_ttc += line_ttc
+            
+            snapshot_lines.append({
+                "article_id": article_obj.id if article_obj else article.article_id,
+                "nom": getattr(article_obj, "nom", ""),
+                "reference": getattr(article_obj, "reference", ""),
+                "quantite": qty,
+                "taux_tva": taux_val,
+                "prix_unitaire_ht": unit_price,
+                "montant_ht": line_ht,
+                "montant_tva": line_tva,
+                "montant_ttc": line_ttc,
+                "commentaire": article.commentaire or "",
+            })
+        
+        return {
+            "lines": snapshot_lines,
+            "totals": {
+                "ht": round(total_ht, 2),
+                "tva": round(total_tva, 2),
+                "ttc": round(total_ttc, 2),
+                "ttc_after_remise": round(max(total_ttc - remise_value, 0.0), 2),
+            },
+            "remise": round(remise_value, 2),
+            "params": {
+                "margin_rate": params.margin_rate if params else 0.0,
+                "margin_rate_location": params.margin_rate_location if params else 0.0,
+                "location_subscription_cost": params.location_subscription_cost if params else 0.0,
+                "location_interests_cost": params.location_interests_cost if params else 0.0,
+                "location_time": params.location_time if params else 0,
+                "general_conditions_sales": params.general_conditions_sales if params else "",
+            },
+            "company": {
+                "name": params.company_name if params else "",
+                "address_line1": params.company_address_line1 if params else "",
+                "address_line2": params.company_address_line2 if params else "",
+                "zip": params.company_zip if params else "",
+                "city": params.company_city if params else "",
+                "phone": params.company_phone if params else "",
+                "email": params.company_email if params else "",
+                "iban": params.company_iban if params else "",
+                "tva": params.company_tva if params else "",
+                "siret": params.company_siret if params else "",
+                "aprm": params.company_aprm if params else "",
+            },
+            "location": {
+                "is_location": devis.is_location,
+                "first_contribution_amount": devis.first_contribution_amount,
+                "location_monthly_total": devis.location_monthly_total,
+                "location_monthly_total_ht": devis.location_monthly_total_ht,
+                "location_total": devis.location_total,
+                "location_total_ht": devis.location_total_ht,
+            },
+        }
+    except Exception as e:
+        logger.error(f"Error creating signed snapshot: {e}")
         raise e
 
 
@@ -383,12 +485,42 @@ def handle_webhook(data):
         # Update tracking status
         tracking.status = status
         
-        # If envelope is completed (signed), record the timestamp
+        # If envelope is completed (signed), record the timestamp and update devis
         if status == 'completed':
             tracking.signed_at = datetime.utcnow()
             logger.info(f"Envelope {envelope_id} completed at {tracking.signed_at}")
-        
-        db.session.commit()
+            
+            # Auto-update the devis if devis_id is present
+            if tracking.devis_id:
+                try:
+                    devis = Devis.query.filter_by(id=tracking.devis_id).first()
+                    if devis:
+                        logger.info(f"Auto-updating devis {tracking.devis_id} to signed status")
+                        
+                        # Only update if not already signed (idempotency)
+                        if devis.statut != "Signé":
+                            # Create signed snapshot
+                            devis.signed_data = create_devis_signed_snapshot(devis)
+                            devis.signed_at = datetime.utcnow()
+                            devis.statut = "Signé"
+                            
+                            db.session.commit()
+                            logger.info(f"Devis {tracking.devis_id} auto-signed via DocuSign webhook")
+                        else:
+                            logger.warning(f"Devis {tracking.devis_id} was already signed, skipping")
+                    else:
+                        logger.error(f"Devis {tracking.devis_id} not found")
+                except Exception as e:
+                    logger.error(f"Error updating devis {tracking.devis_id}: {e}")
+                    db.session.rollback()
+            
+            # Commit tracking update if not already committed
+            try:
+                db.session.commit()
+            except:
+                pass
+        else:
+            db.session.commit()
         
         # Notify the external site if callback URL exists
         if tracking.callback_url and status in ['completed', 'declined', 'voided']:

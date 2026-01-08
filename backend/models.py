@@ -116,10 +116,11 @@ class EnvelopeTracking(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     envelope_id = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=True)
     callback_url = db.Column(db.String(2048), nullable=True)
     requester_host = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(50), default='sent')
-    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(datetime.timezone.utc))
     signed_at = db.Column(db.DateTime, nullable=True)
     notified_at = db.Column(db.DateTime, nullable=True)
     notification_status = db.Column(db.String(50), nullable=True)

@@ -213,7 +213,8 @@ def send_pdf_sign(client_id, devis_id):
             user_id=user_id,
             callback_url=None,  # Webhook is internal now
             requester_host=request.headers.get('Origin', request.remote_addr),
-            filename=file.filename or "devis.pdf"
+            filename=file.filename or "devis.pdf",
+            devis_id=devis_id  # Pass devis_id for auto-update
         )
         
         envelope_id = result.get('envelope_id')
