@@ -5,8 +5,8 @@ services:
       dockerfile: backend/Dockerfile.prod
     environment:
       - FLASK_ENV=production
-      - FRONTEND_URL=https://localhost
-      - BACKEND_URL=https://backend:5000
+      - FRONTEND_URL=https://vps116574.serveur-vps.net
+      - BACKEND_URL=https://vps116574.serveur-vps.net
       - DATABASE_URL=postgresql://user:password@db:5432/users_db
       - DOCUSIGN_ENV=demo
       - DOCUSIGN_SERVER_IP=https://vps116574.serveur-vps.net/api
