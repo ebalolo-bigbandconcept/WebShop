@@ -416,7 +416,7 @@ function Devis() {
         httpClient
         .put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData)
         .then((resp) => {
-          navigate(`/client/${id_client}`);
+          showToast({ message: "Devis enregistré avec succès.", variant: "success" });
         })
         .catch((error) => {
           if (error.response && error.response.data && error.response.data.error) {
@@ -429,7 +429,61 @@ function Devis() {
     }
   }
 
-  // ### Delete devis
+  // ### Save devis and generate PDF ###
+  const handleGeneratePDF = async () => {
+    if (blockSignedEdit()) return;
+
+    // Validate form first
+    setFormSubmited(true);
+    const isTitleValid = devisTitleVerif(devis_title);
+    const isDateValid = devisDateVerif(devis_date);
+    const isContentValid = devisContentVerif(articles_in_devis);
+    const isformValid = isTitleValid && isDateValid && isContentValid;
+
+    if (!isformValid) {
+      showToast({ message: "Veuillez corriger les erreurs avant de générer le devis.", variant: "warning" });
+      return;
+    }
+
+    // Save the devis
+    const devisData = {
+      title: devis_title,
+      description: devis_description,
+      date: devis_date,
+      montant_HT: devis_montant_HT,
+      montant_TVA: devis_montant_TVA,
+      montant_TTC: devis_montant_TTC,
+      remise: devis_remise,
+      statut: devis_status,
+      client_id: id_client,
+      is_location: true,
+      first_contribution_amount: first_contribution_amount,
+      location_monthly_total: location_monthly_total,
+      location_monthly_total_ht: location_monthly_total_ht,
+      location_total: devis_location_total,
+      location_total_ht: devis_location_total_ht,
+      articles: articles_in_devis.map(article => ({
+        article_id: article.id,
+        quantite: article.quantite,
+        taux_tva: article.taux_tva?.taux,
+        commentaire: article.commentaire || null,
+      })),
+    };
+
+    try {
+      await httpClient.put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData);
+      // Navigate to PDF page after saving
+      navigate(`/devis/${id_client}/${id_devis}/pdf`, { state: location.state });
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        showToast({ message: error.response.data.error, variant: "danger" });
+      } else {
+        showToast({ message: "Erreur lors de l'enregistrement du devis.", variant: "danger" });
+      }
+    }
+  }
+
+  // ### Delete devis from database ###
   const deleteDevis = async () => {
     if (blockSignedEdit()) return;
     const targetId = (devis && devis.id) ? devis.id : id_devis;
@@ -1115,7 +1169,7 @@ function Devis() {
         <button className="btn btn-primary" onClick={handleAddArticle} disabled={isLocked}>+ Ajouter un article</button>
         <div>
           {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}> Supprimer le devis</button> : ""}
-          {!isNewDevis ? <button className="btn btn-success me-4" onClick={() => navigate(`/devis/${id_client}/${id_devis}/pdf`, { state: location.state })}>Générer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}>Générer le devis</button> : ""}
           <button className="btn btn-success" onClick={saveDevis} disabled={isLocked && !isNewDevis}> Enregistrer le devis</button>
         </div>
       </div>
