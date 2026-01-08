@@ -6,12 +6,15 @@ Handles sending PDFs for signing and receiving webhook notifications
 from flask import Blueprint, request, jsonify
 import logging
 import xml.etree.ElementTree as ET
+import os
+import json
 from services.docusign_service import (
     send_envelope_for_signing,
     handle_webhook,
     get_envelope_status,
     list_all_envelopes
 )
+from models import db, Clients, Devis
 
 docusign_bp = Blueprint('docusign', __name__, url_prefix='/api/docusign')
 logger = logging.getLogger(__name__)
@@ -165,3 +168,69 @@ def list_envelopes():
         return jsonify(envelopes), status_code
     else:
         return jsonify(envelopes), status_code
+
+
+@docusign_bp.route('/send/<client_id>/<devis_id>', methods=['POST'])
+def send_pdf_sign(client_id, devis_id):
+    """
+    Send PDF for signing via DocuSign
+    Integrated endpoint for sending devis PDFs to clients
+    """
+    try:
+        file = request.files.get('file')
+        if not file:
+            return jsonify({"error": "No file provided"}), 400
+        
+        client = Clients.query.filter_by(id=client_id).first()
+        if not client:
+            return jsonify({"error": "Client non trouvé."}), 404
+        
+        devis = Devis.query.filter_by(id=devis_id).first()
+        if not devis:
+            return jsonify({"error": "Devis non trouvé."}), 404
+        
+        email = client.email
+        nom = client.nom
+        prenom = client.prenom
+
+        # Get DocuSign credentials from environment variables or Docker secrets
+        integrator_key = open("/run/secrets/DOCUSIGN_INTEGRATION_KEY").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_INTEGRATION_KEY") else os.getenv("DOCUSIGN_INTEGRATION_KEY")
+        account_id = open("/run/secrets/DOCUSIGN_ACCOUNT_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_ACCOUNT_ID") else os.getenv("DOCUSIGN_ACCOUNT_ID")
+        user_id = open("/run/secrets/DOCUSIGN_USER_ID").read().strip() if os.path.exists("/run/secrets/DOCUSIGN_USER_ID") else os.getenv("DOCUSIGN_USER_ID")
+
+        if not all([integrator_key, account_id, user_id]):
+            return jsonify({"error": "DocuSign credentials not configured"}), 500
+
+        # Use integrated DocuSign service
+        result = send_envelope_for_signing(
+            pdf_bytes=file.read(),
+            signers_data=json.dumps([{
+                'email': email,
+                'name': f"{prenom} {nom}"
+            }]),
+            integrator_key=integrator_key,
+            account_id=account_id,
+            user_id=user_id,
+            callback_url=None,  # Webhook is internal now
+            requester_host=request.headers.get('Origin', request.remote_addr),
+            filename=file.filename or "devis.pdf"
+        )
+        
+        envelope_id = result.get('envelope_id')
+        
+        # Store envelope_id in the devis and update status
+        if envelope_id:
+            devis.envelope_id = envelope_id
+            devis.statut = "En attente de signature"
+            db.session.commit()
+            logger.info(f"Devis {devis_id} envoyé pour signature. Envelope ID: {envelope_id}")
+        
+        return jsonify(result), 200
+    
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return jsonify({"error": str(e)}), 400
+    
+    except Exception as e:
+        logger.exception("Erreur lors de l'envoi du PDF pour signature:")
+        return jsonify({"error": str(e)}), 500

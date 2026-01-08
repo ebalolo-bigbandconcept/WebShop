@@ -73,7 +73,7 @@ function DevisPdfPreview() {
       formData.append("file", pdfBlob, `devis_${id_devis}.pdf`)
       
       httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/devis/pdf/send/external/${id_client}/${id_devis}`, formData)
+        .post(`${process.env.REACT_APP_BACKEND_URL}/docusign/send/${id_client}/${id_devis}`, formData)
         .then((resp) => {
           showToast({ message: `Document envoyé ! Envelope ID: ${resp.data.envelope_id}`, variant: "success" });
         })
