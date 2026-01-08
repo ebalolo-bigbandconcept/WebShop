@@ -9,7 +9,6 @@ services:
       - BACKEND_URL=https://vps116574.serveur-vps.net
       - DATABASE_URL=postgresql://user:password@db:5432/users_db
       - DOCUSIGN_ENV=demo
-      - DOCUSIGN_SERVER_IP=https://vps116574.serveur-vps.net/api
       - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/DOCUSIGN_PRIVATE_KEY
     secrets:
       - SECRET_KEY

@@ -11,7 +11,6 @@ import time
 import logging
 import os
 import json
-import requests
 from datetime import datetime, timezone
 from models import db, EnvelopeTracking, Devis, DevisArticles, Parameters, TauxTVA
 
@@ -242,7 +241,7 @@ def get_envelope_definition(document, recipients, webhook_url):
 
 
 def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_id, user_id, 
-                             callback_url=None, requester_host=None, filename="Document à signer", devis_id=None):
+                             requester_host=None, filename="Document à signer", devis_id=None):
     """
     Send a PDF for signing via DocuSign.
     
@@ -252,7 +251,6 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         integrator_key: DocuSign Integration Key
         account_id: DocuSign Account ID
         user_id: DocuSign User ID
-        callback_url: URL to notify when signing completes
         requester_host: Origin of the request
         filename: Name of the document
         devis_id: ID of the devis being signed (for auto-update)
@@ -298,7 +296,7 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
             tracking = EnvelopeTracking(
                 envelope_id=results.envelope_id,
                 devis_id=devis_id,
-                callback_url=callback_url,
+                callback_url=None,
                 requester_host=requester_host,
                 status='sent'
             )
@@ -425,40 +423,6 @@ def create_devis_signed_snapshot(devis):
         raise e
 
 
-def notify_external_site(envelope_id, status, tracking):
-    """Send notification to external site about envelope status"""
-    try:
-        payload = {
-            "envelope_id": envelope_id,
-            "status": status,
-            "requester_host": tracking.requester_host,
-            "signed_at": tracking.signed_at.isoformat() if tracking.signed_at else None,
-            "created_at": tracking.created_at.isoformat() if tracking.created_at else None
-        }
-        
-        logger.info(f"Notifying {tracking.callback_url} about envelope {envelope_id}")
-        
-        response = requests.post(
-            tracking.callback_url,
-            json=payload,
-            timeout=10,
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        tracking.notified_at = datetime.now(timezone.utc)
-        tracking.notification_status = f"success_{response.status_code}"
-        db.session.commit()
-        
-        logger.info(f"Successfully notified {tracking.callback_url} - Status: {response.status_code}")
-        return True
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to notify {tracking.callback_url}: {e}")
-        tracking.notification_status = f"failed_{str(e)[:100]}"
-        db.session.commit()
-        return False
-
-
 def handle_webhook(data):
     """
     Handle DocuSign webhook event.
@@ -522,51 +486,9 @@ def handle_webhook(data):
         else:
             db.session.commit()
         
-        # Notify the external site if callback URL exists
-        if tracking.callback_url and status in ['completed', 'declined', 'voided']:
-            notify_external_site(envelope_id, status, tracking)
-        
         return {"status": "processed", "envelope_id": envelope_id}, 200
         
     except Exception as e:
         logger.error(f"Webhook processing error: {e}")
         return {"error": str(e)}, 500
 
-
-def get_envelope_status(envelope_id):
-    """
-    Get the status of an envelope.
-    
-    Args:
-        envelope_id: DocuSign envelope ID
-        
-    Returns:
-        tuple: (dict with envelope data, status_code)
-    """
-    try:
-        tracking = EnvelopeTracking.query.filter_by(envelope_id=envelope_id).first()
-        
-        if not tracking:
-            return {"error": "Envelope not found"}, 404
-        
-        return tracking.to_dict(), 200
-        
-    except Exception as e:
-        logger.error(f"Error getting envelope status: {e}")
-        return {"error": str(e)}, 500
-
-
-def list_all_envelopes():
-    """
-    List all tracked envelopes.
-    
-    Returns:
-        tuple: (list of envelopes, status_code)
-    """
-    try:
-        envelopes = EnvelopeTracking.query.order_by(EnvelopeTracking.created_at.desc()).all()
-        return [env.to_dict() for env in envelopes], 200
-        
-    except Exception as e:
-        logger.error(f"Error listing envelopes: {e}")
-        return {"error": str(e)}, 500
