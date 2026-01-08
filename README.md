@@ -387,9 +387,9 @@ sudo docker compose -f docker-compose.prod.yml logs -f
 
 ## Support HTTPS avec Let's Encrypt
 
-### 1. Configurer les certificats
+### 1. Préparer la configuration
 
-Mettez à jour [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine :
+- Mettez à jour [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine réel :
 
 ```nginx
 server_name your-domain.tld;
@@ -397,32 +397,65 @@ ssl_certificate /etc/letsencrypt/live/your-domain.tld/fullchain.pem;
 ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
 ```
 
-### 2. Démarrer les services
+- Ouvrez les ports 80/443 sur le serveur (pare-feu) pour éviter les erreurs "connection refused" pendant l'ACME challenge.
+
+### 2. Bootstrap (éviter le crash Nginx avant le vrai certificat)
+
+Nginx ne doit pas tomber en échec si le certificat n'existe pas encore. Générez un certificat autosigné éphémère partagé via le volume `letsencrypt` :
 
 ```bash
+sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
+  sh -c "apk add --no-cache openssl >/dev/null && \
+         mkdir -p /etc/letsencrypt/live/your-domain.tld && \
+         openssl req -x509 -nodes -newkey rsa:2048 -days 2 \
+           -subj '/CN=your-domain.tld' \
+           -keyout /etc/letsencrypt/live/your-domain.tld/privkey.pem \
+           -out /etc/letsencrypt/live/your-domain.tld/fullchain.pem"
+```
+
+### 3. Démarrer les services (proxy doit écouter sur 80)
+
+```bash
+sudo docker compose -f docker-compose.prod.yml up -d --force-recreate proxy
 sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### 3. Obtenir le certificat
+Vérifiez que le port 80 écoute :
+
+```bash
+sudo ss -ltnp | grep ':80'
+```
+
+### 4. Obtenir le vrai certificat (webroot)
+
+Si vous avez déjà un dossier `live/your-domain.tld` (ancien autosigné), supprimez-le avant de lancer certbot pour éviter l'erreur "live directory exists" :
+
+```bash
+sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
+  sh -c "rm -rf /etc/letsencrypt/live/your-domain.tld \
+               /etc/letsencrypt/archive/your-domain.tld \
+               /etc/letsencrypt/renewal/your-domain.tld.conf"
+```
+
+Puis lancez certbot :
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm certbot certonly \
   --webroot -w /var/www/certbot \
   -d your-domain.tld \
   --email admin@example.com \
-  --agree-tos \
-  --no-eff-email
+  --agree-tos --no-eff-email
 ```
 
-### 4. Recharger Nginx
+### 5. Recharger Nginx pour utiliser le certificat Let’s Encrypt
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload
 ```
 
-### 5. Renouvellement automatique
+### 6. Renouvellement automatique
 
-Ajoutez une tâche cron sur votre serveur :
+Tâche cron recommandée :
 
 ```bash
 # Run at 3 AM daily
@@ -431,12 +464,12 @@ Ajoutez une tâche cron sur votre serveur :
   docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload
 ```
 
-### 6. Vérifications
+### 7. Vérifications
 
-- ✅ Naviguez en HTTPS et vérifiez le certificat
-- ✅ Vérifiez l'absence de mixed-content
-- ✅ Vérifiez que les cookies ont le flag `Secure`
-- ✅ Consultez les logs : `sudo docker compose -f docker-compose.prod.yml logs -f proxy`
+- ✅ Accès HTTPS et certificat valide
+- ✅ Pas de mixed-content
+- ✅ Cookies avec flag `Secure`
+- ✅ Logs Nginx : `sudo docker compose -f docker-compose.prod.yml logs -f proxy`
 
 ---
 
