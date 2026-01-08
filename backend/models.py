@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from datetime import datetime
+from datetime import datetime, timezone
 
 db = SQLAlchemy()
 ma = Marshmallow()
@@ -120,7 +120,7 @@ class EnvelopeTracking(db.Model):
     callback_url = db.Column(db.String(2048), nullable=True)
     requester_host = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(50), default='sent')
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(datetime.timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     signed_at = db.Column(db.DateTime, nullable=True)
     notified_at = db.Column(db.DateTime, nullable=True)
     notification_status = db.Column(db.String(50), nullable=True)

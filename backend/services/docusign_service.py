@@ -12,6 +12,7 @@ import logging
 import os
 import json
 import requests
+import timezone
 from datetime import datetime
 from models import db, EnvelopeTracking, Devis, DevisArticles, Parameters, TauxTVA
 
@@ -445,7 +446,7 @@ def notify_external_site(envelope_id, status, tracking):
             headers={'Content-Type': 'application/json'}
         )
         
-        tracking.notified_at = datetime.now(datetime.timezone.utc)
+        tracking.notified_at = datetime.now(timezone.utc)
         tracking.notification_status = f"success_{response.status_code}"
         db.session.commit()
         
@@ -487,7 +488,7 @@ def handle_webhook(data):
         
         # If envelope is completed (signed), record the timestamp and update devis
         if status == 'completed':
-            tracking.signed_at = datetime.now(datetime.timezone.utc)
+            tracking.signed_at = datetime.now(timezone.utc)
             logger.info(f"Envelope {envelope_id} completed at {tracking.signed_at}")
             
             # Auto-update the devis if devis_id is present
@@ -501,7 +502,7 @@ def handle_webhook(data):
                         if devis.statut != "Signé":
                             # Create signed snapshot
                             devis.signed_data = create_devis_signed_snapshot(devis)
-                            devis.signed_at = datetime.now(datetime.timezone.utc)
+                            devis.signed_at = datetime.now(timezone.utc)
                             devis.statut = "Signé"
                             
                             db.session.commit()
