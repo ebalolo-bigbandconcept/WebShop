@@ -39,7 +39,6 @@ class Devis(db.Model):
     remise = db.Column(db.Float(), nullable=True, default=0.0)
     statut = db.Column(db.String(50), nullable=False)
     date_paiement = db.Column(db.Date(), nullable=True)
-    envelope_id = db.Column(db.String(255), nullable=True)  # DocuSign envelope ID
     
     is_location = db.Column(db.Boolean, nullable=False, default=False)
     selected_scenario = db.Column(db.String(50), nullable=True)  # "direct", "location_without_apport", "location_with_apport"
@@ -117,13 +116,10 @@ class EnvelopeTracking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     envelope_id = db.Column(db.String(255), unique=True, nullable=False, index=True)
     devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=True)
-    callback_url = db.Column(db.String(2048), nullable=True)
     requester_host = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(50), default='sent')
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     signed_at = db.Column(db.DateTime, nullable=True)
-    notified_at = db.Column(db.DateTime, nullable=True)
-    notification_status = db.Column(db.String(50), nullable=True)
     
     def __repr__(self):
         return f'<EnvelopeTracking {self.envelope_id}>'
@@ -132,13 +128,10 @@ class EnvelopeTracking(db.Model):
         return {
             'id': self.id,
             'envelope_id': self.envelope_id,
-            'callback_url': self.callback_url,
             'requester_host': self.requester_host,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'signed_at': self.signed_at.isoformat() if self.signed_at else None,
-            'notified_at': self.notified_at.isoformat() if self.notified_at else None,
-            'notification_status': self.notification_status
         }
 
 # Marshmallow Schema to structure the JSON response

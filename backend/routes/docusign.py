@@ -127,9 +127,8 @@ def send_pdf_sign(client_id, devis_id):
         
         envelope_id = result.get('envelope_id')
         
-        # Store envelope_id in the devis and update status
+        # Store envelope in EnvelopeTracking and update devis status
         if envelope_id:
-            devis.envelope_id = envelope_id
             devis.statut = "En attente de signature"
             db.session.commit()
             logger.info(f"Devis {devis_id} envoyé pour signature. Envelope ID: {envelope_id}")

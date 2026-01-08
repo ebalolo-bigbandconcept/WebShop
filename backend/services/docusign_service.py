@@ -251,7 +251,7 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         integrator_key: DocuSign Integration Key
         account_id: DocuSign Account ID
         user_id: DocuSign User ID
-        requester_host: Origin of the request
+        requester_host: Origin of the request (for audit)
         filename: Name of the document
         devis_id: ID of the devis being signed (for auto-update)
         
@@ -296,7 +296,6 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
             tracking = EnvelopeTracking(
                 envelope_id=results.envelope_id,
                 devis_id=devis_id,
-                callback_url=None,
                 requester_host=requester_host,
                 status='sent'
             )
