@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session, render_template, make_response
-from models import db, Devis, DevisSchema, DevisArticles, Articles, TauxTVA, Parameters
+from models import db, Devis, DevisSchema, DevisArticles, Articles, TauxTVA, Parameters, EnvelopeTracking
 from datetime import datetime
 from weasyprint import HTML
 from PyPDF2 import PdfMerger
@@ -315,8 +315,9 @@ def delete_devis(devis_id):
         return jsonify({"error": "Devis signé: suppression interdite"}), 409
     
     devis_nom = devis.titre
-    # Delete devis articles first to avoid foreign key constraint violation
+    # Delete related records first to avoid foreign key constraint violations
     DevisArticles.query.filter_by(devis_id=devis.id).delete()
+    EnvelopeTracking.query.filter_by(devis_id=devis.id).delete()
     Devis.query.filter_by(id=devis_id).delete()
     db.session.commit()
     logging.info(f"Devis supprimé: {devis_nom} (id: {devis_id}) par l'utilisateur {session.get('user_id')}")
