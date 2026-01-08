@@ -114,14 +114,17 @@ def webhook():
 
             root = ET.fromstring(xml_data)
 
+            # Define namespace for DocuSign XML
+            namespace = {'ds': 'http://www.docusign.net/API/3.0'}
+
             # Parse envelope ID and status from XML
             envelope_id = None
             status = None
 
-            # Find EnvelopeStatus node
-            for envelope_status in root.findall('.//EnvelopeStatus'):
-                envelope_id_elem = envelope_status.find('EnvelopeID')
-                status_elem = envelope_status.find('Status')
+            # Find EnvelopeStatus node with namespace handling
+            for envelope_status in root.findall('.//ds:EnvelopeStatus', namespace):
+                envelope_id_elem = envelope_status.find('ds:EnvelopeID', namespace)
+                status_elem = envelope_status.find('ds:Status', namespace)
 
                 if envelope_id_elem is not None:
                     envelope_id = envelope_id_elem.text
