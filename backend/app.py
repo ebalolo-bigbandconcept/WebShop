@@ -14,6 +14,7 @@ from routes.auth import auth_bp
 from routes.clients import clients_bp
 from routes.devis import devis_bp
 from routes.docusign import docusign_bp
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # CONSTANTS
 load_dotenv()
@@ -33,6 +34,9 @@ CORS(app, origins=[FRONTEND_URL], supports_credentials=True)
 bcrypt = Bcrypt()
 bcrypt.init_app(app)
 server_session = Session(app)
+
+# Trust reverse proxy headers (X-Forwarded-Proto, Host, etc.) for correct https URLs
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
 # Config logging
 logging.basicConfig(
