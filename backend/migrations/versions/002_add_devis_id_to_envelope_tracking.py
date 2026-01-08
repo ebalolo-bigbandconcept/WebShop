@@ -1,7 +1,7 @@
 """add devis_id to envelope tracking for auto-signing
 
-Revision ID: 001_add_devis_id
-Revises: f1d2e3c4b5a6
+Revision ID: 002_add_devis_id
+Revises: 35a78dd7d68a
 Create Date: 2026-01-08 10:00:00.000000
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '001_add_devis_id'
-down_revision = 'f1d2e3c4b5a6'
+revision = '002_add_devis_id'
+down_revision = '35a78dd7d68a'
 branch_labels = None
 depends_on = None
 
