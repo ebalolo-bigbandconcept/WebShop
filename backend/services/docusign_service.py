@@ -12,8 +12,7 @@ import logging
 import os
 import json
 import requests
-import timezone
-from datetime import datetime
+from datetime import datetime, timezone
 from models import db, EnvelopeTracking, Devis, DevisArticles, Parameters, TauxTVA
 
 logger = logging.getLogger(__name__)
