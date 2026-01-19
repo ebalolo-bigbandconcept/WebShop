@@ -49,8 +49,6 @@ function Devis() {
   const [location_monthly_total_ht, setLocationMonthlyTotalHt] = useState(0);
   const [devis_location_total, setDevisLocationTotal] = useState(0);
   const [devis_location_total_ht, setDevisLocationTotalHt] = useState(0);
-  const [marginRate, setMarginRate] = useState(0);
-  const [marginRateLocation, setMarginRateLocation] = useState(0);
 
   const [devis_title_error, setDevisTitleError] = useState("");
   const [devis_date_error, setDevisDateError] = useState("");
@@ -155,25 +153,14 @@ function Devis() {
   const applyVatToSelected = (taux) => {
     if (blockSignedEdit()) return;
     if (selectedArticleIds.length === 0) return;
+    // Update article VAT rates in local state (for UI display only)
     const updated = articles_in_devis.map((article) => {
       if (!selectedArticleIds.includes(article.id)) return article;
       const taux_tva = { ...(article.taux_tva || {}), taux };
-      const unit = getUnitHT(article);
-      const montant_HT = (unit * article.quantite).toFixed(2);
-      const montant_TVA = ((unit * taux) * article.quantite).toFixed(2);
-      const montant_TTC = ((unit * (1 + taux)) * article.quantite).toFixed(2);
-      return { ...article, taux_tva, montant_HT, montant_TVA, montant_TTC };
+      return { ...article, taux_tva };
     });
     setArticlesInDevis(updated);
-
-    const totalHT = updated.reduce((sum, a) => sum + parseFloat(a.montant_HT), 0).toFixed(2);
-    const totalTVA = updated.reduce((sum, a) => sum + parseFloat(a.montant_TVA), 0).toFixed(2);
-    const totalTTC = updated.reduce((sum, a) => sum + parseFloat(a.montant_TTC), 0).toFixed(2);
-    setDevisMontantHT(totalHT);
-    setDevisMontantTVA(totalTVA);
-    setDevisMontantTTC(totalTTC);
-
-    // Clear selection after applying VAT
+    // Backend will recalculate amounts when devis is saved
     setSelectedArticleIds([]);
     setSelectAllLines(false);
   };
@@ -236,69 +223,36 @@ function Devis() {
     const isQuantityValid = articleQuantityVerif(article_quantite);
     
     if (isQuantityValid){
-      // Find the article to modify
+      // Update just the quantity
       const updatedArticles = articles_in_devis.map(article => {
         if (article.id === article_selected.id) {
-          const unit = getUnitHT(article);
-          const updated = {
+          return {
             ...article,
             quantite: Number(article_quantite),
-            montant_HT: (unit * article_quantite).toFixed(2),
-            montant_TVA: ((unit * article.taux_tva.taux) * article_quantite).toFixed(2),
-            montant_TTC: ((unit * (1 + article.taux_tva.taux)) * article_quantite).toFixed(2),
           };
-          return updated;
         }
         return article;
       });
       setArticlesInDevis(updatedArticles);
-  
-      // Recalculate total amounts
-      const totalHT = updatedArticles.reduce((sum, a) => sum + parseFloat(a.montant_HT), 0).toFixed(2);
-      const totalTVA = updatedArticles.reduce((sum, a) => sum + parseFloat(a.montant_TVA), 0).toFixed(2);
-      const totalTTC = updatedArticles.reduce((sum, a) => sum + parseFloat(a.montant_TTC), 0).toFixed(2);
-  
-      setDevisMontantHT(totalHT);
-      setDevisMontantTVA(totalTVA);
-      setDevisMontantTTC(totalTTC);
-  
       handleClose();
     }
   }
 
   const deleteArticle = () => {
-  if (blockSignedEdit()) return;
-  if (!article_selected || !article_selected.id) return;
+    if (blockSignedEdit()) return;
+    if (!article_selected || !article_selected.id) return;
 
-  // Filter out the selected article
-  const updatedArticles = articles_in_devis.filter(
-    (article) => article.id !== article_selected.id
-  );
+    // Filter out the selected article
+    const updatedArticles = articles_in_devis.filter(
+      (article) => article.id !== article_selected.id
+    );
 
-  // Recalculate totals
-  const totalHT = updatedArticles
-    .reduce((sum, a) => sum + parseFloat(a.montant_HT), 0)
-    .toFixed(2);
-  const totalTVA = updatedArticles
-    .reduce((sum, a) => sum + parseFloat(a.montant_TVA), 0)
-    .toFixed(2);
-  const totalTTC = updatedArticles
-    .reduce((sum, a) => sum + parseFloat(a.montant_TTC), 0)
-    .toFixed(2);
-
-  // Update state
-  setArticlesInDevis(updatedArticles);
-  setDevisMontantHT(totalHT);
-  setDevisMontantTVA(totalTVA);
-  setDevisMontantTTC(totalTTC);
-
-  // Close modal
-  handleClose();
-};
+    setArticlesInDevis(updatedArticles);
+    handleClose();
+  };
 
 
   // ### Add new article to devis ###
-  
   const addNewArticle = async () => {
     if (blockSignedEdit()) return;
     const isQuantityValid = articleQuantityVerif(article_quantite);
@@ -312,22 +266,18 @@ function Devis() {
 
     // Set article in devis if inputs are valid
     if (isQuantityValid && isArticleSelected) {
-      const unit = getUnitHT(article_selected);
       const newArticle = {
         ...article_selected,
         quantite: article_quantite,
         taux_tva: article_selected.taux_tva,
-        montant_HT: (unit * article_quantite).toFixed(2),
-        montant_TVA: ((unit * (article_selected.taux_tva?.taux ?? 0.20)) * article_quantite).toFixed(2),
-        montant_TTC: ((unit * (1 + (article_selected.taux_tva?.taux ?? 0.20))) * article_quantite).toFixed(2),
+        // Amounts will be calculated server-side on save
+        montant_HT: null,
+        montant_TVA: null,
+        montant_TTC: null,
         commentaire: '',
       };
 
-      // Update devis totals
-      setDevisMontantHT((prevMontant) => (parseFloat(prevMontant) + parseFloat(newArticle.montant_HT)).toFixed(2));
-      setDevisMontantTVA((prevMontant) => (parseFloat(prevMontant) + parseFloat(newArticle.montant_TVA)).toFixed(2));
-      setDevisMontantTTC((prevMontant) => (parseFloat(prevMontant) + parseFloat(newArticle.montant_TTC)).toFixed(2));
-
+      // Add article to list (don't update totals - will be set from API on save)
       setArticlesInDevis((prevArticles) => [...prevArticles, newArticle]);
       handleClose();
     }
@@ -344,22 +294,19 @@ function Devis() {
     const isformValid = isTitleValid && isDateValid && isContentValid;
 
     if (isformValid){
+      // Backend will compute amounts - we don't send client-calculated totals
       const devisData = {
         title: devis_title,
         description: devis_description,
         date: devis_date,
-        montant_HT: devis_montant_HT,
-        montant_TVA: devis_montant_TVA,
-        montant_TTC: devis_montant_TTC,
         remise: devis_remise,
         statut: devis_status,
         client_id: id_client,
         is_location: true,
         first_contribution_amount: first_contribution_amount,
-        location_monthly_total: location_monthly_total,
-        location_monthly_total_ht: location_monthly_total_ht,
-        location_total: devis_location_total,
-        location_total_ht: devis_location_total_ht,
+        location_subscription_cost: location_subscription_cost,
+        location_interests_cost: location_interests_cost,
+        location_time: location_time,
         articles: articles_in_devis.map(article => ({
           article_id: article.id,
           quantite: article.quantite,
@@ -379,7 +326,17 @@ function Devis() {
             return;
           }
           
-          // Set isNewDevis to false first to prevent the useEffect from fetching too early
+          // Update totals from API response
+          if (resp.data.computed) {
+            setDevisMontantHT(resp.data.computed.montant_ht);
+            setDevisMontantTVA(resp.data.computed.montant_tva);
+            setDevisMontantTTC(resp.data.computed.montant_ttc);
+            setDevisLocationTotal(resp.data.computed.location_total_ttc);
+            setDevisLocationTotalHt(resp.data.computed.location_total_ht);
+            setLocationMonthlyTotal(resp.data.computed.location_monthly_ttc);
+            setLocationMonthlyTotalHt(resp.data.computed.location_monthly_ht);
+          }
+          
           setIsNewDevis(false);
           
           // Fetch the newly created devis with retry logic
@@ -388,11 +345,10 @@ function Devis() {
           
           while (retries > 0 && !fetchSuccess) {
             try {
-              await new Promise(resolve => setTimeout(resolve, 300)); // Wait 300ms
+              await new Promise(resolve => setTimeout(resolve, 300));
               const data = await fetchDevisById(newDevisId);
               if (data) {
                 fetchSuccess = true;
-                // Update URL to reflect the new devis ID only after successful fetch
                 navigate(`/devis/${id_client}/${newDevisId}`, { replace: true });
               }
             } catch (error) {
@@ -416,6 +372,16 @@ function Devis() {
         httpClient
         .put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData)
         .then((resp) => {
+          // Update totals from API response
+          if (resp.data.computed) {
+            setDevisMontantHT(resp.data.computed.montant_ht);
+            setDevisMontantTVA(resp.data.computed.montant_tva);
+            setDevisMontantTTC(resp.data.computed.montant_ttc);
+            setDevisLocationTotal(resp.data.computed.location_total_ttc);
+            setDevisLocationTotalHt(resp.data.computed.location_total_ht);
+            setLocationMonthlyTotal(resp.data.computed.location_monthly_ttc);
+            setLocationMonthlyTotalHt(resp.data.computed.location_monthly_ht);
+          }
           showToast({ message: "Devis enregistré avec succès.", variant: "success" });
         })
         .catch((error) => {
@@ -445,23 +411,19 @@ function Devis() {
       return;
     }
 
-    // Save the devis
+    // Save the devis (backend will compute amounts)
     const devisData = {
       title: devis_title,
       description: devis_description,
       date: devis_date,
-      montant_HT: devis_montant_HT,
-      montant_TVA: devis_montant_TVA,
-      montant_TTC: devis_montant_TTC,
       remise: devis_remise,
       statut: devis_status,
       client_id: id_client,
       is_location: true,
       first_contribution_amount: first_contribution_amount,
-      location_monthly_total: location_monthly_total,
-      location_monthly_total_ht: location_monthly_total_ht,
-      location_total: devis_location_total,
-      location_total_ht: devis_location_total_ht,
+      location_subscription_cost: location_subscription_cost,
+      location_interests_cost: location_interests_cost,
+      location_time: location_time,
       articles: articles_in_devis.map(article => ({
         article_id: article.id,
         quantite: article.quantite,
@@ -471,7 +433,17 @@ function Devis() {
     };
 
     try {
-      await httpClient.put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData);
+      const resp = await httpClient.put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData);
+      // Update totals from API response
+      if (resp.data.computed) {
+        setDevisMontantHT(resp.data.computed.montant_ht);
+        setDevisMontantTVA(resp.data.computed.montant_tva);
+        setDevisMontantTTC(resp.data.computed.montant_ttc);
+        setDevisLocationTotal(resp.data.computed.location_total_ttc);
+        setDevisLocationTotalHt(resp.data.computed.location_total_ht);
+        setLocationMonthlyTotal(resp.data.computed.location_monthly_ttc);
+        setLocationMonthlyTotalHt(resp.data.computed.location_monthly_ht);
+      }
       // Navigate to PDF page after saving
       navigate(`/devis/${id_client}/${id_devis}/pdf`, { state: location.state });
     } catch (error) {
@@ -539,20 +511,21 @@ function Devis() {
       setSelectedScenario(data.selected_scenario || null); // load selected scenario if already chosen
       setFirstContributionAmount(data.first_contribution_amount || 0);
       setLocationMonthlyTotal(data.location_monthly_total || 0);
+      setLocationMonthlyTotalHt(data.location_monthly_total_ht || 0);
       setDevisLocationTotal(data.location_total || 0);
+      setDevisLocationTotalHt(data.location_total_ht || 0);
 
       if (Array.isArray(data.articles)) {
         setArticlesInDevis(
           data.articles.map((da) => {
             const taux = (da.taux_tva && da.taux_tva.taux != null) ? da.taux_tva.taux : da.article.taux_tva.taux;
-            const unit = getUnitHT(da.article);
             return {
               ...da.article,
               quantite: da.quantite,
               taux_tva: { taux },
-              montant_HT: (unit * da.quantite).toFixed(2),
-              montant_TVA: ((unit * taux) * da.quantite).toFixed(2),
-              montant_TTC: ((unit * (1 + taux)) * da.quantite).toFixed(2),
+              montant_HT: da.montant_HT || 0,
+              montant_TVA: da.montant_TVA || 0,
+              montant_TTC: da.montant_TTC || 0,
               commentaire: da.commentaire || '',
             };
           })
@@ -618,8 +591,6 @@ function Devis() {
         setLocationSubscriptionCost(resp.data.locationSubscriptionCost || 0);
         setLocationInterestsCost(resp.data.locationInterestsCost || resp.data.locationMaintenanceCost || 0);
         setLocationTime(resp.data.locationTime || 0); // in months
-        setMarginRate(resp.data.marginRate || 0);
-        setMarginRateLocation(resp.data.marginRateLocation || 0);
       })
       .catch((error) => {
         if (error.response && error.response.data && error.response.data.error) {
@@ -629,11 +600,6 @@ function Devis() {
         }
       });
   }
-
-  const getUnitHT = (article) => {
-    const unitSale = Number(article.prix_vente_HT) || 0;
-    return unitSale;
-  };
 
   const loadVatRates = async () => {
     try {
@@ -648,32 +614,10 @@ function Devis() {
     }
   }
 
-  const recomputeLocationTotals = (apportValue = first_contribution_amount) => {
-    const articlesTTC = parseFloat(devis_montant_TTC) || 0;
-    const subscriptionTTC = parseFloat(location_subscription_cost) || 0;
-    const interestsTTC = parseFloat(location_interests_cost) || 0;
-    const apport = parseFloat(apportValue) || 0;
-
-    const totalHTValue = articlesTTC + subscriptionTTC + interestsTTC - apport;
-    const totalHT = totalHTValue.toFixed(2);
-
-    const totalTTCValue = totalHTValue * 1.20;
-    const totalTTC = totalTTCValue.toFixed(2);
-
-    const monthlyHT = location_time > 0 ? (totalHTValue / location_time).toFixed(2) : 0;
-    const monthlyTTC = location_time > 0 ? (totalTTCValue / location_time).toFixed(2) : 0;
-
-    setDevisLocationTotalHt(totalHT);
-    setDevisLocationTotal(totalTTC);
-    setLocationMonthlyTotalHt(monthlyHT);
-    setLocationMonthlyTotal(monthlyTTC);
-  };
-
   const handleApportChange = (value) => {
     if (blockSignedEdit()) return;
     const apport = parseFloat(value) || 0;
     setFirstContributionAmount(apport);
-    recomputeLocationTotals(apport);
   }
 
   const handleRemiseChange = (value) => {
@@ -737,7 +681,9 @@ function Devis() {
     setDevisStatus(devis.statut);
     setFirstContributionAmount(devis.first_contribution_amount || 0);
     setLocationMonthlyTotal(devis.location_monthly_total || 0);
+    setLocationMonthlyTotalHt(devis.location_monthly_total_ht || 0);
     setDevisLocationTotal(devis.location_total || 0);
+    setDevisLocationTotalHt(devis.location_total_ht || 0);
 
     if (Array.isArray(devis.articles)){
       setArticlesInDevis(
@@ -747,9 +693,9 @@ function Devis() {
             ...da.article,
             quantite: da.quantite,
             taux_tva: { taux },
-            montant_HT: (da.article.prix_vente_HT * da.quantite).toFixed(2),
-            montant_TVA: ((da.article.prix_vente_HT * taux) * da.quantite).toFixed(2),
-            montant_TTC: ((da.article.prix_vente_HT * (1 + taux)) * da.quantite).toFixed(2),
+            montant_HT: da.montant_HT || 0,
+            montant_TVA: da.montant_TVA || 0,
+            montant_TTC: da.montant_TTC || 0,
             commentaire: da.commentaire || '',
           };
         })
@@ -758,43 +704,6 @@ function Devis() {
     setLoading(false);
   }
 }, [devis, isNewDevis]);
-
-  useEffect(() => {
-    if (!loading) {
-      recomputeLocationTotals();
-    }
-  }, [devis_montant_HT, devis_montant_TTC, location_subscription_cost, location_interests_cost, location_time, first_contribution_amount, loading]);
-
-  // Handle forced apport to 0 for location_without_apport when pending/signed
-  useEffect(() => {
-    if (isApportDisabled && first_contribution_amount !== 0) {
-      setFirstContributionAmount(0);
-      // Recompute will be triggered by the dependency array of the previous useEffect
-    }
-  }, [isApportDisabled]);
-
-  // Recalculate line amounts and totals when location mode or its margin changes
-  useEffect(() => {
-    if (loading) return;
-    setArticlesInDevis((prev) => {
-      const updated = prev.map((a) => {
-        const unit = getUnitHT(a);
-        const qty = Number(a.quantite) || 0;
-        const taux = Number(a.taux_tva?.taux || 0);
-        const montant_HT = (unit * qty).toFixed(2);
-        const montant_TVA = ((unit * taux) * qty).toFixed(2);
-        const montant_TTC = ((unit * (1 + taux)) * qty).toFixed(2);
-        return { ...a, montant_HT, montant_TVA, montant_TTC };
-      });
-      const totalHT = updated.reduce((s, a) => s + parseFloat(a.montant_HT), 0).toFixed(2);
-      const totalTVA = updated.reduce((s, a) => s + parseFloat(a.montant_TVA), 0).toFixed(2);
-      const totalTTC = updated.reduce((s, a) => s + parseFloat(a.montant_TTC), 0).toFixed(2);
-      setDevisMontantHT(totalHT);
-      setDevisMontantTVA(totalTVA);
-      setDevisMontantTTC(totalTTC);
-      return updated;
-    });
-  }, [marginRateLocation, loading]);
 
   const modalTitle = DELETE
     ? 'Supprimer le devis'
@@ -870,7 +779,7 @@ function Devis() {
               >
                 <td>{article.nom}</td>
                 <td>{article.reference}</td>
-                <td>{getUnitHT(article).toFixed(2)} €</td>
+                <td>{article.prix_vente_HT?.toFixed(2) || '0.00'} €</td>
               </tr>
             ))
           ) : (
