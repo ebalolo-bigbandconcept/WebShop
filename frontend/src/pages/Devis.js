@@ -731,6 +731,27 @@ function Devis() {
   }
 }, [devis, isNewDevis]);
 
+  // Recalculate totals when articles change (for immediate display before saving)
+  useEffect(() => {
+    if (loading) return;
+    
+    const totalHT = articles_in_devis.reduce((sum, article) => {
+      return sum + (parseFloat(article.montant_HT) || 0);
+    }, 0);
+    
+    const totalTVA = articles_in_devis.reduce((sum, article) => {
+      return sum + (parseFloat(article.montant_TVA) || 0);
+    }, 0);
+    
+    const totalTTC = articles_in_devis.reduce((sum, article) => {
+      return sum + (parseFloat(article.montant_TTC) || 0);
+    }, 0);
+    
+    setDevisMontantHT(totalHT.toFixed(2));
+    setDevisMontantTVA(totalTVA.toFixed(2));
+    setDevisMontantTTC(totalTTC.toFixed(2));
+  }, [articles_in_devis, loading]);
+
   const modalTitle = DELETE
     ? 'Supprimer le devis'
     : article_DELETE
