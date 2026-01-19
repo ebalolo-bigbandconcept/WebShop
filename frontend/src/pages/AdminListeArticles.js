@@ -251,13 +251,11 @@ function ListeArticles() {
     setArticleNom("");
     setArticleReference("");
     setArticlePrixAchatHT("");
-    setArticlePrixVenteHT("");
     setArticleTauxTVA(0.20);
 
     setArticleNomError("");
     setArticleReferenceError("");
     setArticlePrixAchatHTError("");
-    setArticlePrixVenteHTError("");
 
     setCREATE(false);
     setMODIFY(false);
