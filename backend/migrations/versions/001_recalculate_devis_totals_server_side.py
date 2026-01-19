@@ -43,12 +43,14 @@ def upgrade():
 def recalculate_devis_totals(session, devis_id):
     """Recalculate montant_HT, montant_TVA, montant_TTC for a devis"""
     
-    # Get all articles for this devis
+    # Get all articles for this devis with their VAT rates
     articles = session.execute(
         sa.text("""
-            SELECT da.id, da.quantite, da.taux_tva, da.montant_HT, a.prix_vente_HT
+            SELECT da.id, da.quantite, COALESCE(ttva.taux, a_ttva.taux, 0.20) as taux, da.montant_HT, a.prix_vente_HT
             FROM devis_articles da
             JOIN articles a ON da.article_id = a.id
+            LEFT JOIN taux_tva ttva ON da.taux_tva_id = ttva.id
+            LEFT JOIN taux_tva a_ttva ON a.taux_tva_id = a_ttva.id
             WHERE da.devis_id = :devis_id
         """),
         {"devis_id": devis_id}
@@ -58,19 +60,18 @@ def recalculate_devis_totals(session, devis_id):
     total_tva = Decimal('0.0')
     total_ttc = Decimal('0.0')
     
-    for article_id, quantite, taux_tva, montant_ht, prix_vente_ht in articles:
+    for article_id, quantite, taux, montant_ht, prix_vente_ht in articles:
         if prix_vente_ht is None:
             continue
         
-        # Get TAX rate (default to 0.20 if not specified)
-        taux = Decimal(taux_tva or '0.20')
-        
-        # Calculate line amounts
+        # Convert to Decimal for precise calculations
+        taux_decimal = Decimal(str(taux))
         qty = Decimal(str(quantite or 0))
         price = Decimal(str(prix_vente_ht))
         
+        # Calculate line amounts
         line_ht = price * qty
-        line_tva = line_ht * taux
+        line_tva = line_ht * taux_decimal
         line_ttc = line_ht + line_tva
         
         # Update article line amounts
