@@ -546,19 +546,6 @@ sudo docker volume prune
 sudo du -sh /var/lib/docker/volumes/*/
 ```
 
-### Voir les logs en temps réel
-
-```bash
-# Development
-sudo docker compose logs -f
-
-# Production
-sudo docker compose -f docker-compose.prod.yml logs -f
-
-# Specific service
-sudo docker compose logs -f backend  # or 'frontend', 'db', etc.
-```
-
 ### Réinitialiser complètement l'application
 
 ```bash
@@ -573,45 +560,56 @@ sudo docker compose exec backend flask db upgrade
 
 ---
 
-## Support DocuSign
+## Logs et Monitoring
 
-### Configuration de l'intégration
+### Consulter les logs
 
-1. Créez une application sur [DocuSign Developer](https://developer.docusign.com/)
-2. Choisissez **Private custom integration**
-3. Générez les clés RSA : `private.pem` et `public.pem`
-4. Ajoutez la Redirect URI : `https://www.google.com`
-5. Autorisez les requêtes HTTP POST
+```bash
+# Logs applicatifs (développement)
+sudo docker compose logs -f frontend
+sudo docker compose logs -f backend
 
-### Obtenir le consentement OAuth
+# Logs applicatifs (production)
+sudo docker compose -f docker-compose.prod.yml logs -f backend
 
-Pour chaque utilisateur DocuSign, accédez à cette URL une fois :
+# Journaux de sécurité (format JSON)
+# Application logs (production)
+sudo docker compose exec backend tail -f security.log
 
-``` bash
-https://account-d.docusign.com/oauth/auth?response_type=code&scope=signature%20impersonation&client_id=YOUR_INTEGRATION_ID&redirect_uri=https://www.google.com
+# Affichage JSON lisible (nécessite jq)
+sudo docker compose -f docker-compose.prod.yml logs -f backend
+
+# Filtrer par type d'action
+sudo docker compose exec backend cat security.log | jq 'select(.action=="LOGIN_FAILED")'
+sudo docker compose exec backend cat security.log | jq 'select(.action=="USER_DELETED")'
+
+# Rechercher les accès non autorisés / erreurs
+sudo docker compose exec backend grep "UNAUTHORIZED\|FORBIDDEN\|FAILED" security.log | jq '.'
+
+# Copier le journal de sécurité sur l'hôte
+sudo docker compose cp backend:/app/security.log ./security.log
 ```
 
-> Remplacez `YOUR_INTEGRATION_ID` par votre clé d'intégration.
+### Événements de sécurité journalisés
+
+- Authentification : `LOGIN_SUCCESS`, `LOGIN_FAILED`, `LOGOUT`, `REGISTER`
+- Gestion des utilisateurs : `USER_CREATED`, `USER_UPDATED`, `USER_DELETED`
+- Contrôle d'accès : `UNAUTHORIZED_ACCESS`, `FORBIDDEN_ACCESS`
+- Configuration : `PARAMETERS_UPDATED`, `VAT_CREATED`, `VAT_DELETED`
+
+Chaque entrée contient : horodatage, user_id, user_email, adresse IP, action, ressource, statut.
 
 ---
-
-## Informations utiles
-
-| Service | Port | URL |
-| --------- | ------ | ----- |
-| Frontend | 3000 | <http://localhost:3000> |
-| Backend API | 5000 | <http://localhost:5000> |
-| Database | 5432 | postgresql://localhost:5432 |
-| Redis | 6379 | redis://localhost:6379 |
 
 ## Aide et support
 
 Pour toute question ou problème :
 
 1. Consultez les logs : `sudo docker compose logs -f`
-2. Vérifiez les fichiers de configuration
-3. Assurez-vous que tous les services sont en cours d'exécution : `sudo docker compose ps`
-4. Consultez la documentation officielle de [Flask](https://flask.palletsprojects.com/), [React](https://reactjs.org/), ou [Docker](https://docs.docker.com/)
+2. Consultez les logs de sécurité : `sudo docker compose exec backend tail -f security.log`
+3. Vérifiez les fichiers de configuration
+4. Assurez-vous que tous les services sont en cours d'exécution : `sudo docker compose ps`
+5. Consultez la documentation officielle de [Flask](https://flask.palletsprojects.com/), [React](https://reactjs.org/), ou [Docker](https://docs.docker.com/)
 
 Quand vous modifiez `models.py` (ajout/suppression de colonnes, tables, etc.), créez une migration :
 
