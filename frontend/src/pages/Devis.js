@@ -1086,7 +1086,7 @@ function Devis() {
       <table className="table table-hover table-striped mt-4">
         <thead>
           <tr>
-            <th scope="col"><input type="checkbox" checked={selectAllLines} onChange={toggleSelectAllLines} disabled={isLocked} /></th>
+            <th scope="col"><input type="checkbox" checked={selectAllLines} onChange={toggleSelectAllLines} disabled={isLocked} style={{width: '20px', height: '20px', cursor: 'pointer'}} /></th>
             <th scope="col">Article</th>
             <th scope="col">Quantité</th>
             <th scope="col">TVA</th>
@@ -1101,7 +1101,7 @@ function Devis() {
           {articles_in_devis.length > 0 ? (
             articles_in_devis.map((article) => (
               <tr key={article.id}>
-                <td><input type="checkbox" checked={selectedArticleIds.includes(article.id)} onChange={() => toggleSelectLine(article.id)} disabled={isLocked} /></td>
+                <td><input type="checkbox" checked={selectedArticleIds.includes(article.id)} onChange={() => toggleSelectLine(article.id)} disabled={isLocked} style={{width: '20px', height: '20px', cursor: 'pointer'}} /></td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.nom}{(article.taux_tva?.taux ?? 0) === 0.10 ? ' (Rénovation)' : ''}</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.quantite}</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{((Number(article.taux_tva?.taux ?? 0)) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>

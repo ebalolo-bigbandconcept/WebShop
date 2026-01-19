@@ -19,7 +19,7 @@ function Header({ user, setUser }) {
       <nav className="navbar navbar-expand-sm bg-body-tertiary">
         <div className="d-flex flex-row justify-content-between mx-4 w-100">
           <div>
-            <a className="navbar-brand me-2" href="/">
+            <a className="navbar-brand me-2" href="/liste-clients">
               <img src={logo} height="32" alt="Logo" />
             </a>
 
