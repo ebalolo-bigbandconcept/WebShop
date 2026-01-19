@@ -1,7 +1,7 @@
 """Add database indexes for frequently queried columns
 
 Revision ID: add_database_indexes
-Revises: e1c177942812
+Revises: b132ac0e32d5
 Create Date: 2025-01-19 10:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_database_indexes'
-down_revision = 'e1c177942812'
+down_revision = 'b132ac0e32d5'
 branch_labels = None
 depends_on = None
 
