@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf-xlib-2.0-dev \
     libffi-dev \
     shared-mime-info \
+    netcat-openbsd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,8 +25,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY backend/ .
 
+# Copy and set permissions for entrypoint script
+COPY backend/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose the port the app runs on
 EXPOSE 5000
 
-# Use the virtual environment's Python executable to run the app
-CMD ["python", "app.py"]
+# Use entrypoint script for initialization
+ENTRYPOINT ["/entrypoint.sh"]
