@@ -10,13 +10,21 @@ class ApplicationConfig:
     # Database config
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = os.environ.get("FLASK_ENV", "production") == "development"
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+    # Read DATABASE_URL from Docker Secrets if available, otherwise from environment
+    SQLALCHEMY_DATABASE_URI = (
+        open("/run/secrets/DATABASE_URL").read().strip() 
+        if os.path.exists("/run/secrets/DATABASE_URL") 
+        else os.environ.get("DATABASE_URL")
+    )
     
     # Server side session config
     SESSION_TYPE = "redis"
     SESSION_PERMANENT = False
     SESSION_USER_SIGNER = True
     SESSION_REDIS = redis.from_url("redis://redis:6379")
+    
+    # Rate limiting storage (use Redis for production)
+    RATELIMIT_STORAGE_URL = "redis://redis:6379"
 
     # HTTPS & cookies
     _ENV = os.environ.get("FLASK_ENV", "production")
