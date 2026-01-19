@@ -23,6 +23,12 @@ def upgrade():
     session = Session(bind=bind)
     
     try:
+        # First, add the montant columns to devis_articles if they don't exist
+        with op.batch_alter_table('devis_articles', schema=None) as batch_op:
+            batch_op.add_column(sa.Column('montant_HT', sa.Float(), nullable=True))
+            batch_op.add_column(sa.Column('montant_TVA', sa.Float(), nullable=True))
+            batch_op.add_column(sa.Column('montant_TTC', sa.Float(), nullable=True))
+        
         # Get all unsigned devis
         unsigned_devis = session.execute(
             sa.text("SELECT id FROM devis WHERE statut IN ('En attente', 'Accepté') OR statut NOT IN ('Signé', 'Annulé')")
@@ -46,7 +52,7 @@ def recalculate_devis_totals(session, devis_id):
     # Get all articles for this devis with their VAT rates
     articles = session.execute(
         sa.text("""
-            SELECT da.id, da.quantite, COALESCE(ttva.taux, a_ttva.taux, 0.20) as taux, da.montant_HT, a.prix_vente_HT
+            SELECT da.id, da.quantite, COALESCE(ttva.taux, a_ttva.taux, 0.20) as taux, a.prix_vente_HT
             FROM devis_articles da
             JOIN articles a ON da.article_id = a.id
             LEFT JOIN taux_tva ttva ON da.taux_tva_id = ttva.id
@@ -60,7 +66,7 @@ def recalculate_devis_totals(session, devis_id):
     total_tva = Decimal('0.0')
     total_ttc = Decimal('0.0')
     
-    for article_id, quantite, taux, montant_ht, prix_vente_ht in articles:
+    for article_id, quantite, taux, prix_vente_ht in articles:
         if prix_vente_ht is None:
             continue
         
@@ -110,5 +116,8 @@ def recalculate_devis_totals(session, devis_id):
 
 
 def downgrade():
-    """Downgrade - no action needed as we're recalculating from stored data"""
-    pass
+    """Downgrade - remove the montant columns from devis_articles"""
+    with op.batch_alter_table('devis_articles', schema=None) as batch_op:
+        batch_op.drop_column('montant_TTC')
+        batch_op.drop_column('montant_TVA')
+        batch_op.drop_column('montant_HT')
