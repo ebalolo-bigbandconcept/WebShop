@@ -223,12 +223,23 @@ function Devis() {
     const isQuantityValid = articleQuantityVerif(article_quantite);
     
     if (isQuantityValid){
-      // Update just the quantity
+      // Update quantity and recalculate amounts for immediate display
       const updatedArticles = articles_in_devis.map(article => {
         if (article.id === article_selected.id) {
+          const unit_price = parseFloat(article.prix_vente_HT) || 0;
+          const qty = parseFloat(article_quantite) || 0;
+          const taux = parseFloat(article.taux_tva?.taux) || 0;
+          
+          const montant_HT = (unit_price * qty).toFixed(2);
+          const montant_TVA = (unit_price * taux * qty).toFixed(2);
+          const montant_TTC = (unit_price * (1 + taux) * qty).toFixed(2);
+          
           return {
             ...article,
-            quantite: Number(article_quantite),
+            quantite: qty,
+            montant_HT: montant_HT,
+            montant_TVA: montant_TVA,
+            montant_TTC: montant_TTC,
           };
         }
         return article;
@@ -266,18 +277,26 @@ function Devis() {
 
     // Set article in devis if inputs are valid
     if (isQuantityValid && isArticleSelected) {
+      // Calculate amounts for immediate display
+      const unit_price = parseFloat(article_selected.prix_vente_HT) || 0;
+      const qty = parseFloat(article_quantite) || 0;
+      const taux = parseFloat(article_selected.taux_tva?.taux) || 0;
+      
+      const montant_HT = (unit_price * qty).toFixed(2);
+      const montant_TVA = (unit_price * taux * qty).toFixed(2);
+      const montant_TTC = (unit_price * (1 + taux) * qty).toFixed(2);
+      
       const newArticle = {
         ...article_selected,
         quantite: article_quantite,
         taux_tva: article_selected.taux_tva,
-        // Amounts will be calculated server-side on save
-        montant_HT: null,
-        montant_TVA: null,
-        montant_TTC: null,
+        montant_HT: montant_HT,
+        montant_TVA: montant_TVA,
+        montant_TTC: montant_TTC,
         commentaire: '',
       };
 
-      // Add article to list (don't update totals - will be set from API on save)
+      // Add article to list
       setArticlesInDevis((prevArticles) => [...prevArticles, newArticle]);
       handleClose();
     }
