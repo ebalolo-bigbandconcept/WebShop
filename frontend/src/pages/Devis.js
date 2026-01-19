@@ -420,9 +420,15 @@ function Devis() {
 
   // ### Save devis and generate PDF ###
   const handleGeneratePDF = async () => {
-    if (blockSignedEdit()) return;
+    // Allow PDF generation even for signed devis (no blockSignedEdit check)
+    
+    // For signed devis, just navigate to PDF without saving
+    if (isLocked) {
+      navigate(`/devis/${id_client}/${id_devis}/pdf`, { state: location.state });
+      return;
+    }
 
-    // Validate form first
+    // Validate form first for unsigned devis
     setFormSubmited(true);
     const isTitleValid = devisTitleVerif(devis_title);
     const isDateValid = devisDateVerif(devis_date);
