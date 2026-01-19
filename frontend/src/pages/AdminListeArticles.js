@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
+import trashCan from "../assets/trash3-fill.svg";
 
 function ListeArticles() {
   const [loading, setLoading] = useState(true);
@@ -418,8 +419,8 @@ function ListeArticles() {
     </div>
   ) : DELETE ? (
     <div className="d-flex justify-content-between w-100">
-      <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Non</button>
-      <button className="btn btn-lg btn-primary" onClick={deleteArticle}>Oui</button>
+      <button className="btn btn-lg btn-danger me-4" onClick={handleClose}>Annuler</button>
+      <button className="btn btn-lg btn-success" onClick={deleteArticle}>Supprimer</button>
     </div>
   ) : null;
 
@@ -464,6 +465,7 @@ function ListeArticles() {
             <th scope="col">Prix d'achat HT</th>
             <th scope="col">Prix de vente HT</th>
             <th scope="col">TVA</th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody>
@@ -476,11 +478,14 @@ function ListeArticles() {
                 <td>{article.prix_achat_HT} €</td>
                 <td>{article.prix_vente_HT} €</td>
                 <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>
+                <td onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article); }}>
+                  <img src={trashCan} alt="Supprimer" />
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={6}>Aucun articles trouvé</td>
+              <td colSpan={7}>Aucun articles trouvé</td>
             </tr>
           )}
         </tbody>
