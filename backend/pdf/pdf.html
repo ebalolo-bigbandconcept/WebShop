@@ -289,6 +289,8 @@
   {% endfor %}
 </table>
 
+{% set show_remise = (((not selected_scenario) and (not devis.is_location)) or selected_scenario == "direct") and remise and remise > 0 %}
+
 <table class="totals">
   <tr>
     <td>Total Hors Taxes</td>
@@ -302,7 +304,7 @@
     <td>Total TTC</td>
     <td>{{ "{:.2f}".format(devis.montant_TTC or 0) }} €</td>
   </tr>
-  {% if remise and remise > 0 %}
+  {% if show_remise %}
   <tr>
     <td>Remise</td>
     <td>- {{ "{:.2f}".format(remise) }} €</td>
