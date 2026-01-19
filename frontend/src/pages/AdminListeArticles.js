@@ -13,7 +13,6 @@ function ListeArticles() {
   const [article_nom, setArticleNom] = useState(null);
   const [article_reference, setArticleReference] = useState("");
   const [article_prix_achat_HT, setArticlePrixAchatHT] = useState(null);
-  const [article_prix_vente_HT, setArticlePrixVenteHT] = useState(null);
   const [article_taux_tva, setArticleTauxTVA] = useState(0.20);
   const [vatRates, setVatRates] = useState([]);
 
@@ -21,7 +20,6 @@ function ListeArticles() {
   const [article_nom_error, setArticleNomError] = useState("");
   const [article_reference_error, setArticleReferenceError] = useState("");
   const [article_prix_achat_HT_error, setArticlePrixAchatHTError] = useState("");
-  const [article_prix_vente_HT_error, setArticlePrixVenteHTError] = useState("");
 
   const { showToast } = useToast();
 
@@ -67,19 +65,6 @@ function ListeArticles() {
       return false;
     }
     setArticlePrixAchatHTError("");
-    return true;
-  }
-
-  const articlePrixVenteHTVerif = async (value) => {
-    if (value === "") {
-      setArticlePrixVenteHTError("Veuillez entrer un prix de vente HT");
-      return false;
-    }
-    else if (!prixRegex.test(value)) {
-      setArticlePrixVenteHTError("Veuillez entrer un prix de vente HT valide");
-      return false;
-    }
-    setArticlePrixVenteHTError("");
     return true;
   }
 
@@ -140,7 +125,6 @@ function ListeArticles() {
         setArticleNom(resp.data.nom);
         setArticleReference(resp.data.reference);
         setArticlePrixAchatHT(resp.data.prix_achat_HT);
-        setArticlePrixVenteHT(resp.data.prix_vente_HT);
         setArticleTauxTVA(resp.data.taux_tva.taux);
         showModal();
       })
@@ -379,13 +363,7 @@ function ListeArticles() {
         />
         <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
       </div>
-      {MODIFY && (
-        <div className="form-outline col-lg-5 col-4 mt-4">
-          <label className="form-label">Prix de vente HT (calculé)</label>
-          <input type="text" id="prix_vente" value={article_prix_vente_HT} readOnly className="form-control form-control-lg" />
-        </div>
-      )}
-      <div className={`form-outline ${MODIFY ? 'col-lg-2 col-4' : 'col-lg-7 col-8'} mt-4`}>
+      <div className={`form-outline ${MODIFY ? 'col-lg-7 col-8' : 'col-lg-7 col-8'} mt-4`}>
         <label className="form-label">TVA</label>
         <select
           id="taux_tva"

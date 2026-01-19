@@ -1,7 +1,7 @@
 """Recalculate devis totals server-side after migration to backend calculations
 
 Revision ID: 001_recalc_devis
-Revises: bee70c0965a6
+Revises: add_database_indexes
 Create Date: 2025-12-22 14:00:00.000000
 
 """
@@ -12,7 +12,7 @@ from decimal import Decimal
 
 # revision identifiers, used by Alembic.
 revision = '001_recalc_devis'
-down_revision = 'bee70c0965a6'
+down_revision = 'add_database_indexes'
 branch_labels = None
 depends_on = None
 
