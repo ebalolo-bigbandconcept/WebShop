@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
+import { GearFill, PlusLg, FloppyFill } from "react-bootstrap-icons";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -157,22 +158,30 @@ function AdminDashboard() {
   return (
     <div>
       <h1>Tableau de bord administrateur</h1>
+      <br/>
+      
       <div>
-        <button className="btn btn-primary" onClick={showModal}>+ Ajouter un nouvel utilisateur</button>
-        <button
-          className="btn btn-outline-secondary ms-2"
-          type="button"
-          onClick={() => navigate("/admin/parameters")}
-        >
-          Parametres de l'application
-        </button>
+        <div className="d-flex justify-content-between">
+          <button className="btn btn-primary" onClick={showModal}>
+            <PlusLg className="me-1" /> Ajouter un nouvel utilisateur
+          </button>
+          <button
+            className="btn btn-outline-secondary ms-2"
+            type="button"
+            onClick={() => navigate("/admin/parameters")}
+          >
+            <GearFill className="me-1"/> Parametres de l'application
+          </button>
+        </div>
         <br />
         <br />
         <Modal ref={modalRef} title={"Ajouter un nouvel utilisateur."} size="modal-xl" backdrop="static" keyboard={false}
           footer={(
             <div className="d-flex justify-content-between w-100">
               <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-              <button className="btn btn-lg btn-success" onClick={addNewUser}>Enregistrer</button>
+              <button className="btn btn-lg btn-success" onClick={addNewUser}>
+                <FloppyFill className="me-1" /> Enregistrer
+              </button>
             </div>
           )}
         >

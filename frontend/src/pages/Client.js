@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
+import { PlusLg, ArrowReturnLeft, FloppyFill } from "react-bootstrap-icons";
 
 function Client() {
   const client_id = useParams();
@@ -311,7 +312,9 @@ function Client() {
     <div>
         <div className="d-flex justify-content-between align-items-start mb-4">
           <h1 className="mb-0">Client - {client.nom} {client.prenom}</h1>
-          <button className="btn btn-danger" onClick={() => navigate('/liste-clients')}>Retour</button>
+          <button className="btn btn-danger" onClick={() => navigate('/liste-clients')}>
+            <ArrowReturnLeft className="me-1" /> Retour
+          </button>
         </div>
       <ul className="nav nav-tabs mb-3" role="tablist">
         <li className="nav-item" role="presentation">
@@ -385,7 +388,7 @@ function Client() {
           </tbody>
         </table>
         <br/>
-        <button className="btn btn-primary" onClick={() => handleNewDevis()}>+ Créer un devis</button>
+        <button className="btn btn-primary" onClick={() => handleNewDevis()}><PlusLg /> Créer un devis</button>
         </div>
 
         <div className={`tab-pane fade ${activeTab === "edit" ? "show active" : ""}`} role="tabpanel">
@@ -439,7 +442,9 @@ function Client() {
           </div>
         </form>
         <div className="d-flex w-100 justify-content-end">
-          <button className="btn btn-lg btn-success mt-4" onClick={modifyClient}>Enregistrer les modifications</button>
+          <button className="btn btn-lg btn-success mt-4" onClick={modifyClient}>
+            <FloppyFill className="me-1" /> Enregistrer les modifications
+          </button>
         </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import httpClient from "../components/httpClient";
 import { useToast } from "../components/Toast";
+import {Trash3Fill, PlusLg, ArrowReturnLeft, FloppyFill} from "react-bootstrap-icons";
 
 function AdminParameters() {
   const [loading, setLoading] = useState(true);
@@ -153,14 +154,16 @@ function AdminParameters() {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-start mb-3">
-        <h1 className="mb-0">Parametres de l'application</h1>
+        <h1>Parametres de l'application</h1>
+        <br/>
+
         <button
           type="button"
           className="btn btn-danger"
           onClick={() => window.history.back()}
           disabled={saving}
         >
-          Retour
+          <ArrowReturnLeft className="me-1" /> Retour
         </button>
       </div>
       {errorMessage && (
@@ -375,7 +378,40 @@ function AdminParameters() {
 
           <div className={`tab-pane fade ${activeTab === "tva" ? "show active" : ""}`}>
             <div className="row g-3">
-              <div className="col-md-2">
+              <div className="col-2">
+                <h5>Liste des taux de TVA</h5>
+                {vats.length === 0 ? (
+                  <p className="text-muted">Aucun taux enregistré.</p>
+                ) : (
+                  <table className="table table-hover table-striped">
+                    <thead>
+                      <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Taux</th>
+                        <th scope="col"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vats.map((vat) => (
+                        <tr key={vat.id}>
+                          <td>{vat.id}</td>
+                          <td>{(Number(vat.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>
+                          <td>
+                            <Trash3Fill
+                              color="red"
+                              style={{ cursor: "pointer", opacity: deletingVatId === vat.id ? 0.5 : 1 }}
+                              onClick={() => handleDeleteVat(vat.id)}
+                              title="Supprimer ce taux de TVA"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div className="col-2">
                 <label className="form-label">Ajouter un taux de TVA</label>
                 <div className="input-group">
                   <input
@@ -386,7 +422,7 @@ function AdminParameters() {
                     step="1"
                     min="0"
                     max="100"
-                    placeholder="20%"
+                    placeholder="20"
                   />
                   <span className="input-group-text">%</span>
                   <button
@@ -395,56 +431,28 @@ function AdminParameters() {
                     onClick={handleAddVat}
                     disabled={addingVat}
                   >
-                    {addingVat ? "Ajout..." : "Ajouter"}
+                    {addingVat ? "Ajout..." : (
+                      <>
+                        <PlusLg className="me-1" /> Ajouter
+                      </>
+                    )}
                   </button>
                 </div>
-              </div>
-
-              <div className="col-12">
-                <h5 className="mt-2">Liste des taux de TVA</h5>
-                {vats.length === 0 ? (
-                  <p className="text-muted">Aucun taux enregistré.</p>
-                ) : (
-                  <div className="table-responsive">
-                    <table className="table table-striped table-bordered align-middle">
-                      <thead>
-                        <tr>
-                          <th style={{ width: "120px" }}>ID</th>
-                          <th>Taux</th>
-                          <th style={{ width: "140px" }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {vats.map((vat) => (
-                          <tr key={vat.id}>
-                            <td>{vat.id}</td>
-                            <td>{(Number(vat.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>
-                            <td>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleDeleteVat(vat.id)}
-                                disabled={deletingVatId === vat.id}
-                              >
-                                {deletingVatId === vat.id ? "Suppression..." : "Supprimer"}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
-
+        {activeTab !== "tva" &&
         <div className="col-12 d-flex justify-content-end gap-2">
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? "Enregistrement..." : "Enregistrer"}
+          <button type="submit" className="btn btn-success" disabled={saving}>
+            {saving ? "Enregistrement..." : (
+              <>
+                <FloppyFill className="me-1" /> Enregistrer
+              </>
+            )}
           </button>
         </div>
+        }
       </form>
     </div>
   );

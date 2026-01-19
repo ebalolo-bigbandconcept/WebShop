@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
-import trashCan from "../assets/trash3-fill.svg";
+import { Trash3Fill, PlusLg, Download } from "react-bootstrap-icons";
 
 function ListeArticles() {
   const [loading, setLoading] = useState(true);
@@ -124,7 +124,7 @@ function ListeArticles() {
         setArticleId(resp.data.id);
         setArticleNom(resp.data.nom);
         setArticleReference(resp.data.reference);
-        setArticlePrixAchatHT(resp.data.prix_achat_HT);
+        setArticlePrixAchatHT(String(resp.data.prix_achat_HT).replace('.', ','));
         setArticleTauxTVA(resp.data.taux_tva.taux);
         showModal();
       })
@@ -345,7 +345,7 @@ function ListeArticles() {
         />
         <div className="invalid-feedback">{article_reference_error}</div>
       </div>
-      <div className="form-outline col-lg-5 col-4 mt-4">
+      <div className="form-outline col-6 mt-4">
         <label className="form-label">Prix d'achat HT</label>
         <input
           type="text"
@@ -361,7 +361,7 @@ function ListeArticles() {
         />
         <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
       </div>
-      <div className={`form-outline ${MODIFY ? 'col-lg-7 col-8' : 'col-lg-7 col-8'} mt-4`}>
+      <div className={`form-outline ${MODIFY ? 'col-6' : 'col-6'} mt-4`}>
         <label className="form-label">TVA</label>
         <select
           id="taux_tva"
@@ -386,7 +386,9 @@ function ListeArticles() {
   const modalFooter = CREATE ? (
     <div className="d-flex justify-content-between w-100">
       <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-      <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+      <button className="btn btn-lg btn-success" onClick={addNewArticle}>
+        <PlusLg className="me-1" /> Ajouter
+      </button>
     </div>
   ) : MODIFY ? (
     <div className="d-flex justify-content-between w-100">
@@ -429,8 +431,10 @@ function ListeArticles() {
         </div>
       </div>
       <div className="d-flex justify-content-end w-100 gap-2">
-        <button className="btn btn-lg btn-info mt-4" onClick={exportArticlesPDF}>Exporter</button>
-        <button className="btn btn-lg btn-success mt-4" onClick={handleCreateArticle}>+ Ajouter un nouvel article</button>
+        <button className="btn btn-lg btn-info mt-4" onClick={exportArticlesPDF}><Download className="me-1" /> Exporter</button>
+        <button className="btn btn-lg btn-success mt-4" onClick={handleCreateArticle}>
+          <PlusLg className="me-1" /> Ajouter un nouvel article
+        </button>
       </div>
       <table className="table table-hover table-striped mt-4">
         <thead>
@@ -455,7 +459,7 @@ function ListeArticles() {
                 <td>{article.prix_vente_HT} €</td>
                 <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>
                 <td onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article); }}>
-                  <img src={trashCan} alt="Supprimer" />
+                  <Trash3Fill color="red" />
                 </td>
               </tr>
             ))

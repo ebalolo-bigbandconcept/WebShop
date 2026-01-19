@@ -121,7 +121,8 @@ function ListeDevis() {
   return (
     <div>
       <h1>Liste des devis</h1>
-      
+      <br/>
+
       <div className="row mb-3 align-items-center">
         <div className="col-md-6">
           <input type="text" className="form-control form-control-lg" placeholder="Rechercher par client, devis, description..."

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
+import { FloppyFill } from "react-bootstrap-icons";
 
 function ListeClients() {
   const navigate = useNavigate();
@@ -401,7 +402,9 @@ function ListeClients() {
   ) : (
     <div className="d-flex justify-content-between w-100">
       <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-      <button className="btn btn-lg btn-success" onClick={addNewClient}>Enregistrer</button>
+      <button className="btn btn-lg btn-success" onClick={addNewClient}>
+        <FloppyFill className="me-1" /> Enregistrer
+      </button>
     </div>
   );
 

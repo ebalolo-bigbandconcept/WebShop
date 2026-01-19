@@ -1,3 +1,4 @@
+import { ArrowReturnLeft, SendFill } from "react-bootstrap-icons";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router";
 import httpClient from "../components/httpClient";
@@ -145,9 +146,11 @@ function DevisPdfPreview() {
             <option value="location_without_apport">Location sans apport</option>
             <option value="location_with_apport">Location avec apport</option>
           </select>
-          <button className="btn btn-success" disabled={isLockedStatus} onClick={handleSendToDocuSign}>Envoyer le PDF</button>
+          <button className="btn btn-success" disabled={isLockedStatus} onClick={handleSendToDocuSign}><SendFill className="me-1" />Envoyer le PDF</button>
         </div>
-        <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`, { replace: true, state: location.state })}>Retour</button>
+        <button className="btn btn-danger" onClick={() => navigate(`/devis/${id_client}/${id_devis}`, { replace: true, state: location.state })}>
+          <ArrowReturnLeft className="me-1" /> Retour
+        </button>
       </div>
       {pdfUrl && (
         <iframe

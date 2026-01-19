@@ -1,9 +1,9 @@
+import { PlusLg, Trash3Fill, ArrowReturnLeft, FloppyFill, FileEarmarkPdf } from "react-bootstrap-icons";
 import { useParams } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
-import trashCan from "../assets/trash3-fill.svg";
 import { useToast } from "../components/Toast";
 
 function Devis() {
@@ -905,7 +905,9 @@ function Devis() {
   ) : (
     <div className="d-flex justify-content-between w-100">
       <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-      <button className="btn btn-lg btn-success" onClick={addNewArticle}>Ajouter</button>
+      <button className="btn btn-lg btn-success" onClick={addNewArticle}>
+        <PlusLg className="me-1" /> Ajouter
+      </button>
     </div>
   );
 
@@ -917,7 +919,9 @@ function Devis() {
     <div>
       <div className="d-flex justify-content-between align-items-start">
         <h1 className="mb-0">Devis N°{id_devis}</h1>
-        <button className="btn btn-danger" onClick={goBack}>Retour</button>
+        <button className="btn btn-danger" onClick={goBack}>
+          <ArrowReturnLeft className="me-1" /> Retour
+        </button>
       </div>
       <br/>
       {client && (
@@ -1121,7 +1125,7 @@ function Devis() {
                     disabled={isLocked}
                   />
                 </td>
-                <td onClick={() => { if (!isLocked) handleDeleteArticle(article); }}><img src={trashCan} alt="trashcan"></img></td>
+                <td onClick={() => { if (!isLocked) handleDeleteArticle(article); }}><Trash3Fill color="red"/></td>
               </tr>
             ))
           ) : (
@@ -1132,11 +1136,15 @@ function Devis() {
         </tbody>
       </table>
       <div className="d-flex justify-content-between">
-        <button className="btn btn-primary" onClick={handleAddArticle} disabled={isLocked}>+ Ajouter un article</button>
+        <button className="btn btn-primary" onClick={handleAddArticle} disabled={isLocked}>
+          <PlusLg className="me-1" /> Ajouter un article
+        </button>
         <div>
-          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}> Supprimer le devis</button> : ""}
-          {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}>Générer le devis</button> : ""}
-          <button className="btn btn-success" onClick={saveDevis} disabled={isLocked && !isNewDevis}> Enregistrer le devis</button>
+          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}><Trash3Fill className="me-1" /> Supprimer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}><FileEarmarkPdf className="me-1" />Générer le devis</button> : ""}
+          <button className="btn btn-success" onClick={saveDevis} disabled={isLocked && !isNewDevis}>
+            <FloppyFill className="me-1" /> Enregistrer le devis
+          </button>
         </div>
       </div>
       <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-lg" backdrop="static" keyboard={false}>
