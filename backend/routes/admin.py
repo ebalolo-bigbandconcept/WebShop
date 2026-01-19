@@ -3,7 +3,8 @@ from flask_bcrypt import Bcrypt
 from models import db, User, UserSchema, Parameters, TauxTVA, Articles, DevisArticles
 from functools import wraps
 import logging
-from utils import validate_user_fields, _coerce_float, _coerce_int
+import bleach
+from utils import validate_user_fields, _coerce_float, _coerce_int, validated_json
 
 # Create a Blueprint for admin-related routes
 admin_bp = Blueprint('admin_bp', __name__, url_prefix='/api/admin')
@@ -38,12 +39,14 @@ def get_all_users():
 # Add new user route
 @admin_bp.route("/create-user", methods=["POST"])
 @admin_required
+@validated_json("email", "prenom", "nom", "mdp", "role")
 def add_user():
-    email = request.json["email"]
-    prenom = request.json["prenom"]
-    nom = request.json["nom"]
-    mdp = request.json["mdp"]
-    role = request.json["role"]
+    data = request.get_json()
+    email = data.get("email", "").strip()
+    prenom = data.get("prenom", "").strip()
+    nom = data.get("nom", "").strip()
+    mdp = data.get("mdp", "")
+    role = data.get("role", "").strip()
     
     # Vérification si le nom d'utilisateur existe déjà.
     user_already_exists = User.query.filter_by(email=email).first() is not None
@@ -210,6 +213,9 @@ def update_parameters():
         return jsonify({"error": str(exc)}), 400
 
     general_conditions_sales = body.get("generalConditionsSales", "") or ""
+    # Sanitize HTML to prevent XSS attacks - allow common HTML tags
+    general_conditions_sales = bleach.clean(general_conditions_sales, tags=['b', 'i', 'u', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li'], strip=True)
+    
     company_name = body.get("companyName", "") or ""
     company_address_line1 = body.get("companyAddressLine1", "") or ""
     company_address_line2 = body.get("companyAddressLine2", "") or ""
