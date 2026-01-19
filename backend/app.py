@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, session
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_session import Session
@@ -10,6 +10,8 @@ from models import db, ma, User, TauxTVA, Parameters
 from dotenv import load_dotenv
 import os
 import logging
+import json
+from datetime import datetime
 from routes.admin import admin_bp
 from routes.articles import articles_bp
 from routes.auth import auth_bp, limiter
@@ -43,12 +45,71 @@ limiter.init_app(app)
 # Trust reverse proxy headers (X-Forwarded-Proto, Host, etc.) for correct https URLs
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
-# Config logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()]
-)
+# Config structured logging with JSON format for better parsing
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        log_data = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'level': record.levelname,
+            'message': record.getMessage(),
+            'module': record.module,
+            'function': record.funcName,
+        }
+        
+        # Add extra fields if present
+        if hasattr(record, 'user_id'):
+            log_data['user_id'] = record.user_id
+        if hasattr(record, 'user_email'):
+            log_data['user_email'] = record.user_email
+        if hasattr(record, 'ip_address'):
+            log_data['ip_address'] = record.ip_address
+        if hasattr(record, 'action'):
+            log_data['action'] = record.action
+        if hasattr(record, 'resource'):
+            log_data['resource'] = record.resource
+        if hasattr(record, 'status'):
+            log_data['status'] = record.status
+            
+        return json.dumps(log_data)
+
+# Configure file and console handlers
+file_handler = logging.FileHandler("app.log")
+file_handler.setFormatter(JSONFormatter())
+file_handler.setLevel(logging.INFO)
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+console_handler.setLevel(logging.INFO)
+
+# Security events log (separate file for audit trail)
+security_handler = logging.FileHandler("security.log")
+security_handler.setFormatter(JSONFormatter())
+security_handler.setLevel(logging.WARNING)
+
+# Get logger and configure
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# Security logger for audit events
+security_logger = logging.getLogger('security')
+security_logger.setLevel(logging.INFO)
+security_logger.addHandler(security_handler)
+security_logger.addHandler(console_handler)
+security_logger.propagate = False
+
+# Request logging middleware
+@app.before_request
+def log_request():
+    # Log all requests with relevant info
+    if request.endpoint and not request.endpoint.startswith('static'):
+        extra = {
+            'ip_address': request.remote_addr,
+            'action': f"{request.method} {request.path}",
+            'user_id': session.get('user_id', 'anonymous')
+        }
+        logging.info(f"Request: {request.method} {request.path}", extra=extra)
 
 # Config BDD
 db.init_app(app)

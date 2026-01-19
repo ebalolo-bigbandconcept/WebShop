@@ -11,16 +11,40 @@ admin_bp = Blueprint('admin_bp', __name__, url_prefix='/api/admin')
 
 bcrypt = Bcrypt()
 
+# Get loggers
+logger = logging.getLogger(__name__)
+security_logger = logging.getLogger('security')
+
 # Admin role required decorator
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user_id = session.get("user_id")
         if not user_id:
+            security_logger.warning(
+                "Unauthorized access attempt to admin endpoint",
+                extra={
+                    'action': 'UNAUTHORIZED_ACCESS',
+                    'resource': request.path,
+                    'ip_address': request.remote_addr,
+                    'status': 'NO_SESSION'
+                }
+            )
             return jsonify({"error": "Unauthorized"}), 401
         
         user = User.query.filter_by(id=user_id).first()
         if user.role != 'Administrateur':
+            security_logger.warning(
+                f"Forbidden access attempt by non-admin user: {user.email}",
+                extra={
+                    'action': 'FORBIDDEN_ACCESS',
+                    'user_id': user.id,
+                    'user_email': user.email,
+                    'resource': request.path,
+                    'ip_address': request.remote_addr,
+                    'status': 'INSUFFICIENT_PRIVILEGES'
+                }
+            )
             return jsonify({"error": "Forbidden"}), 403
         
         return f(*args, **kwargs)
@@ -41,6 +65,9 @@ def get_all_users():
 @admin_required
 @validated_json("email", "prenom", "nom", "mdp", "role")
 def add_user():
+    admin_id = session.get('user_id')
+    admin = User.query.filter_by(id=admin_id).first()
+    
     data = request.get_json()
     email = data.get("email", "").strip()
     prenom = data.get("prenom", "").strip()
@@ -69,7 +96,20 @@ def add_user():
     )
     db.session.add(new_user)
     db.session.commit()
-    logging.info(f"Admin {session.get('user_id')} a créé un nouvel utilisateur: {new_user.email} (id: {new_user.id}, rôle: {new_user.role})")
+    
+    security_logger.info(
+        f"Admin created new user: {new_user.email} with role {new_user.role}",
+        extra={
+            'action': 'USER_CREATED',
+            'user_id': admin.id,
+            'user_email': admin.email,
+            'resource': f"user:{new_user.id}",
+            'ip_address': request.remote_addr,
+            'status': 'SUCCESS',
+            'target_email': new_user.email,
+            'target_role': new_user.role
+        }
+    )
     
     return jsonify({
         "id": new_user.id
@@ -79,9 +119,15 @@ def add_user():
 @admin_bp.route("/update-user/<user_id>", methods=['POST'])
 @admin_required
 def modify_user(user_id):
+    admin_id = session.get('user_id')
+    admin = User.query.filter_by(id=admin_id).first()
+    
     user = User.query.filter_by(id=user_id).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
+    
+    old_email = user.email
+    old_role = user.role
     
     new_email = request.json["email"]
     new_first_name = request.json["prenom"]
@@ -115,12 +161,35 @@ def modify_user(user_id):
     user.nom = new_last_name
     user.role = new_role
     
+    password_changed = False
     if new_password:
         new_hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
         user.mdp = new_hashed_password
+        password_changed = True
     
     db.session.commit()
-    logging.info(f"Admin {session.get('user_id')} a modifié l'utilisateur: {user.email} (id: {user.id}, rôle: {user.role})")
+    
+    changes = []
+    if old_email != new_email:
+        changes.append(f"email: {old_email} -> {new_email}")
+    if old_role != new_role:
+        changes.append(f"role: {old_role} -> {new_role}")
+    if password_changed:
+        changes.append("password updated")
+    
+    security_logger.info(
+        f"Admin updated user: {user.email} - Changes: {', '.join(changes) if changes else 'profile info'}",
+        extra={
+            'action': 'USER_UPDATED',
+            'user_id': admin.id,
+            'user_email': admin.email,
+            'resource': f"user:{user.id}",
+            'ip_address': request.remote_addr,
+            'status': 'SUCCESS',
+            'target_email': user.email,
+            'changes': changes
+        }
+    )
     
     return jsonify({
         "id": user.id
@@ -130,6 +199,9 @@ def modify_user(user_id):
 @admin_bp.route("/delete-user/<user_id>", methods=['POST'])
 @admin_required
 def delete_user(user_id):
+    admin_id = session.get('user_id')
+    admin = User.query.filter_by(id=admin_id).first()
+    
     user = User.query.filter_by(id=user_id).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -144,10 +216,25 @@ def delete_user(user_id):
         admin_count = User.query.filter_by(role="Administrateur").count()
         if admin_count <= 1:
             return jsonify({"error": "Impossible de supprimer le dernier compte administrateur."}), 403
+    
     user_email = user.email
+    user_role = user.role
     User.query.filter_by(id=user_id).delete()
     db.session.commit()
-    logging.info(f"Admin {session.get('user_id')} a supprimé l'utilisateur: {user_email} (id: {user_id})")
+    
+    security_logger.warning(
+        f"Admin deleted user: {user_email}",
+        extra={
+            'action': 'USER_DELETED',
+            'user_id': admin.id,
+            'user_email': admin.email,
+            'resource': f"user:{user_id}",
+            'ip_address': request.remote_addr,
+            'status': 'SUCCESS',
+            'target_email': user_email,
+            'target_role': user_role
+        }
+    )
     
     return jsonify({
         "200": "User successfully deleted."
@@ -252,7 +339,21 @@ def update_parameters():
     params.company_aprm = company_aprm
 
     db.session.commit()
-    logging.info(f"Admin {session.get('user_id')} a mis a jour les parametres de l'application")
+    
+    admin_id = session.get('user_id')
+    admin = User.query.filter_by(id=admin_id).first()
+    
+    security_logger.info(
+        f"Admin updated application parameters",
+        extra={
+            'action': 'PARAMETERS_UPDATED',
+            'user_id': admin.id if admin else admin_id,
+            'user_email': admin.email if admin else 'unknown',
+            'resource': 'application_parameters',
+            'ip_address': request.remote_addr,
+            'status': 'SUCCESS'
+        }
+    )
 
     return jsonify({"status": "ok"})
 
@@ -282,7 +383,23 @@ def add_tva():
     new_vat = TauxTVA(taux=taux)
     db.session.add(new_vat)
     db.session.commit()
-    logging.info(f"Admin {session.get('user_id')} a ajouté un taux TVA: {taux}")
+    
+    admin_id = session.get('user_id')
+    admin = User.query.filter_by(id=admin_id).first()
+    
+    security_logger.info(
+        f"Admin added new VAT rate: {taux}%",
+        extra={
+            'action': 'VAT_CREATED',
+            'user_id': admin.id if admin else admin_id,
+            'user_email': admin.email if admin else 'unknown',
+            'resource': f"vat:{new_vat.id}",
+            'ip_address': request.remote_addr,
+            'status': 'SUCCESS',
+            'vat_rate': taux
+        }
+    )
+    
     return jsonify({"id": new_vat.id, "taux": new_vat.taux})
 
 
@@ -303,7 +420,24 @@ def delete_tva(tva_id: int):
             409,
         )
 
+    vat_rate = vat.taux
     db.session.delete(vat)
     db.session.commit()
-    logging.info(f"Admin {session.get('user_id')} a supprimé le taux TVA id={tva_id}")
+    
+    admin_id = session.get('user_id')
+    admin = User.query.filter_by(id=admin_id).first()
+    
+    security_logger.warning(
+        f"Admin deleted VAT rate: {vat_rate}%",
+        extra={
+            'action': 'VAT_DELETED',
+            'user_id': admin.id if admin else admin_id,
+            'user_email': admin.email if admin else 'unknown',
+            'resource': f"vat:{tva_id}",
+            'ip_address': request.remote_addr,
+            'status': 'SUCCESS',
+            'vat_rate': vat_rate
+        }
+    )
+    
     return jsonify({"status": "deleted"})
