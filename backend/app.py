@@ -20,6 +20,10 @@ from routes.devis import devis_bp
 from routes.docusign import docusign_bp
 from werkzeug.middleware.proxy_fix import ProxyFix
 
+# Log directory
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 # CONSTANTS
 load_dotenv()
 
@@ -73,7 +77,7 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_data)
 
 # Configure file and console handlers
-file_handler = logging.FileHandler("app.log")
+file_handler = logging.FileHandler(os.path.join(LOG_DIR, "app.log"))
 file_handler.setFormatter(JSONFormatter())
 file_handler.setLevel(logging.INFO)
 
@@ -82,7 +86,7 @@ console_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(me
 console_handler.setLevel(logging.INFO)
 
 # Security events log (separate file for audit trail)
-security_handler = logging.FileHandler("security.log")
+security_handler = logging.FileHandler(os.path.join(LOG_DIR, "security.log"))
 security_handler.setFormatter(JSONFormatter())
 security_handler.setLevel(logging.WARNING)
 
