@@ -46,6 +46,87 @@ def _compute_unit_price(article_obj, params, is_location):
     return float(article_obj.prix_vente_HT or 0.0)
 
 
+def _compute_article_lines(articles_data, articles_map):
+    """
+    Compute line amounts for each article: montant_HT, montant_TVA, montant_TTC
+    Returns: list of dicts with computed values, and totals
+    """
+    lines = []
+    total_ht = 0.0
+    total_tva = 0.0
+    total_ttc = 0.0
+
+    for article_payload in articles_data:
+        article_obj = articles_map.get(article_payload.get("article_id"))
+        if not article_obj:
+            continue
+
+        # Get unit price (normal pricing, not location)
+        unit_price = float(article_obj.prix_vente_HT or 0.0)
+        qty = float(article_payload.get("quantite") or 1)
+
+        # Get VAT rate
+        tva_id = _resolve_tva_id(article_payload, articles_map)
+        taux_val = 0.0
+        if tva_id:
+            tva_obj = TauxTVA.query.get(tva_id)
+            taux_val = float(tva_obj.taux) if tva_obj else 0.0
+        elif article_obj and article_obj.taux_tva:
+            taux_val = float(article_obj.taux_tva.taux)
+
+        # Compute line amounts
+        line_ht = round(unit_price * qty, 2)
+        line_tva = round(line_ht * taux_val, 2)
+        line_ttc = round(line_ht + line_tva, 2)
+
+        lines.append({
+            "article_id": article_obj.id,
+            "nom": article_obj.nom,
+            "reference": article_obj.reference,
+            "quantite": qty,
+            "unit_price_ht": unit_price,
+            "taux_tva": taux_val,
+            "montant_ht": line_ht,
+            "montant_tva": line_tva,
+            "montant_ttc": line_ttc,
+            "commentaire": article_payload.get("commentaire") or "",
+        })
+
+        total_ht += line_ht
+        total_tva += line_tva
+        total_ttc += line_ttc
+
+    return lines, round(total_ht, 2), round(total_tva, 2), round(total_ttc, 2)
+
+
+def _compute_location_totals(total_ttc, first_contribution, location_subscription_cost, location_interests_cost, location_time):
+    """
+    Compute location payment plan totals
+    Assumes 20% VAT for location costs (subscription + interests)
+    """
+    if location_time <= 0:
+        return 0.0, 0.0, 0.0, 0.0
+
+    # Location costs are typically provided as TTC, but we need to handle both HT and TTC
+    # Assume they come as TTC values
+    subscription_ttc = float(location_subscription_cost or 0.0)
+    interests_ttc = float(location_interests_cost or 0.0)
+
+    # For location scenario: total = (articles_ttc + subscription + interests - apport)
+    # Split into HT and TTC assuming 20% VAT on everything
+    articles_ttc = float(total_ttc or 0.0)
+    apport = float(first_contribution or 0.0)
+
+    total_ttc_location = articles_ttc + subscription_ttc + interests_ttc - apport
+    total_ht_location = total_ttc_location / 1.20  # Reverse VAT calculation
+
+    location_time_int = int(location_time or 12)
+    monthly_ht = round(total_ht_location / location_time_int, 2) if location_time_int > 0 else 0.0
+    monthly_ttc = round(total_ttc_location / location_time_int, 2) if location_time_int > 0 else 0.0
+
+    return round(total_ht_location, 2), round(total_ttc_location, 2), monthly_ht, monthly_ttc
+
+
 # Public endpoint to list all VAT rates (no admin required)
 @devis_bp.route('/tva', methods=['GET'])
 def list_vat_public():
@@ -122,57 +203,85 @@ def create_devis():
     titre = request.json["title"]
     description = request.json["description"]
     date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
-    montant_HT = request.json["montant_HT"]
-    montant_TVA = request.json["montant_TVA"]
-    montant_TTC = request.json["montant_TTC"]
     remise = float(request.json.get("remise", 0.0) or 0.0)
     statut = request.json["statut"]
     client_id = request.json["client_id"]
     articles_data = request.json["articles"]
     is_location = request.json.get("is_location", False)
-    first_contribution_amount = request.json.get("first_contribution_amount")
-    location_monthly_total = request.json.get("location_monthly_total")
-    location_monthly_total_ht = request.json.get("location_monthly_total_ht")
-    location_total = request.json.get("location_total")
-    location_total_ht = request.json.get("location_total_ht")
+    first_contribution_amount = float(request.json.get("first_contribution_amount", 0.0) or 0.0)
+    location_subscription_cost = float(request.json.get("location_subscription_cost", 0.0) or 0.0)
+    location_interests_cost = float(request.json.get("location_interests_cost", 0.0) or 0.0)
+    location_time = int(request.json.get("location_time", 12) or 12)
+    
+    # Compute article line amounts server-side (ignore client-supplied totals)
+    articles_map = _build_article_map(articles_data)
+    lines, total_ht, total_tva, total_ttc = _compute_article_lines(articles_data, articles_map)
+    
+    # Compute location totals if applicable
+    location_total_ht = 0.0
+    location_total_ttc = 0.0
+    location_monthly_ht = 0.0
+    location_monthly_ttc = 0.0
+    if is_location:
+        location_total_ht, location_total_ttc, location_monthly_ht, location_monthly_ttc = _compute_location_totals(
+            total_ttc, first_contribution_amount, location_subscription_cost, location_interests_cost, location_time
+        )
     
     new_devis = Devis(
         client_id=client_id,
         titre=titre,
         description=description,
         date=date,
-        montant_HT=montant_HT,
-        montant_TVA=montant_TVA,
-        montant_TTC=montant_TTC,
+        montant_HT=total_ht,  # Use computed value
+        montant_TVA=total_tva,  # Use computed value
+        montant_TTC=total_ttc,  # Use computed value
         remise=remise,
         statut=statut,
         is_location=is_location,
         first_contribution_amount=first_contribution_amount,
-        location_monthly_total=location_monthly_total,
-        location_monthly_total_ht=location_monthly_total_ht,
-        location_total=location_total,
+        location_monthly_total=location_monthly_ttc,
+        location_monthly_total_ht=location_monthly_ht,
+        location_total=location_total_ttc,
         location_total_ht=location_total_ht,
     )
     db.session.add(new_devis)
     db.session.flush()
     
-    articles_map = _build_article_map(articles_data)
-    for article in articles_data:
-        tva_id = _resolve_tva_id(article, articles_map)
+    # Create DevisArticles records
+    for article_payload in articles_data:
+        article_obj = articles_map.get(article_payload.get("article_id"))
+        if not article_obj:
+            continue
+        
+        tva_id = _resolve_tva_id(article_payload, articles_map)
         devis_article = DevisArticles(
             devis_id=new_devis.id,
-            article_id=article["article_id"],
-            quantite=article['quantite'],
+            article_id=article_obj.id,
+            quantite=article_payload['quantite'],
             taux_tva_id=tva_id,
-            commentaire=article.get('commentaire')
+            commentaire=article_payload.get('commentaire')
         )
         db.session.add(devis_article)
         
     db.session.commit()
     logging.info(f"Nouveau devis créé: {new_devis.titre} (id: {new_devis.id}) par l'utilisateur {session.get('user_id')}")
     
+    # Return computed structure
+    devis_schema = DevisSchema()
+    devis_data = devis_schema.dump(new_devis)
+    
     return jsonify({
-        "id": new_devis.id
+        "id": new_devis.id,
+        "devis": devis_data,
+        "computed": {
+            "montant_ht": total_ht,
+            "montant_tva": total_tva,
+            "montant_ttc": total_ttc,
+            "location_total_ht": location_total_ht,
+            "location_total_ttc": location_total_ttc,
+            "location_monthly_ht": location_monthly_ht,
+            "location_monthly_ttc": location_monthly_ttc,
+        }
     })
 
 # Update devis route
@@ -188,98 +297,120 @@ def update_devis(devis_id):
     # Check if status is changing to "Signé" BEFORE updating the status
     to_sign = devis.statut != "Signé" and request.json.get("statut") == "Signé"
     
-    devis.titre = request.json["title"]
-    devis.description = request.json["description"]
-    devis.date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
-    devis.montant_HT = request.json["montant_HT"]
-    devis.montant_TVA = request.json["montant_TVA"]
-    devis.montant_TTC = request.json["montant_TTC"]
-    devis.remise = float(request.json.get("remise", devis.remise) or 0.0)
-    devis.statut = request.json["statut"]
-    devis.is_location = request.json.get("is_location", False)
-    devis.first_contribution_amount = request.json.get("first_contribution_amount")
-    devis.location_monthly_total = request.json.get("location_monthly_total")
-    devis.location_monthly_total_ht = request.json.get("location_monthly_total_ht")
-    devis.location_total = request.json.get("location_total")
-    devis.location_total_ht = request.json.get("location_total_ht")
+    titre = request.json["title"]
+    description = request.json["description"]
+    date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
+    remise = float(request.json.get("remise", 0.0) or 0.0)
+    statut = request.json["statut"]
     articles_data = request.json["articles"]
+    is_location = request.json.get("is_location", False)
+    first_contribution_amount = float(request.json.get("first_contribution_amount", 0.0) or 0.0)
+    location_subscription_cost = float(request.json.get("location_subscription_cost", 0.0) or 0.0)
+    location_interests_cost = float(request.json.get("location_interests_cost", 0.0) or 0.0)
+    location_time = int(request.json.get("location_time", 12) or 12)
+    
+    # Compute article line amounts server-side (ignore client-supplied totals)
+    articles_map = _build_article_map(articles_data)
+    lines, total_ht, total_tva, total_ttc = _compute_article_lines(articles_data, articles_map)
+    
+    # Compute location totals if applicable
+    location_total_ht = 0.0
+    location_total_ttc = 0.0
+    location_monthly_ht = 0.0
+    location_monthly_ttc = 0.0
+    if is_location:
+        location_total_ht, location_total_ttc, location_monthly_ht, location_monthly_ttc = _compute_location_totals(
+            total_ttc, first_contribution_amount, location_subscription_cost, location_interests_cost, location_time
+        )
+    
     params = Parameters.query.first()
-    remise_value = float(request.json.get("remise") or 0.0)
     
     try:
+        # Update devis main fields
+        devis.titre = titre
+        devis.description = description
+        devis.date = date
+        devis.montant_HT = total_ht
+        devis.montant_TVA = total_tva
+        devis.montant_TTC = total_ttc
+        devis.remise = remise
+        devis.statut = statut
+        devis.is_location = is_location
+        devis.first_contribution_amount = first_contribution_amount
+        devis.location_monthly_total = location_monthly_ttc
+        devis.location_monthly_total_ht = location_monthly_ht
+        devis.location_total = location_total_ttc
+        devis.location_total_ht = location_total_ht
+        
+        # Delete old articles
         DevisArticles.query.filter_by(devis_id=devis.id).delete()
-
-        articles_map = _build_article_map(articles_data)
+        
+        # Create new DevisArticles records
         snapshot_lines = []
-        total_ht = 0.0
-        total_tva = 0.0
-        total_ttc = 0.0
-
-        for article in articles_data:
-            tva_id = _resolve_tva_id(article, articles_map)
-            article_obj = articles_map.get(article["article_id"])
-            unit_price = _compute_unit_price(article_obj, params, False)  # Always use normal pricing for devis storage
+        for article_payload in articles_data:
+            article_obj = articles_map.get(article_payload.get("article_id"))
+            if not article_obj:
+                continue
+            
+            tva_id = _resolve_tva_id(article_payload, articles_map)
+            
+            # Get VAT rate
             taux_val = 0.0
             if tva_id:
                 tva_obj = TauxTVA.query.get(tva_id)
                 taux_val = float(tva_obj.taux) if tva_obj else 0.0
             elif article_obj and article_obj.taux_tva:
                 taux_val = float(article_obj.taux_tva.taux)
-
-            qty = float(article["quantite"])
-            line_ht = unit_price * qty
-            line_tva = line_ht * (taux_val or 0.0)
-            line_ttc = line_ht + line_tva
-
+            
+            # Get unit price and line amounts from pre-computed lines
+            unit_price = float(article_obj.prix_vente_HT or 0.0)
+            qty = float(article_payload.get("quantite") or 1)
+            line_ht = round(unit_price * qty, 2)
+            line_tva = round(line_ht * taux_val, 2)
+            line_ttc = round(line_ht + line_tva, 2)
+            
             devis_article = DevisArticles(
                 devis_id=devis.id,
-                article_id=article["article_id"],
-                quantite=article["quantite"],
+                article_id=article_obj.id,
+                quantite=qty,
                 taux_tva_id=tva_id,
-                commentaire=article.get('commentaire')
+                commentaire=article_payload.get('commentaire')
             )
-
+            
             if to_sign:
                 devis_article.prix_unitaire_ht_snapshot = unit_price
                 devis_article.taux_tva_snapshot = taux_val
                 devis_article.montant_ht_snapshot = line_ht
                 devis_article.montant_tva_snapshot = line_tva
                 devis_article.montant_ttc_snapshot = line_ttc
-
-            db.session.add(devis_article)
-
-            total_ht += line_ht
-            total_tva += line_tva
-            total_ttc += line_ttc
-
-            if to_sign:
+                
                 snapshot_lines.append({
-                    "article_id": article_obj.id if article_obj else article.get("article_id"),
-                    "nom": getattr(article_obj, "nom", ""),
-                    "reference": getattr(article_obj, "reference", ""),
+                    "article_id": article_obj.id,
+                    "nom": article_obj.nom,
+                    "reference": article_obj.reference,
                     "quantite": qty,
                     "taux_tva": taux_val,
                     "prix_unitaire_ht": unit_price,
                     "montant_ht": line_ht,
                     "montant_tva": line_tva,
                     "montant_ttc": line_ttc,
-                    "commentaire": article.get('commentaire') or "",
+                    "commentaire": article_payload.get('commentaire') or "",
                 })
-
+            
+            db.session.add(devis_article)
+        
+        # Create snapshot if signing
         if to_sign:
-            devis.montant_HT = round(total_ht, 2)
-            devis.montant_TVA = round(total_tva, 2)
-            devis.montant_TTC = round(total_ttc, 2)
             devis.signed_at = datetime.utcnow()
             devis.signed_data = {
                 "lines": snapshot_lines,
                 "totals": {
-                    "ht": round(total_ht, 2),
-                    "tva": round(total_tva, 2),
-                    "ttc": round(total_ttc, 2),
-                    "ttc_after_remise": round(max(total_ttc - remise_value, 0.0), 2),
+                    "ht": total_ht,
+                    "tva": total_tva,
+                    "ttc": total_ttc,
+                    "ttc_after_remise": round(max(total_ttc - remise, 0.0), 2),
                 },
-                "remise": round(remise_value, 2),
+                "remise": round(remise, 2),
                 "params": {
                     "margin_rate": params.margin_rate if params else 0.0,
                     "margin_rate_location": params.margin_rate_location if params else 0.0,
@@ -302,21 +433,33 @@ def update_devis(devis_id):
                     "aprm": params.company_aprm if params else "",
                 },
                 "location": {
-                    "is_location": devis.is_location,
-                    "first_contribution_amount": devis.first_contribution_amount,
-                    "location_monthly_total": devis.location_monthly_total,
-                    "location_monthly_total_ht": devis.location_monthly_total_ht,
-                    "location_total": devis.location_total,
-                    "location_total_ht": devis.location_total_ht,
+                    "is_location": is_location,
+                    "first_contribution_amount": first_contribution_amount,
+                    "location_monthly_total": location_monthly_ttc,
+                    "location_monthly_total_ht": location_monthly_ht,
+                    "location_total": location_total_ttc,
+                    "location_total_ht": location_total_ht,
                 },
             }
-
+        
         db.session.commit()
-
         logging.info(f"Devis modifié: {devis.titre} (id: {devis.id}) par l'utilisateur {session.get('user_id')}")
-
+        
+        devis_schema = DevisSchema()
+        devis_data = devis_schema.dump(devis)
+        
         return jsonify({
-            "id": devis.id
+            "id": devis.id,
+            "devis": devis_data,
+            "computed": {
+                "montant_ht": total_ht,
+                "montant_tva": total_tva,
+                "montant_ttc": total_ttc,
+                "location_total_ht": location_total_ht,
+                "location_total_ttc": location_total_ttc,
+                "location_monthly_ht": location_monthly_ht,
+                "location_monthly_ttc": location_monthly_ttc,
+            }
         })
 
     except Exception as e:
