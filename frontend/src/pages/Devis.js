@@ -371,7 +371,7 @@ function Devis() {
         // Update existing devis
         httpClient
         .put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData)
-        .then((resp) => {
+        .then(async (resp) => {
           // Update totals from API response
           if (resp.data.computed) {
             setDevisMontantHT(resp.data.computed.montant_ht);
@@ -382,6 +382,10 @@ function Devis() {
             setLocationMonthlyTotal(resp.data.computed.location_monthly_ttc);
             setLocationMonthlyTotalHt(resp.data.computed.location_monthly_ht);
           }
+          
+          // Fetch the updated devis to get article amounts
+          await fetchDevisById(id_devis);
+          
           showToast({ message: "Devis enregistré avec succès.", variant: "success" });
         })
         .catch((error) => {
