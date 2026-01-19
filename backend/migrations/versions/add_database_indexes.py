@@ -18,7 +18,7 @@ depends_on = None
 
 def upgrade():
     # Add index on user email for fast lookups during login/registration
-    with op.batch_alter_table('user', schema=None) as batch_op:
+    with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.create_index('ix_user_email', ['email'])
     
     # Add index on Devis client_id for fast filtering by client
@@ -30,7 +30,7 @@ def upgrade():
         batch_op.create_index('ix_devis_articles_devis_id', ['devis_id'])
     
     # Add index on Client email for fast lookups
-    with op.batch_alter_table('client', schema=None) as batch_op:
+    with op.batch_alter_table('clients', schema=None) as batch_op:
         batch_op.create_index('ix_client_email', ['email'])
 
 
@@ -42,8 +42,8 @@ def downgrade():
     with op.batch_alter_table('devis', schema=None) as batch_op:
         batch_op.drop_index('ix_devis_client_id')
     
-    with op.batch_alter_table('client', schema=None) as batch_op:
+    with op.batch_alter_table('clients', schema=None) as batch_op:
         batch_op.drop_index('ix_client_email')
     
-    with op.batch_alter_table('user', schema=None) as batch_op:
+    with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.drop_index('ix_user_email')
