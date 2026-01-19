@@ -31,6 +31,7 @@ services:
       - backend
     volumes:
       - ./frontend:/app # Mount frontend code for development
+      - /app/node_modules # Persist node_modules in container
 
   proxy:
     image: nginx:alpine
