@@ -55,13 +55,32 @@ def list_vat_public():
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
 def get_every_devis():
-    devis = Devis.query.order_by(Devis.id.asc()).all()
-    if len(devis) == 0:
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    
+    # Ensure reasonable pagination values
+    page = max(1, page)
+    per_page = max(1, min(per_page, 100))  # Max 100 items per page
+    
+    paginated = Devis.query.order_by(Devis.id.desc()).paginate(page=page, per_page=per_page)
+    
+    if paginated.total == 0:
         return jsonify({"error": "Aucuns devis trouvé"}), 404
     
     devis_schema = DevisSchema(many=True)
-    devis_data = devis_schema.dump(devis)
-    return jsonify(data=devis_data)
+    devis_data = devis_schema.dump(paginated.items)
+    
+    return jsonify({
+        "data": devis_data,
+        "pagination": {
+            "current_page": page,
+            "total_pages": paginated.pages,
+            "total_items": paginated.total,
+            "per_page": per_page,
+            "has_next": paginated.has_next,
+            "has_prev": paginated.has_prev
+        }
+    })
 
 # Get every devis of a client route
 @devis_bp.route('/client/<client_id>', methods=['GET'])
