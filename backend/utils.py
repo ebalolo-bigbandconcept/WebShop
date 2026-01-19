@@ -1,10 +1,13 @@
 from models import TauxTVA
+from flask import request, jsonify
+from functools import wraps
+from typing import Optional, Callable, Any
 import re
 
 # Validate user fields for database entry
 VALID_ROLES = {"Utilisateur", "Administrateur"}
 
-def validate_user_fields(email, nom, prenom, mdp=None, role=None):
+def validate_user_fields(email: str, nom: str, prenom: str, mdp: Optional[str] = None, role: Optional[str] = None) -> Optional[str]:
     if not is_valid_email(email) or len(email) > 345:
         return "Format d'email invalide ou trop long."
     if len(prenom) < 1 or len(prenom) > 50:
@@ -18,7 +21,7 @@ def validate_user_fields(email, nom, prenom, mdp=None, role=None):
             return "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial."
     return None
 
-def validate_client_fields(nom, prenom, rue, ville, code_postal, telephone, email):
+def validate_client_fields(nom: str, prenom: str, rue: str, ville: str, code_postal: str, telephone: str, email: str) -> Optional[str]:
     if not is_valid_email(email) or len(email) > 345:
         return "Format d'email invalide ou trop long."
     if len(nom) < 1 or len(nom) > 100:
@@ -35,7 +38,7 @@ def validate_client_fields(nom, prenom, rue, ville, code_postal, telephone, emai
         return "Le téléphone doit contenir entre 1 et 20 caractères."
     return None
 
-def validate_article_fields(nom, reference, prix_achat_HT, prix_vente_HT, taux_tva_id):
+def validate_article_fields(nom: str, reference: str, prix_achat_HT: float, prix_vente_HT: float, taux_tva_id: int) -> Optional[str]:
     if len(nom) < 1 or len(nom) > 200:
         return "Le nom de l'article doit contenir entre 1 et 200 caractères."
     # Reference becomes optional; allow empty string
@@ -49,29 +52,54 @@ def validate_article_fields(nom, reference, prix_achat_HT, prix_vente_HT, taux_t
     return None
 
 # Email validation function
-def is_valid_email(email):
+def is_valid_email(email: str) -> bool:
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    return re.match(email_regex, email)
+    return re.match(email_regex, email) is not None
 
 # Password strength validation function
-def is_strong_password(password):
+def is_strong_password(password: str) -> bool:
     # Au moins 8 caractères, une majuscule, une minuscule, un chiffre, un caractère spécial
     regex = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$'
-    return re.match(regex, password)
+    return re.match(regex, password) is not None
 
-def _coerce_float(value, default=0.0):
-        if value in (None, ""):
-            return default
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            raise ValueError("Ce champ doit etre un nombre.")
+def _coerce_float(value: Any, default: float = 0.0) -> float:
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValueError("Ce champ doit etre un nombre.")
 
-
-def _coerce_int(value, default=0):
+def _coerce_int(value: Any, default: int = 0) -> int:
     if value in (None, ""):
         return default
     try:
         return int(value)
     except (TypeError, ValueError):
         raise ValueError("Ce champ doit etre un entier.")
+
+def validated_json(*required_fields: str) -> Callable:
+    """Decorator to validate JSON requests and required fields.
+    Prevents crashes on malformed JSON.
+    
+    Args:
+        *required_fields: Field names that must be present in the JSON body
+        
+    Returns:
+        Decorator function
+    """
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            try:
+                data = request.get_json(force=True)
+                if data is None:
+                    return jsonify({"error": "Request body must be valid JSON"}), 400
+                missing = [field for field in required_fields if field not in data]
+                if missing:
+                    return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+                return f(*args, **kwargs)
+            except Exception as e:
+                return jsonify({"error": "Invalid JSON in request body"}), 400
+        return wrapped
+    return decorator
