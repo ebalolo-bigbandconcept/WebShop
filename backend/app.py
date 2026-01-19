@@ -3,6 +3,8 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_session import Session
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from config import ApplicationConfig
 from models import db, ma, User, TauxTVA, Parameters
 from dotenv import load_dotenv
@@ -10,7 +12,7 @@ import os
 import logging
 from routes.admin import admin_bp
 from routes.articles import articles_bp
-from routes.auth import auth_bp
+from routes.auth import auth_bp, limiter
 from routes.clients import clients_bp
 from routes.devis import devis_bp
 from routes.docusign import docusign_bp
@@ -34,6 +36,9 @@ CORS(app, origins=[FRONTEND_URL], supports_credentials=True)
 bcrypt = Bcrypt()
 bcrypt.init_app(app)
 server_session = Session(app)
+
+# Initialize rate limiter
+limiter.init_app(app)
 
 # Trust reverse proxy headers (X-Forwarded-Proto, Host, etc.) for correct https URLs
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)

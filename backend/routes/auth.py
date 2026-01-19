@@ -1,13 +1,18 @@
 from flask import Blueprint, request, jsonify, session
 from flask_bcrypt import Bcrypt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from models import db, User, UserSchema
-from utils import validate_user_fields
+from utils import validate_user_fields, validated_json
 import logging
 
 # Create a Blueprint for authentication-related routes
 auth_bp = Blueprint('auth_bp', __name__, url_prefix='/api/user')
 
 bcrypt = Bcrypt()
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Get current user info
 @auth_bp.route("/me", methods=['GET'])
@@ -26,11 +31,14 @@ def get_current_user():
 
 # Register route
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit("5/minute")
+@validated_json("email", "prenom", "nom", "mdp")
 def register():
-    email = request.json["email"]
-    prenom = request.json["prenom"]
-    nom = request.json["nom"]
-    mdp = request.json["mdp"]
+    data = request.get_json()
+    email = data.get("email", "").strip()
+    prenom = data.get("prenom", "").strip()
+    nom = data.get("nom", "").strip()
+    mdp = data.get("mdp", "")
     
     # Vérification si le nom d'utilisateur existe déjà.
     user_already_exists = User.query.filter_by(email=email).first() is not None
@@ -62,9 +70,12 @@ def register():
 
 # Login route
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("5/minute")
+@validated_json("email", "mdp")
 def login_user():
-    email = request.json["email"]
-    mdp = request.json["mdp"]
+    data = request.get_json()
+    email = data.get("email", "").strip()
+    mdp = data.get("mdp", "")
     
     user = User.query.filter_by(email=email).first()
 
@@ -75,6 +86,7 @@ def login_user():
         return jsonify({"error": "Mot de passe invalide"}), 401
     
     session["user_id"] = user.id
+    logging.info(f"Utilisateur connecté: {user.email} (id: {user.id})")
     
     user_schema = UserSchema()
     return user_schema.jsonify(user)
