@@ -2,6 +2,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import httpClient from "./components/httpClient";
 import { ToastProvider } from "./components/Toast";
+import ErrorBoundary from "./components/ErrorBoundary";
 import './App.css';
 
 // Component imports
@@ -53,68 +54,70 @@ function App() {
   if (loading) return <div>Chargement...</div>;
 
   return (
-    <div className="d-flex flex-column min-vh-100">
-      <Header user={user} setUser={setUser}/>
-      <div className='container mt-4 min-vh-100'>
-        <Suspense fallback={<div>Chargement...</div>}>
-          <Routes>
-            <Route path="/" element={<Login setUser={setUser}/>}/>
-            <Route path="/*" element={<NotFound/>}/>
-            <Route path="/liste-clients" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <ListeClients/>
-              </PrivateRoute>
-            }/>
-            <Route path="/client/:id" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <Client/>
-              </PrivateRoute>
-            }/>
-            <Route path="/liste-devis" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <ListeDevis/>
-              </PrivateRoute>
-            }/>
-            <Route path="/devis/:id_client/:id_devis" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <Devis/>
-              </PrivateRoute>
-            }/>
-            <Route path="/devis/:id_client/:id_devis/pdf" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <DevisPdf/>
-              </PrivateRoute>
-            }/>
-            <Route path="/liste-articles" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <ListeArticles/>
-              </PrivateRoute>
-            }/>
-            <Route path="/admin/dashboard" element={
-              <PrivateRoute user={user} requiredRole={'Administrateur'}>
-                <AdminDashboard setUser={setUser}/>
-              </PrivateRoute>
-            }/>
-            <Route path="/admin/parameters" element={
-              <PrivateRoute user={user} requiredRole={'Administrateur'}>
-                <AdminParameters/>
-              </PrivateRoute>
-            }/>
-            <Route path="/admin/liste-articles" element={
-              <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                <ListeArticles/>
-              </PrivateRoute>
-            }/>
-            <Route path="/admin/manage-user/:id" element={
-              <PrivateRoute user={user} requiredRole={'Administrateur'}>
-                <ManageUser/>
-              </PrivateRoute>
-            }/>
-          </Routes>
-        </Suspense>
+    <ErrorBoundary>
+      <div className="d-flex flex-column min-vh-100">
+        <Header user={user} setUser={setUser}/>
+        <div className='container mt-4 min-vh-100'>
+          <Suspense fallback={<div>Chargement...</div>}>
+            <Routes>
+              <Route path="/" element={<Login setUser={setUser}/>}/>
+              <Route path="/*" element={<NotFound/>}/>
+              <Route path="/liste-clients" element={
+                <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                  <ListeClients/>
+                </PrivateRoute>
+              }/>
+              <Route path="/client/:id" element={
+                <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                  <Client/>
+                </PrivateRoute>
+              }/>
+              <Route path="/liste-devis" element={
+                <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                  <ListeDevis/>
+                </PrivateRoute>
+              }/>
+              <Route path="/devis/:id_client/:id_devis" element={
+                <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                  <Devis/>
+                </PrivateRoute>
+              }/>
+              <Route path="/devis/:id_client/:id_devis/pdf" element={
+                <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                  <DevisPdf/>
+                </PrivateRoute>
+              }/>
+              <Route path="/liste-articles" element={
+                <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                  <ListeArticles/>
+                </PrivateRoute>
+              }/>
+              <Route path="/admin/dashboard" element={
+                <PrivateRoute user={user} requiredRole={'Administrateur'}>
+                  <AdminDashboard setUser={setUser}/>
+                </PrivateRoute>
+              }/>
+              <Route path="/admin/parameters" element={
+                <PrivateRoute user={user} requiredRole={'Administrateur'}>
+                  <AdminParameters/>
+                </PrivateRoute>
+              }/>
+              <Route path="/admin/liste-articles" element={
+                <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
+                  <ListeArticles/>
+                </PrivateRoute>
+              }/>
+              <Route path="/admin/manage-user/:id" element={
+                <PrivateRoute user={user} requiredRole={'Administrateur'}>
+                  <ManageUser/>
+                </PrivateRoute>
+              }/>
+            </Routes>
+          </Suspense>
+        </div>
+        <Footer />
       </div>
-      <Footer />
-    </div>
+    </ErrorBoundary>
   );
 }
 
