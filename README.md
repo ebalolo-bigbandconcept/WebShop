@@ -574,20 +574,20 @@ sudo docker compose -f docker-compose.prod.yml logs -f backend
 
 # Journaux de sécurité (format JSON)
 # Application logs (production)
-sudo docker compose exec backend tail -f security.log
+sudo docker compose -f docker-compose.prod.yml exec backend tail -f security.log
 
 # Affichage JSON lisible (nécessite jq)
 sudo docker compose -f docker-compose.prod.yml logs -f backend
 
 # Filtrer par type d'action
-sudo docker compose exec backend cat security.log | jq 'select(.action=="LOGIN_FAILED")'
-sudo docker compose exec backend cat security.log | jq 'select(.action=="USER_DELETED")'
+sudo docker compose -f docker-compose.prod.yml exec backend cat security.log | jq 'select(.action=="LOGIN_FAILED")'
+sudo docker compose -f docker-compose.prod.yml exec backend cat security.log | jq 'select(.action=="USER_DELETED")'
 
 # Rechercher les accès non autorisés / erreurs
-sudo docker compose exec backend grep "UNAUTHORIZED\|FORBIDDEN\|FAILED" security.log | jq '.'
+sudo docker compose -f docker-compose.prod.yml exec backend grep "UNAUTHORIZED\|FORBIDDEN\|FAILED" security.log | jq '.'
 
 # Copier le journal de sécurité sur l'hôte
-sudo docker compose cp backend:/app/security.log ./security.log
+sudo docker compose -f docker-compose.prod.yml cp backend:/app/security.log ./security.log
 ```
 
 ### Événements de sécurité journalisés
