@@ -181,6 +181,36 @@ def get_devis_info(devis_id):
     if not devis:
         return jsonify({"error": "Devis non trouvé"}), 404
     
+    # For signed devis with snapshot data, use the snapshot
+    if devis.statut == "Signé" and devis.signed_data:
+        snapshot = devis.signed_data
+        
+        # Reconstruct articles from snapshot
+        articles_data = []
+        for line in snapshot.get("lines", []):
+            articles_data.append({
+                "id": line.get("article_id"),
+                "article": {
+                    "id": line.get("article_id"),
+                    "nom": line.get("nom"),
+                    "reference": line.get("reference"),
+                },
+                "quantite": line.get("quantite"),
+                "taux_tva": {"taux": line.get("taux_tva")},
+                "montant_HT": line.get("montant_ht"),
+                "montant_TVA": line.get("montant_tva"),
+                "montant_TTC": line.get("montant_ttc"),
+                "commentaire": line.get("commentaire", ""),
+            })
+        
+        # Build response from snapshot
+        devis_schema = DevisSchema()
+        devis_data = devis_schema.dump(devis)
+        devis_data["articles"] = articles_data
+        
+        return jsonify(devis_data)
+    
+    # For unsigned devis, use normal serialization
     devis_schema = DevisSchema()
     return devis_schema.jsonify(devis)
 

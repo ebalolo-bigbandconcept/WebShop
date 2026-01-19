@@ -29,12 +29,12 @@ def upgrade():
             batch_op.add_column(sa.Column('montant_TVA', sa.Float(), nullable=True))
             batch_op.add_column(sa.Column('montant_TTC', sa.Float(), nullable=True))
         
-        # Get all unsigned devis
-        unsigned_devis = session.execute(
-            sa.text("SELECT id FROM devis WHERE statut IN ('En attente', 'Accepté') OR statut NOT IN ('Signé', 'Annulé')")
+        # Get all devis (we'll recalculate all, even signed ones, for consistency)
+        all_devis = session.execute(
+            sa.text("SELECT id FROM devis")
         ).fetchall()
         
-        for (devis_id,) in unsigned_devis:
+        for (devis_id,) in all_devis:
             recalculate_devis_totals(session, devis_id)
         
         session.commit()
