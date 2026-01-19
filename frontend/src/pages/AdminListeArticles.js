@@ -414,7 +414,7 @@ function ListeArticles() {
     </div>
   ) : MODIFY ? (
     <div className="d-flex justify-content-between w-100">
-      <button className="btn btn-lg btn-danger" onClick={() => handleDeleteArticle({ id: article_id, nom: article_nom })}>Supprimer</button>
+      <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
       <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
     </div>
   ) : DELETE ? (
