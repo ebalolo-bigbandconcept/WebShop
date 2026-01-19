@@ -655,9 +655,12 @@ function Devis() {
     getAllArticles();
     getParameters();
     loadVatRates();
-    // fetch current devis on id change, but not if we're in the middle of creating a new one
-    if (!isNewDevis || id_devis) {
+    // Only fetch if we have a valid devis ID
+    if (id_devis && id_devis !== 'undefined') {
       fetchDevisById(id_devis);
+    } else {
+      setIsNewDevis(true);
+      setLoading(false);
     }
   }, [id_devis]);
 
