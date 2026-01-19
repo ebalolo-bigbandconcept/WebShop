@@ -287,6 +287,9 @@ echo "SecurePassword123!" > ADMIN_PASSWORD.txt
 echo "your_docusign_account_id" > DOCUSIGN_ACCOUNT_ID.txt
 echo "your_docusign_user_id" > DOCUSIGN_USER_ID.txt
 echo "your_docusign_integration_key" > DOCUSIGN_INTEGRATION_KEY.txt
+echo "postgresql://user:password@db:5432/users_db" > DATABASE_URL.txt # Change user/password
+echo "user" > DB_USER.txt
+echo "password" > DB_PASSWORD.txt
 
 # Secure permissions
 cd ..
