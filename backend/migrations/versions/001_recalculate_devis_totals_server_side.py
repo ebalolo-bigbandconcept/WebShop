@@ -52,7 +52,7 @@ def recalculate_devis_totals(session, devis_id):
     # Get all articles for this devis with their VAT rates
     articles = session.execute(
         sa.text("""
-            SELECT da.id, da.quantite, COALESCE(ttva.taux, a_ttva.taux, 0.20) as taux, a.prix_vente_HT
+            SELECT da.id, da.quantite, COALESCE(ttva.taux, a_ttva.taux, 0.20) as taux, a."prix_vente_HT"
             FROM devis_articles da
             JOIN articles a ON da.article_id = a.id
             LEFT JOIN taux_tva ttva ON da.taux_tva_id = ttva.id
@@ -84,7 +84,7 @@ def recalculate_devis_totals(session, devis_id):
         session.execute(
             sa.text("""
                 UPDATE devis_articles
-                SET montant_HT = :montant_ht, montant_TVA = :montant_tva, montant_TTC = :montant_ttc
+                SET "montant_HT" = :montant_ht, "montant_TVA" = :montant_tva, "montant_TTC" = :montant_ttc
                 WHERE id = :article_id
             """),
             {
@@ -103,7 +103,7 @@ def recalculate_devis_totals(session, devis_id):
     session.execute(
         sa.text("""
             UPDATE devis
-            SET montant_HT = :total_ht, montant_TVA = :total_tva, montant_TTC = :total_ttc
+            SET "montant_HT" = :total_ht, "montant_TVA" = :total_tva, "montant_TTC" = :total_ttc
             WHERE id = :devis_id
         """),
         {
