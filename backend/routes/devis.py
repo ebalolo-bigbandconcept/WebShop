@@ -254,12 +254,31 @@ def create_devis():
             continue
         
         tva_id = _resolve_tva_id(article_payload, articles_map)
+        
+        # Get VAT rate
+        taux_val = 0.0
+        if tva_id:
+            tva_obj = TauxTVA.query.get(tva_id)
+            taux_val = float(tva_obj.taux) if tva_obj else 0.0
+        elif article_obj and article_obj.taux_tva:
+            taux_val = float(article_obj.taux_tva.taux)
+        
+        # Calculate line amounts
+        unit_price = float(article_obj.prix_vente_HT or 0.0)
+        qty = float(article_payload.get("quantite") or 1)
+        line_ht = round(unit_price * qty, 2)
+        line_tva = round(line_ht * taux_val, 2)
+        line_ttc = round(line_ht + line_tva, 2)
+        
         devis_article = DevisArticles(
             devis_id=new_devis.id,
             article_id=article_obj.id,
-            quantite=article_payload['quantite'],
+            quantite=qty,
             taux_tva_id=tva_id,
-            commentaire=article_payload.get('commentaire')
+            commentaire=article_payload.get('commentaire'),
+            montant_HT=line_ht,
+            montant_TVA=line_tva,
+            montant_TTC=line_ttc
         )
         db.session.add(devis_article)
         
@@ -374,7 +393,10 @@ def update_devis(devis_id):
                 article_id=article_obj.id,
                 quantite=qty,
                 taux_tva_id=tva_id,
-                commentaire=article_payload.get('commentaire')
+                commentaire=article_payload.get('commentaire'),
+                montant_HT=line_ht,
+                montant_TVA=line_tva,
+                montant_TTC=line_ttc
             )
             
             if to_sign:
