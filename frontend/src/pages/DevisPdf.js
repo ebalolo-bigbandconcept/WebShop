@@ -130,8 +130,8 @@ function DevisPdfPreview() {
 
   return (
     <div>
-      <div className="d-flex w-100 justify-content-between align-items-center mb-3">
-        <div className="d-flex gap-2 align-items-center">
+      <div className="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+        <div className="d-flex gap-2 align-items-center flex-wrap">
           <label htmlFor="scenarioSelect" className="form-label mb-0 me-2">Solution:</label>
           <select
             id="scenarioSelect"

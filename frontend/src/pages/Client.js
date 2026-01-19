@@ -309,8 +309,8 @@ function Client() {
 
   return (
     <div>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h1>Client - {client.nom} {client.prenom}</h1>
+        <div className="d-flex justify-content-between align-items-start mb-4">
+          <h1 className="mb-0">Client - {client.nom} {client.prenom}</h1>
           <button className="btn btn-danger" onClick={() => navigate('/liste-clients')}>Retour</button>
         </div>
       <ul className="nav nav-tabs mb-3" role="tablist">

@@ -152,7 +152,17 @@ function AdminParameters() {
 
   return (
     <div>
-      <h1>Parametres de l'application</h1>
+      <div className="d-flex justify-content-between align-items-start mb-3">
+        <h1 className="mb-0">Parametres de l'application</h1>
+        <button
+          type="button"
+          className="btn btn-danger"
+          onClick={() => window.history.back()}
+          disabled={saving}
+        >
+          Retour
+        </button>
+      </div>
       {errorMessage && (
         <div className="alert alert-danger" role="alert">
           {errorMessage}
@@ -431,14 +441,6 @@ function AdminParameters() {
         </div>
 
         <div className="col-12 d-flex justify-content-end gap-2">
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={() => window.history.back()}
-            disabled={saving}
-          >
-            Retour
-          </button>
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? "Enregistrement..." : "Enregistrer"}
           </button>

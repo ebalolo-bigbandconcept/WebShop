@@ -93,11 +93,11 @@ class TauxTVA(db.Model):
 class Parameters(db.Model):
     __tablename__ = "parameters"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
-    margin_rate = db.Column(db.Float(), nullable=False, default=0.0)
-    margin_rate_location = db.Column(db.Float(), nullable=False, default=0.0)
-    location_time = db.Column(db.Integer(), nullable=False, default=0)
-    location_subscription_cost = db.Column(db.Float(), nullable=False, default=0.0)
-    location_interests_cost = db.Column(db.Float(), nullable=False, default=0.0)
+    margin_rate = db.Column(db.Float(), nullable=False, default=2)
+    margin_rate_location = db.Column(db.Float(), nullable=False, default=1.7)
+    location_time = db.Column(db.Integer(), nullable=False, default=60)
+    location_subscription_cost = db.Column(db.Float(), nullable=False, default=300)
+    location_interests_cost = db.Column(db.Float(), nullable=False, default=500)
     general_conditions_sales = db.Column(db.Text, nullable=False, default="")
     company_name = db.Column(db.String(200), nullable=False, default="")
     company_address_line1 = db.Column(db.String(200), nullable=False, default="")

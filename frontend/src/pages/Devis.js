@@ -663,7 +663,11 @@ function Devis() {
     loadVatRates();
     // Only fetch if we have a valid devis ID
     if (id_devis && id_devis !== 'undefined') {
-      fetchDevisById(id_devis);
+      fetchDevisById(id_devis).catch((err) => {
+        if (!(err?.response && err.response.status === 404)) {
+          console.error(err);
+        }
+      });
     } else {
       setIsNewDevis(true);
       setLoading(false);
@@ -911,9 +915,9 @@ function Devis() {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center">
-        <h1 className="col-lg-11 col-10">Devis N°{id_devis}</h1>
-        <button className="btn btn-danger col-lg-1 col-2" onClick={goBack}>Retour</button>
+      <div className="d-flex justify-content-between align-items-start">
+        <h1 className="mb-0">Devis N°{id_devis}</h1>
+        <button className="btn btn-danger" onClick={goBack}>Retour</button>
       </div>
       <br/>
       {client && (
