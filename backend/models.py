@@ -10,7 +10,7 @@ class User(db.Model):
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     nom = db.Column(db.String(50), nullable=False)
     prenom = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(345), nullable=False, unique=True)
+    email = db.Column(db.String(345), nullable=False, unique=True, index=True)
     mdp = db.Column(db.Text, nullable=False)
     role = db.Column(db.String(50), nullable=False, default="Utilisateur")
 
@@ -23,13 +23,13 @@ class Clients(db.Model):
     ville = db.Column(db.String(100), nullable=False)
     code_postal = db.Column(db.String(20), nullable=False)
     telephone = db.Column(db.String(20), nullable=False)
-    email = db.Column(db.String(345), nullable=False)
+    email = db.Column(db.String(345), nullable=False, index=True)
     caduque = db.Column(db.Boolean, nullable=False, default=False)
 
 class Devis(db.Model):
     __tablename__ = "devis"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
-    client_id = db.Column(db.Integer(), db.ForeignKey('clients.id'), nullable=False)
+    client_id = db.Column(db.Integer(), db.ForeignKey('clients.id'), nullable=False, index=True)
     titre = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     date = db.Column(db.Date(), nullable=False)
@@ -67,7 +67,7 @@ class Articles(db.Model):
 class DevisArticles(db.Model):
     __tablename__ = "devis_articles"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
-    devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=False)
+    devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=False, index=True)
     article_id = db.Column(db.Integer(), db.ForeignKey('articles.id'), nullable=False)
     quantite = db.Column(db.Integer(), nullable=False)
     taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=True)
