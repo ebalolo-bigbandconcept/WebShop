@@ -7,13 +7,13 @@ services:
       - FLASK_ENV=production
       - FRONTEND_URL=https://vps116574.serveur-vps.net
       - BACKEND_URL=https://vps116574.serveur-vps.net
-      - DATABASE_URL=postgresql://user:password@db:5432/users_db
       - DOCUSIGN_ENV=demo
       - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/DOCUSIGN_PRIVATE_KEY
     secrets:
       - SECRET_KEY
       - ADMIN_MAIL
       - ADMIN_PASSWORD
+      - DATABASE_URL
       - DOCUSIGN_ACCOUNT_ID
       - DOCUSIGN_USER_ID
       - DOCUSIGN_INTEGRATION_KEY
@@ -70,8 +70,11 @@ services:
     image: postgres:13-alpine
     environment:
       POSTGRES_DB: users_db
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER_FILE: /run/secrets/DB_USER
+      POSTGRES_PASSWORD_FILE: /run/secrets/DB_PASSWORD
+    secrets:
+      - DB_USER
+      - DB_PASSWORD
     volumes:
       - postgres_data:/var/lib/postgresql/data
     expose:
@@ -95,6 +98,12 @@ secrets:
     file: ./.env_prod_secrets/ADMIN_MAIL.txt
   ADMIN_PASSWORD:
     file: ./.env_prod_secrets/ADMIN_PASSWORD.txt
+  DATABASE_URL:
+    file: ./.env_prod_secrets/DATABASE_URL.txt
+  DB_USER:
+    file: ./.env_prod_secrets/DB_USER.txt
+  DB_PASSWORD:
+    file: ./.env_prod_secrets/DB_PASSWORD.txt
   DOCUSIGN_ACCOUNT_ID:
     file: ./.env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt
   DOCUSIGN_USER_ID:
