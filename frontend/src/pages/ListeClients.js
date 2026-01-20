@@ -447,38 +447,40 @@ function ListeClients() {
       <div className="w-100 d-flex justify-content-end">
         <button className="btn btn-lg btn-success mt-4" onClick={handleOpenCreate}>+ Ajouter un nouveau client</button>
       </div>
-      <table className="table table-hover table-striped mt-4">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Nom</th>
-            <th scope="col">Prénom</th>
-            <th scope="col">Adresse</th>
-            <th scope="col">Numéro de téléphone</th>
-            <th scope="col">Adresse email</th>
-            <th scope="col">Caduque</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedClients.length > 0 ? (
-            paginatedClients.map((client) => (
-              <tr key={client.id} onClick={() => {navigate({ pathname: `/client/` + client.id });}}>
-                <td>{client.id}</td>
-                <td>{client.nom}</td>
-                <td>{client.prenom}</td>
-                <td>{client.rue}, {client.code_postal} <br/> {client.ville}</td>
-                <td>{client.telephone}</td>
-                <td>{client.email}</td>
-                <td><input type="checkbox" disabled checked={!!client.caduque} className="form-check-input" id="caduque"/></td>
-              </tr>
-            ))
-          ) : (
+      <div className="table-responsive-md">
+        <table className="table table-hover table-striped mt-4">
+          <thead>
             <tr>
-              <td colSpan="7">Aucun client trouvé</td>
+              <th scope="col">#</th>
+              <th scope="col">Nom</th>
+              <th scope="col">Prénom</th>
+              <th scope="col">Adresse</th>
+              <th scope="col">Numéro de téléphone</th>
+              <th scope="col">Adresse email</th>
+              <th scope="col">Caduque</th>
             </tr>
-            )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedClients.length > 0 ? (
+              paginatedClients.map((client) => (
+                <tr key={client.id} onClick={() => {navigate({ pathname: `/client/` + client.id });}}>
+                  <td>{client.id}</td>
+                  <td>{client.nom}</td>
+                  <td>{client.prenom}</td>
+                  <td>{client.rue}, {client.code_postal} <br/> {client.ville}</td>
+                  <td>{client.telephone}</td>
+                  <td>{client.email}</td>
+                  <td><input type="checkbox" disabled checked={!!client.caduque} className="form-check-input" id="caduque"/></td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7">Aucun client trouvé</td>
+              </tr>
+              )}
+          </tbody>
+        </table>
+      </div>
       
       {/* START: Pagination Controls */}
       {filteredClients.length > itemsPerPage && (

@@ -436,40 +436,42 @@ function ListeArticles() {
           <PlusLg className="me-1" /> Ajouter un nouvel article
         </button>
       </div>
-      <table className="table table-hover table-striped mt-4">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Article</th>
-            <th scope="col">Référence</th>
-            <th scope="col">Prix d'achat HT</th>
-            <th scope="col">Prix de vente HT</th>
-            <th scope="col">TVA</th>
-            <th scope="col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedArticles.length > 0 ? (
-            paginatedArticles.map((article) => (
-              <tr key={article.id} onClick={() => {handleModifyArticle(article.id)}}>
-                <td>{article.id}</td>
-                <td>{article.nom}</td>
-                <td>{article.reference}</td>
-                <td>{article.prix_achat_HT} €</td>
-                <td>{article.prix_vente_HT} €</td>
-                <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>
-                <td onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article); }}>
-                  <Trash3Fill color="red" />
-                </td>
-              </tr>
-            ))
-          ) : (
+      <div className="table-responsive-md">
+        <table className="table table-hover table-striped mt-4">
+          <thead>
             <tr>
-              <td colSpan={7}>Aucun articles trouvé</td>
+              <th scope="col">#</th>
+              <th scope="col">Article</th>
+              <th scope="col">Référence</th>
+              <th scope="col">Prix d'achat HT</th>
+              <th scope="col">Prix de vente HT</th>
+              <th scope="col">TVA</th>
+              <th scope="col"></th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedArticles.length > 0 ? (
+              paginatedArticles.map((article) => (
+                <tr key={article.id} onClick={() => {handleModifyArticle(article.id)}}>
+                  <td>{article.id}</td>
+                  <td>{article.nom}</td>
+                  <td>{article.reference}</td>
+                  <td>{article.prix_achat_HT} €</td>
+                  <td>{article.prix_vente_HT} €</td>
+                  <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>
+                  <td onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article); }}>
+                    <Trash3Fill color="red" />
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7}>Aucun articles trouvé</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {filteredArticles.length > itemsPerPage && (
         <nav>

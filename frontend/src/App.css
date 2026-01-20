@@ -77,3 +77,88 @@ textarea {
 .toast {
   opacity: 1;
 }
+
+/* ===== TABLET OPTIMIZATION: Bootstrap 5 enhancements ===== */
+
+/* Ensure 44px minimum touch target for accessibility */
+.btn {
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 16px;
+}
+
+.form-control, .form-select {
+  min-height: 44px;
+  font-size: 16px; /* Prevent iOS auto-zoom on input focus */
+}
+
+/* Improve table responsiveness on tablets */
+.table-responsive-md {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
+}
+
+/* Tighter spacing on smaller screens using Bootstrap's responsive utilities */
+@media (max-width: 767.98px) {
+  .container, .container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .table {
+    font-size: 0.875rem;
+  }
+
+  .table th, .table td {
+    padding: 0.5rem 0.25rem;
+  }
+
+  /* Stack form columns on mobile */
+  .form-row > [class*="col-"] {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Reduce modal size on small screens */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+}
+
+/* Tablet-specific (768px - 1023px) optimizations */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  /* Ensure modals don't exceed viewport */
+  .modal-dialog.modal-lg {
+    max-width: min(90vw, 800px);
+  }
+
+  .table {
+    font-size: 0.95rem;
+  }
+
+  .table th, .table td {
+    padding: 0.625rem 0.5rem;
+  }
+}
+
+/* Touch-friendly spacing for list items and badges */
+.list-group-item {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.badge {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Improve icon touch targets */
+button .bi, a .bi {
+  font-size: 1.25rem;
+  vertical-align: -0.125em;
+}
+
+/* Smooth scrolling for table overflow */
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}

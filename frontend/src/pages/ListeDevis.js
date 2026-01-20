@@ -150,54 +150,56 @@ function ListeDevis() {
         </div>
       </div>
 
-      <table className="table table-hover table-striped">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Client</th>
-            <th scope="col">Devis</th>
-            <th scope="col">Description</th>
-            <th scope="col">Date</th>
-            <th scope="col">Date de signature</th>
-            <th scope="col">Montant HT</th>
-            <th scope="col">Montat TVA</th>
-            <th scope="col">Montant TTC</th>
-            <th scope="col">Statut</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedDevis.length > 0 ? (
-            paginatedDevis.map((d) => (
-              <tr key={d.id} onClick={() => {navigate(`/devis/${d.client.id}/${d.id}`, {state : {from: '/liste-devis'}});}}>
-                <td>{d.id}</td>
-                <td>{d.client.nom} {d.client.prenom}</td>
-                <td>
-                  {d.titre}
-                </td>
-                <td>{d.description}</td>
-                <td>{new Date(d.date).toLocaleDateString('fr-FR')}</td>
-                <td>{d.signed_at ? new Date(d.signed_at).toLocaleDateString('fr-FR') : ''}</td>
-                <td>{getLocationHT(d)} €</td>
-                <td>{getLocationTVA(d)} €</td>
-                <td>{getDisplayTotal(d)} €</td>
-                <td>
-                  <span className={`badge ${
-                    d.statut === 'Signé' ? 'bg-success' : 
-                    d.statut === 'En attente de signature' ? 'bg-warning text-dark' : 
-                    'bg-danger'
-                  }`}>
-                    {d.statut}
-                  </span>
-                </td>
-              </tr>
-            ))
-          ) : (
+      <div className="table-responsive-md">
+        <table className="table table-hover table-striped">
+          <thead>
             <tr>
-              <td colSpan="10">Aucun devis trouvé</td>
+              <th scope="col">#</th>
+              <th scope="col">Client</th>
+              <th scope="col">Devis</th>
+              <th scope="col">Description</th>
+              <th scope="col">Date</th>
+              <th scope="col">Date de signature</th>
+              <th scope="col">Montant HT</th>
+              <th scope="col">Montat TVA</th>
+              <th scope="col">Montant TTC</th>
+              <th scope="col">Statut</th>
             </tr>
-            )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginatedDevis.length > 0 ? (
+              paginatedDevis.map((d) => (
+                <tr key={d.id} onClick={() => {navigate(`/devis/${d.client.id}/${d.id}`, {state : {from: '/liste-devis'}});}}>
+                  <td>{d.id}</td>
+                  <td>{d.client.nom} {d.client.prenom}</td>
+                  <td>
+                    {d.titre}
+                  </td>
+                  <td>{d.description}</td>
+                  <td>{new Date(d.date).toLocaleDateString('fr-FR')}</td>
+                  <td>{d.signed_at ? new Date(d.signed_at).toLocaleDateString('fr-FR') : ''}</td>
+                  <td>{getLocationHT(d)} €</td>
+                  <td>{getLocationTVA(d)} €</td>
+                  <td>{getDisplayTotal(d)} €</td>
+                  <td>
+                    <span className={`badge ${
+                      d.statut === 'Signé' ? 'bg-success' : 
+                      d.statut === 'En attente de signature' ? 'bg-warning text-dark' : 
+                      'bg-danger'
+                    }`}>
+                      {d.statut}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="10">Aucun devis trouvé</td>
+              </tr>
+              )}
+          </tbody>
+        </table>
+      </div>
 
       {filteredDevis.length > itemsPerPage && (
         <nav>

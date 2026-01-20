@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
+import { ArrowReturnLeft } from "react-bootstrap-icons";
 
 function ManageUser() {
   const user_id = useParams();
@@ -188,8 +189,13 @@ function ManageUser() {
   return (
     <div>
       {user !== undefined ? (
-        <div className="">
-          <h1>Modifier les informations de {user.prenom} {user.nom}</h1>
+        <div>
+          <div className="d-flex justify-content-between align-items-start mb-4">
+            <h1 className="mb-0">Modifier les informations de {user.prenom} {user.nom}</h1>
+            <button className="btn btn-danger" onClick={() => navigate('/admin/dashboard')}>
+              <ArrowReturnLeft className="me-1" /> Retour
+            </button>
+          </div>
           <form className="row mt-4">
             <div className="form-outline col-4">
               <label className="form-label">Nom</label>
