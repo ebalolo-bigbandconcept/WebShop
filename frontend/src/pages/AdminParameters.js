@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import httpClient from "../components/httpClient";
 import { useToast } from "../components/Toast";
 import {Trash3Fill, PlusLg, ArrowReturnLeft, FloppyFill} from "react-bootstrap-icons";
+import Modal from "../components/Modal";
 
 function AdminParameters() {
   const [loading, setLoading] = useState(true);
@@ -11,6 +12,10 @@ function AdminParameters() {
   const [newVat, setNewVat] = useState("");
   const [addingVat, setAddingVat] = useState(false);
   const [deletingVatId, setDeletingVatId] = useState(null);
+  const [vatToDelete, setVatToDelete] = useState(null);
+  const [DELETE, setDELETE] = useState(false);
+  const modalRef = useRef(null);
+  const { showToast } = useToast();
   const [parameters, setParameters] = useState({
     marginRate: "",
     marginRateLocation: "",
@@ -31,7 +36,6 @@ function AdminParameters() {
     companyAprm: "",
   });
   const [activeTab, setActiveTab] = useState("enterprise");
-  const { showToast } = useToast();
 
   // Fetch existing parameters when the page loads
   useEffect(() => {
@@ -130,17 +134,31 @@ function AdminParameters() {
     }
   };
 
-  const handleDeleteVat = async (id) => {
-    if (!id || deletingVatId) return;
-    // quick confirm to prevent accidental deletion
-    const ok = window.confirm("Supprimer ce taux de TVA ?");
-    if (!ok) return;
-    setDeletingVatId(id);
+  const handleDeleteVat = async (vatId, vatTaux) => {
+    setVatToDelete({ id: vatId, taux: vatTaux });
+    setDELETE(true);
+    showModal();
+  };
+
+  const showModal = () => {
+    modalRef.current && modalRef.current.open();
+  };
+
+  const handleCloseModal = () => {
+    modalRef.current && modalRef.current.close();
+    setDELETE(false);
+    setVatToDelete(null);
+  };
+
+  const deleteVat = async () => {
+    if (!vatToDelete || deletingVatId) return;
+    setDeletingVatId(vatToDelete.id);
     setErrorMessage("");
     try {
-      await httpClient.delete(`${process.env.REACT_APP_BACKEND_URL}/admin/tva/${id}`);
-      setVats((prev) => prev.filter((v) => v.id !== id));
+      await httpClient.delete(`${process.env.REACT_APP_BACKEND_URL}/admin/tva/${vatToDelete.id}`);
+      setVats((prev) => prev.filter((v) => v.id !== vatToDelete.id));
       showToast({ message: "Taux TVA supprimé", variant: "success" });
+      handleCloseModal();
     } catch (err) {
       const message = err.response?.data?.error ?? "Suppression impossible";
       setErrorMessage(message);
@@ -399,8 +417,8 @@ function AdminParameters() {
                           <td>
                             <Trash3Fill
                               color="red"
-                              style={{ cursor: "pointer", opacity: deletingVatId === vat.id ? 0.5 : 1 }}
-                              onClick={() => handleDeleteVat(vat.id)}
+                              style={{ cursor: "pointer" }}
+                              onClick={() => handleDeleteVat(vat.id, (Number(vat.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))}
                               title="Supprimer ce taux de TVA"
                             />
                           </td>
@@ -454,6 +472,24 @@ function AdminParameters() {
         </div>
         }
       </form>
+
+      <Modal 
+        ref={modalRef}
+        title={DELETE ? "Supprimer un taux de TVA" : ""}
+        footer={DELETE ? (
+          <div className="d-flex justify-content-between w-100">
+            <button className="btn btn-lg btn-danger" onClick={handleCloseModal}>Annuler</button>
+            <button className="btn btn-lg btn-success" onClick={deleteVat} disabled={deletingVatId !== null}>
+              Supprimer
+            </button>
+          </div>
+        ) : null}
+      >
+        {DELETE && vatToDelete ? (
+          <h5>Êtes-vous sûr de vouloir supprimer le taux TVA "{vatToDelete.taux}%" ?</h5>
+        ) : null}
+      </Modal>
+
     </div>
   );
 }
