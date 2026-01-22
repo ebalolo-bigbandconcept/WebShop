@@ -47,7 +47,14 @@ jobs:
         run: docker compose build backend
       
       - name: Run database migrations
+        # Provide a dummy DocuSign key so the secret mount exists in CI
         run: |
+          mkdir -p docusign
+          cat > docusign/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-ci-only
+          -----END PRIVATE KEY-----
+          EOF
           docker compose run --rm backend flask db upgrade
       
       - name: Run backend tests with coverage
