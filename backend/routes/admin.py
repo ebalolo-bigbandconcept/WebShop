@@ -4,7 +4,7 @@ from models import db, User, UserSchema, Parameters, TauxTVA, Articles, DevisArt
 from functools import wraps
 import logging
 import bleach
-from utils import validate_user_fields, _coerce_float, _coerce_int, validated_json
+from utils import validate_user_fields, _coerce_float, _coerce_int, validated_json, require_login
 
 # Create a Blueprint for admin-related routes
 admin_bp = Blueprint('admin_bp', __name__, url_prefix='/api/admin')
@@ -255,7 +255,7 @@ def get_user_info(user_id):
 
 
 @admin_bp.route("/parameters", methods=["GET"])
-@admin_required
+@require_login({"Administrateur", "Utilisateur"})
 def get_parameters():
     params = Parameters.query.first()
     if not params:
