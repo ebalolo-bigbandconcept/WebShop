@@ -122,6 +122,7 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 CSRF_EXEMPT = {
     'auth_bp.login_user',
     'auth_bp.register',
+    'docusign.webhook',
 }
 
 
