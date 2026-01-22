@@ -89,7 +89,7 @@ jobs:
       - name: Run backend tests with coverage
         run: |
           docker compose -f docker-compose.prod.yml run --rm backend bash -c "
-            pip install -q pytest pytest-flask pytest-cov pytest-mock faker &&
+            pip install --no-cache-dir pytest pytest-flask pytest-cov pytest-mock faker &&
             pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html
           "
       
@@ -112,7 +112,7 @@ jobs:
       - name: Check test coverage threshold
         run: |
           docker compose -f docker-compose.prod.yml run --rm backend bash -c "
-            pip install -q coverage &&
+            pip install --no-cache-dir coverage &&
             coverage report --fail-under=85 || (echo 'Coverage below 85% threshold' && exit 1)
           "
       
