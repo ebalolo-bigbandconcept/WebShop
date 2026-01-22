@@ -29,37 +29,66 @@ jobs:
           REACT_APP_BACKEND_URL=/api
           FRONTEND_URL=http://localhost:3000
           BACKEND_URL=http://localhost:3000
-          DATABASE_URL=postgresql://test_user:test_password@db:5432/test_db
+          DATABASE_URL=postgresql://dev_user:dev_password@db:5432/users_db
           DOCUSIGN_ACCOUNT_ID=test
           DOCUSIGN_USER_ID=test
           DOCUSIGN_INTEGRATION_KEY=test
           DOCUSIGN_ENV=demo
           FLASK_ENV=development
           EOF
-      
-      - name: Start dependencies (PostgreSQL & Redis)
+
+      - name: Prepare prod-style secrets for CI
         run: |
-          docker compose up -d db redis
-          # Wait for PostgreSQL to be ready
-          timeout 60 bash -c 'until docker compose exec -T db pg_isready -U dev_user; do sleep 1; done'
-      
-      - name: Build backend image
-        run: docker compose build backend
-      
-      - name: Run database migrations
-        # Provide a dummy DocuSign key so the secret mount exists in CI
-        run: |
-          mkdir -p docusign
-          cat > docusign/private.pem <<'EOF'
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          test-secret-key-for-ci-only
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          TestPassword123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
           -----BEGIN PRIVATE KEY-----
           dummy-placeholder-for-ci-only
           -----END PRIVATE KEY-----
           EOF
-          docker compose run --rm backend flask db upgrade
-      
+
+      - name: Start dependencies (PostgreSQL & Redis)
+        run: |
+          docker compose -f docker-compose.prod.yml up -d db redis
+          # Wait for PostgreSQL to be ready
+          timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U dev_user; do sleep 1; done'
+
+      - name: Build backend image
+        run: docker compose -f docker-compose.prod.yml build backend
+
+      - name: Run database migrations
+        run: |
+          docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
+
       - name: Run backend tests with coverage
         run: |
-          docker compose run --rm backend bash -c "
+          docker compose -f docker-compose.prod.yml run --rm backend bash -c "
             pip install -q pytest pytest-flask pytest-cov pytest-mock faker &&
             pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html
           "
@@ -82,14 +111,14 @@ jobs:
       
       - name: Check test coverage threshold
         run: |
-          docker compose run --rm backend bash -c "
+          docker compose -f docker-compose.prod.yml run --rm backend bash -c "
             pip install -q coverage &&
             coverage report --fail-under=85 || (echo 'Coverage below 85% threshold' && exit 1)
           "
       
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.prod.yml down -v
 
   frontend-lint:
     name: Frontend Lint & Build
@@ -210,26 +239,62 @@ jobs:
           ADMIN_PASSWORD=Test123!
           REACT_APP_BACKEND_URL=/api
           EOF
+
+      - name: Prepare prod-style secrets for CI
+        run: |
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          test-key
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          Test123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-ci-only
+          -----END PRIVATE KEY-----
+          EOF
       
       - name: Build all images
         run: |
-          docker compose -f docker-compose.yml build
+          docker compose -f docker-compose.prod.yml build
       
       - name: Test container startup
         run: |
-          docker compose up -d
+          docker compose -f docker-compose.prod.yml up -d
           sleep 10
-          docker compose ps
-          docker compose logs
+          docker compose -f docker-compose.prod.yml ps
+          docker compose -f docker-compose.prod.yml logs
       
       - name: Verify services are healthy
         run: |
           # Check if containers are running
-          docker compose ps | grep -q "Up" || exit 1
+          docker compose -f docker-compose.prod.yml ps | grep -q "Up" || exit 1
       
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.prod.yml down -v
 
   integration-test:
     name: Full Integration Test
@@ -256,10 +321,46 @@ jobs:
           DOCUSIGN_ENV=demo
           FLASK_ENV=development
           EOF
+
+      - name: Prepare prod-style secrets for CI
+        run: |
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          test-secret-key-for-ci-only
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          TestPassword123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test-account
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test-user
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test-key
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-ci-only
+          -----END PRIVATE KEY-----
+          EOF
       
       - name: Start all services
         run: |
-          docker compose up -d --build
+          docker compose -f docker-compose.prod.yml up -d --build
           sleep 15
       
       - name: Wait for services to be ready
@@ -268,7 +369,7 @@ jobs:
       
       - name: Run E2E tests
         run: |
-          docker compose exec -T backend bash -c "
+          docker compose -f docker-compose.prod.yml exec -T backend bash -c "
             pip install -q pytest pytest-flask pytest-mock faker &&
             pytest tests/e2e/ -v
           "
@@ -277,15 +378,15 @@ jobs:
         if: failure()
         run: |
           echo "=== Backend logs ==="
-          docker compose logs backend
+          docker compose -f docker-compose.prod.yml logs backend
           echo "=== Frontend logs ==="
-          docker compose logs frontend
+          docker compose -f docker-compose.prod.yml logs frontend
           echo "=== Proxy logs ==="
-          docker compose logs proxy
+          docker compose -f docker-compose.prod.yml logs proxy
       
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.prod.yml down -v
 
   deploy-production:
     name: Deploy to Production (SSH)

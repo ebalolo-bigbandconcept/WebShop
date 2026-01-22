@@ -15,22 +15,65 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Create .env file
+      - name: Create test .env file
         run: |
           cat > .env << EOF
           SECRET_KEY=nightly-test-key
           ADMIN_MAIL=admin@test.com
           ADMIN_PASSWORD=TestPassword123!
           REACT_APP_BACKEND_URL=/api
-          DATABASE_URL=postgresql://test_user:test_password@db:5432/test_db
+          FRONTEND_URL=http://localhost:3000
+          BACKEND_URL=http://localhost:3000
+          DATABASE_URL=postgresql://dev_user:dev_password@db:5432/users_db
+          DOCUSIGN_ACCOUNT_ID=test
+          DOCUSIGN_USER_ID=test
+          DOCUSIGN_INTEGRATION_KEY=test
+          DOCUSIGN_ENV=demo
+          FLASK_ENV=development
+          EOF
+
+      - name: Prepare prod-style secrets for CI
+        run: |
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          nightly-test-key
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          TestPassword123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-nightly
+          -----END PRIVATE KEY-----
           EOF
       
       - name: Start services
-        run: docker compose up -d --build
+        run: docker compose -f docker-compose.prod.yml up -d --build
       
       - name: Run all tests with verbose output
         run: |
-          docker compose exec -T backend bash -c "
+          docker compose -f docker-compose.prod.yml exec -T backend bash -c "
             pip install -q pytest pytest-flask pytest-cov pytest-mock faker &&
             pytest tests/ -vv --cov=. --cov-report=term-missing
           "
@@ -71,30 +114,68 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Create .env
+      - name: Create .env file
         run: |
           cat > .env << EOF
-          DATABASE_URL=postgresql://test:test@db:5432/test
-          SECRET_KEY=test
+          SECRET_KEY=nightly-test-key
+          ADMIN_MAIL=admin@test.com
+          ADMIN_PASSWORD=TestPassword123!
+          DATABASE_URL=postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+
+      - name: Prepare prod-style secrets for migrations check
+        run: |
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          nightly-test-key
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          TestPassword123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-nightly
+          -----END PRIVATE KEY-----
           EOF
       
       - name: Start database
-        run: docker compose up -d db
+        run: docker compose -f docker-compose.prod.yml up -d db
       
       - name: Test migrations up and down
         run: |
           # Test upgrade
-          docker compose run --rm backend flask db upgrade
+          docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
           
           # Test downgrade
-          docker compose run --rm backend flask db downgrade
+          docker compose -f docker-compose.prod.yml run --rm backend flask db downgrade
           
           # Test upgrade again
-          docker compose run --rm backend flask db upgrade
+          docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
       
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.prod.yml down -v
 
   frontend-nightly:
     name: Frontend Nightly Build & Lint
