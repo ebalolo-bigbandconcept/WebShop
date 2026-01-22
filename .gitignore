@@ -3,3 +3,24 @@
 .vscode/
 node_modules/
 docusign/
+
+# Test coverage reports
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+.pytest_cache/
+
+# CI/CD artifacts
+*.tar.gz
+*.log
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
