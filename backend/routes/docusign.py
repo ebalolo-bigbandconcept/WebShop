@@ -12,7 +12,7 @@ from services.docusign_service import (
     send_envelope_for_signing,
     handle_webhook
 )
-from models import db, Clients, Devis
+from models import db, Clients, Devis, EnvelopeTracking
 
 docusign_bp = Blueprint('docusign', __name__, url_prefix='/api/docusign')
 logger = logging.getLogger(__name__)
@@ -32,15 +32,21 @@ def webhook():
     Supports both XML (native DocuSign format) and JSON payloads
     """
     try:
+        # Log the raw request for debugging
+        logger.info(f"=== DocuSign Webhook Received ===")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Content-Type: {request.headers.get('Content-Type', 'unknown')}")
+        
         content_type = request.headers.get('Content-Type', '')
         data = None
 
         if 'json' in content_type:
             data = request.get_json()
+            logger.info(f"Received webhook JSON: {json.dumps(data, indent=2)}")
         else:
             # DocuSign typically sends XML
             xml_data = request.data.decode('utf-8')
-            logger.info(f"Received webhook XML: {xml_data[:500]}")
+            logger.info(f"Received webhook XML: {xml_data[:1000]}")  # Increased from 500 to 1000
 
             root = ET.fromstring(xml_data)
 
@@ -62,20 +68,23 @@ def webhook():
                     status = status_elem.text.lower()
 
             if not envelope_id:
-                logger.warning("No envelope ID found in webhook")
+                logger.warning("No envelope ID found in webhook XML")
                 return jsonify({"status": "ignored", "reason": "no envelope ID"}), 200
 
             data = {
                 "envelope_id": envelope_id,
                 "status": status
             }
+            logger.info(f"Parsed webhook data: {data}")
 
         # Handle the webhook
+        logger.info(f"Processing webhook for envelope: {data.get('envelope_id')}, status: {data.get('status')}")
         response_data, status_code = handle_webhook(data)
+        logger.info(f"Webhook processing result: {response_data}, status: {status_code}")
         return jsonify(response_data), status_code
 
     except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
+        logger.exception(f"Webhook processing error: {e}")
         return jsonify({"error": str(e)}), 500
 
 
