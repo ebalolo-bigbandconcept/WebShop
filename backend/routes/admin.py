@@ -112,8 +112,8 @@ def add_user():
     )
     
     return jsonify({
-        "id": new_user.id
-    })
+        "user_id": new_user.id
+    }), 201
 
 # Modify user route
 @admin_bp.route("/update-user/<user_id>", methods=['POST'])
@@ -192,11 +192,12 @@ def modify_user(user_id):
     )
     
     return jsonify({
-        "id": user.id
+        "id": user.id,
+        "message": "User updated successfully"
     })
     
 # Delete user route
-@admin_bp.route("/delete-user/<user_id>", methods=['POST'])
+@admin_bp.route("/delete-user/<user_id>", methods=['POST', 'DELETE'])
 @admin_required
 def delete_user(user_id):
     admin_id = session.get('user_id')
@@ -237,7 +238,7 @@ def delete_user(user_id):
     )
     
     return jsonify({
-        "200": "User successfully deleted."
+        "message": "User deleted successfully"
     })
 
 # Get user info route
@@ -264,24 +265,23 @@ def get_parameters():
         db.session.commit()
 
     return jsonify({
-        "marginRate": params.margin_rate,
-        "marginRateLocation": params.margin_rate_location,
-        "locationTime": params.location_time,
-        "locationSubscriptionCost": params.location_subscription_cost,
-        "locationInterestsCost": params.location_interests_cost,
-        "locationMaintenanceCost": params.location_interests_cost,
-        "generalConditionsSales": params.general_conditions_sales,
-        "companyName": params.company_name,
-        "companyAddressLine1": params.company_address_line1,
-        "companyAddressLine2": params.company_address_line2,
-        "companyZip": params.company_zip,
-        "companyCity": params.company_city,
-        "companyPhone": params.company_phone,
-        "companyEmail": params.company_email,
-        "companyIban": params.company_iban,
-        "companyTva": params.company_tva,
-        "companySiret": params.company_siret,
-        "companyAprm": params.company_aprm,
+        "margin_rate": params.margin_rate,
+        "margin_rate_location": params.margin_rate_location,
+        "location_time": params.location_time,
+        "location_subscription_cost": params.location_subscription_cost,
+        "location_interests_cost": params.location_interests_cost,
+        "general_conditions_sales": params.general_conditions_sales,
+        "company_name": params.company_name,
+        "company_address_line1": params.company_address_line1,
+        "company_address_line2": params.company_address_line2,
+        "company_zip": params.company_zip,
+        "company_city": params.company_city,
+        "company_phone": params.company_phone,
+        "company_email": params.company_email,
+        "company_iban": params.company_iban,
+        "company_tva": params.company_tva,
+        "company_siret": params.company_siret,
+        "company_aprm": params.company_aprm,
     })
 
 
@@ -291,29 +291,33 @@ def update_parameters():
     body = request.get_json(force=True) if request.data else {}
 
     try:
-        margin_rate = _coerce_float(body.get("marginRate"))
-        margin_rate_location = _coerce_float(body.get("marginRateLocation"))
-        location_time = _coerce_int(body.get("locationTime"))
-        location_subscription_cost = _coerce_float(body.get("locationSubscriptionCost"))
-        location_maintenance_cost = _coerce_float(body.get("locationInterestsCost") or body.get("locationMaintenanceCost"))
+        margin_rate = _coerce_float(body.get("marginRate") if body.get("marginRate") is not None else body.get("margin_rate"))
+        margin_rate_location = _coerce_float(body.get("marginRateLocation") if body.get("marginRateLocation") is not None else body.get("margin_rate_location"))
+        location_time = _coerce_int(body.get("locationTime") if body.get("locationTime") is not None else body.get("location_time"))
+        location_subscription_cost = _coerce_float(body.get("locationSubscriptionCost") if body.get("locationSubscriptionCost") is not None else body.get("location_subscription_cost"))
+        location_maintenance_cost = _coerce_float(
+            (body.get("locationInterestsCost") if body.get("locationInterestsCost") is not None else body.get("location_maintenance_cost"))
+        )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    general_conditions_sales = body.get("generalConditionsSales", "") or ""
+    general_conditions_sales = (
+        body.get("generalConditionsSales") if body.get("generalConditionsSales") is not None else body.get("general_conditions_sales", "")
+    ) or ""
     # Sanitize HTML to prevent XSS attacks - allow common HTML tags
     general_conditions_sales = bleach.clean(general_conditions_sales, tags=['b', 'i', 'u', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li'], strip=True)
     
-    company_name = body.get("companyName", "") or ""
-    company_address_line1 = body.get("companyAddressLine1", "") or ""
-    company_address_line2 = body.get("companyAddressLine2", "") or ""
-    company_zip = body.get("companyZip", "") or ""
-    company_city = body.get("companyCity", "") or ""
-    company_phone = body.get("companyPhone", "") or ""
-    company_email = body.get("companyEmail", "") or ""
-    company_iban = body.get("companyIban", "") or ""
-    company_tva = body.get("companyTva", "") or ""
-    company_siret = body.get("companySiret", "") or ""
-    company_aprm = body.get("companyAprm", "") or ""
+    company_name = (body.get("companyName") if body.get("companyName") is not None else body.get("company_name", "")) or ""
+    company_address_line1 = (body.get("companyAddressLine1") if body.get("companyAddressLine1") is not None else body.get("company_address_line1", "")) or ""
+    company_address_line2 = (body.get("companyAddressLine2") if body.get("companyAddressLine2") is not None else body.get("company_address_line2", "")) or ""
+    company_zip = (body.get("companyZip") if body.get("companyZip") is not None else body.get("company_zip", "")) or ""
+    company_city = (body.get("companyCity") if body.get("companyCity") is not None else body.get("company_city", "")) or ""
+    company_phone = (body.get("companyPhone") if body.get("companyPhone") is not None else body.get("company_phone", "")) or ""
+    company_email = (body.get("companyEmail") if body.get("companyEmail") is not None else body.get("company_email", "")) or ""
+    company_iban = (body.get("companyIban") if body.get("companyIban") is not None else body.get("company_iban", "")) or ""
+    company_tva = (body.get("companyTva") if body.get("companyTva") is not None else body.get("company_tva", "")) or ""
+    company_siret = (body.get("companySiret") if body.get("companySiret") is not None else body.get("company_siret", "")) or ""
+    company_aprm = (body.get("companyAprm") if body.get("companyAprm") is not None else body.get("company_aprm", "")) or ""
 
     params = Parameters.query.first()
     if not params:
@@ -355,7 +359,7 @@ def update_parameters():
         }
     )
 
-    return jsonify({"status": "ok"})
+    return jsonify({"message": "Parameters updated successfully"})
 
 
 # TVA management

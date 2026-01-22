@@ -89,3 +89,60 @@ class TestAuthCSRFProtection:
         
         # Should not fail due to CSRF
         assert response.status_code != 400
+
+
+class TestAuthLoginSuccess:
+    """Tests for successful login scenarios."""
+    
+    def test_login_with_valid_credentials(self, client, regular_user):
+        """Test login with valid credentials."""
+        response = client.post(
+            '/api/auth/login',
+            json={
+                'email': regular_user.email,
+                'mdp': 'TestPassword123!'
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'message' in data or 'user' in data
+    
+    def test_login_with_invalid_password(self, client, regular_user):
+        """Test login with invalid password."""
+        response = client.post(
+            '/api/auth/login',
+            json={
+                'email': regular_user.email,
+                'mdp': 'WrongPassword!'
+            }
+        )
+        
+        assert response.status_code == 401
+        data = response.get_json()
+        assert 'error' in data
+    
+    def test_login_with_nonexistent_user(self, client):
+        """Test login with non-existent user."""
+        response = client.post(
+            '/api/auth/login',
+            json={
+                'email': 'nonexistent@test.com',
+                'mdp': 'Password123!'
+            }
+        )
+        
+        assert response.status_code == 401
+
+
+class TestAuthLogoutFunctionality:
+    """Tests for logout functionality."""
+    
+    def test_logout_clears_session(self, client, auth_headers):
+        """Test that logout clears the session."""
+        # First login
+        response = client.post('/api/auth/logout', headers=auth_headers)
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'message' in data

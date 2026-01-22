@@ -3,8 +3,6 @@
 Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le cache, et intégration DocuSign.
 
 [![CI Tests](https://github.com/ebalolo-bigbandconcept/WebShop/actions/workflows/ci.yml/badge.svg)](https://github.com/ebalolo-bigbandconcept/WebShop/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ebalolo-bigbandconcept/WebShop/branch/main/graph/badge.svg)](https://codecov.io/gh/ebalolo-bigbandconcept/WebShop)
-[![Test Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen)](backend/tests)
 [![React](https://img.shields.io/badge/Frontend-React-blue?logo=react)](https://reactjs.org/)
 [![Flask](https://img.shields.io/badge/Backend-Flask-lightgrey?logo=flask)](https://flask.palletsprojects.com/)
 [![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker)](https://www.docker.com/)
@@ -22,13 +20,13 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 
 ### 🚀 Déploiement & Production
 
-3. [Déploiement en production](#déploiement-en-production)
+1. [Déploiement en production](#déploiement-en-production)
 2. [Configuration CI/CD et déploiement automatique](#configuration-cicd-et-déploiement-automatique)
 3. [Support HTTPS avec Let's Encrypt](#support-https-avec-lets-encrypt)
 
 ### 💾 Exploitation & Maintenance
 
-6. [Sauvegarde et restauration](#sauvegarde-et-restauration)
+1. [Sauvegarde et restauration](#sauvegarde-et-restauration)
 2. [Logs et monitoring](#logs-et-monitoring)
 3. [Dépannage](#dépannage)
 4. [Aide et support](#aide-et-support)
