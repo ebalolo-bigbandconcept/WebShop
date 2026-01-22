@@ -74,8 +74,8 @@ jobs:
       - name: Run all tests with verbose output
         run: |
           docker compose -f docker-compose.prod.yml exec -T backend bash -c "
-            pip install -q pytest pytest-flask pytest-cov pytest-mock faker &&
-            pytest tests/ -vv --cov=. --cov-report=term-missing
+            pip install --no-cache-dir pytest pytest-flask pytest-cov pytest-mock faker &&
+            python -m pytest tests/ -vv --cov=. --cov-report=term-missing
           "
       
       - name: Run performance/load tests
