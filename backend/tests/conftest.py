@@ -5,7 +5,6 @@ including database setup, authentication helpers, and test data factories.
 """
 
 import pytest
-import tempfile
 import os
 import sys
 from datetime import datetime

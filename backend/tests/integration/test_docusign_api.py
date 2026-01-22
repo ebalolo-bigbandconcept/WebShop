@@ -58,6 +58,6 @@ class TestDocuSignWebhook:
             content_type='application/xml'
         )
         
-        # Should not fail on CSRF (may fail on validation)
-        assert response.status_code != 400 or response.status_code in [200, 204, 400]
+        # Should not fail on CSRF (may return 200, 204, or 400 on validation)
+        assert response.status_code in [200, 204, 400]
 
