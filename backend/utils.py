@@ -1,5 +1,5 @@
-from models import TauxTVA
-from flask import request, jsonify
+from models import TauxTVA, User
+from flask import request, jsonify, session
 from functools import wraps
 from typing import Optional, Callable, Any
 import re
@@ -102,4 +102,30 @@ def validated_json(*required_fields: str) -> Callable:
             except Exception as e:
                 return jsonify({"error": "Invalid JSON in request body"}), 400
         return wrapped
+    return decorator
+
+
+def require_login(roles: Optional[set] = None) -> Callable:
+    """Decorator to ensure the caller is authenticated and optionally has the right role."""
+    roles = set(roles) if roles else None
+
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            user_id = session.get("user_id")
+            if not user_id:
+                return jsonify({"error": "Unauthorized"}), 401
+
+            user = User.query.filter_by(id=user_id).first()
+            if not user:
+                session.pop("user_id", None)
+                return jsonify({"error": "Unauthorized"}), 401
+
+            if roles and user.role not in roles:
+                return jsonify({"error": "Forbidden"}), 403
+
+            return f(*args, **kwargs)
+
+        return wrapped
+
     return decorator

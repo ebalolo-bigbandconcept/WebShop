@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, session, render_template, make_response
 from models import db, Devis, DevisSchema, DevisArticles, Articles, TauxTVA, Parameters, EnvelopeTracking
+from utils import require_login
 from datetime import datetime
 from weasyprint import HTML
 from PyPDF2 import PdfMerger
@@ -127,14 +128,16 @@ def _compute_location_totals(total_ttc, first_contribution, location_subscriptio
     return round(total_ht_location, 2), round(total_ttc_location, 2), monthly_ht, monthly_ttc
 
 
-# Public endpoint to list all VAT rates (no admin required)
+# Public endpoint to list all VAT rates
 @devis_bp.route('/tva', methods=['GET'])
+@require_login({"Administrateur", "Utilisateur"})
 def list_vat_public():
     vats = TauxTVA.query.order_by(TauxTVA.id.asc()).all()
     return jsonify({"data": [{"id": v.id, "taux": v.taux} for v in vats]})
 
 # Get every devis of every devis route
 @devis_bp.route('/all', methods=['GET'])
+@require_login({"Administrateur", "Utilisateur"})
 def get_every_devis():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -165,6 +168,7 @@ def get_every_devis():
 
 # Get every devis of a client route
 @devis_bp.route('/client/<client_id>', methods=['GET'])
+@require_login({"Administrateur", "Utilisateur"})
 def get_client_devis(client_id):
     devis = Devis.query.filter_by(client_id=client_id).order_by(Devis.id.asc()).all()
     if not devis:
@@ -176,6 +180,7 @@ def get_client_devis(client_id):
 
 # Get specific devis info route
 @devis_bp.route('/info/<devis_id>', methods=['GET'])
+@require_login({"Administrateur", "Utilisateur"})
 def get_devis_info(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
@@ -216,6 +221,7 @@ def get_devis_info(devis_id):
 
 # Get new devis id route (for display in front only)
 @devis_bp.route('/new-id', methods=['GET'])
+@require_login({"Administrateur", "Utilisateur"})
 def get_new_devis_id():
     new_devis_id = Devis.query.order_by(Devis.id.desc()).first()
     if new_devis_id is None:
@@ -229,6 +235,7 @@ def get_new_devis_id():
 
 # Create new devis route
 @devis_bp.route('/create', methods=['POST'])
+@require_login({"Administrateur", "Utilisateur"})
 def create_devis():
     titre = request.json["title"]
     description = request.json["description"]
@@ -243,7 +250,7 @@ def create_devis():
     location_interests_cost = float(request.json.get("location_interests_cost", 0.0) or 0.0)
     location_time = int(request.json.get("location_time", 12) or 12)
     
-    # Compute article line amounts server-side (ignore client-supplied totals)
+    # Compute article line amounts server-side
     articles_map = _build_article_map(articles_data)
     lines, total_ht, total_tva, total_ttc = _compute_article_lines(articles_data, articles_map)
     
@@ -335,6 +342,7 @@ def create_devis():
 
 # Update devis route
 @devis_bp.route('/update/<devis_id>', methods=['PUT'])
+@require_login({"Administrateur", "Utilisateur"})
 def update_devis(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
@@ -358,7 +366,7 @@ def update_devis(devis_id):
     location_interests_cost = float(request.json.get("location_interests_cost", 0.0) or 0.0)
     location_time = int(request.json.get("location_time", 12) or 12)
     
-    # Compute article line amounts server-side (ignore client-supplied totals)
+    # Compute article line amounts server-side
     articles_map = _build_article_map(articles_data)
     lines, total_ht, total_tva, total_ttc = _compute_article_lines(articles_data, articles_map)
     
@@ -520,6 +528,7 @@ def update_devis(devis_id):
 
 # Delete devis route
 @devis_bp.route('/delete/<devis_id>', methods=['DELETE'])
+@require_login({"Administrateur", "Utilisateur"})
 def delete_devis(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
@@ -529,7 +538,6 @@ def delete_devis(devis_id):
         return jsonify({"error": "Devis signé: suppression interdite"}), 409
     
     devis_nom = devis.titre
-    # Delete related records first to avoid foreign key constraint violations
     DevisArticles.query.filter_by(devis_id=devis.id).delete()
     EnvelopeTracking.query.filter_by(devis_id=devis.id).delete()
     Devis.query.filter_by(id=devis_id).delete()
@@ -542,6 +550,7 @@ def delete_devis(devis_id):
 
 # Create PDF of the devis
 @devis_bp.route('/pdf/<devis_id>', methods=['GET'])
+@require_login({"Administrateur", "Utilisateur"})
 def get_devis_pdf(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
@@ -808,6 +817,7 @@ def get_devis_pdf(devis_id):
 
 # Save the selected scenario to the devis
 @devis_bp.route('/select-scenario/<devis_id>', methods=['POST'])
+@require_login({"Administrateur", "Utilisateur"})
 def select_scenario(devis_id):
     """
     Save the client's selected scenario for this devis.
