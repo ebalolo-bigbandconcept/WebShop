@@ -1,4 +1,4 @@
-from flask import Flask, request, session
+from flask import Flask, request, session, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_session import Session
@@ -9,6 +9,7 @@ from config import ApplicationConfig
 from models import db, ma, User, TauxTVA, Parameters
 from dotenv import load_dotenv
 import os
+import secrets
 import logging
 import json
 from datetime import datetime
@@ -38,7 +39,7 @@ if not ADMIN_MAIL or not ADMIN_PASSWORD:
 # Config App
 app = Flask(__name__, template_folder="pdf")
 app.config.from_object(ApplicationConfig)
-CORS(app, origins=[FRONTEND_URL], supports_credentials=True)
+CORS(app, origins=[FRONTEND_URL], supports_credentials=True, allow_headers=["Content-Type", "X-CSRF-Token"])
 bcrypt = Bcrypt()
 bcrypt.init_app(app)
 server_session = Session(app)
@@ -114,6 +115,35 @@ def log_request():
             'user_id': session.get('user_id', 'anonymous')
         }
         logging.info(f"Request: {request.method} {request.path}", extra=extra)
+
+
+# CSRF protection middleware: require token on unsafe methods
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+CSRF_EXEMPT = {
+    'auth_bp.login_user',
+    'auth_bp.register',
+}
+
+
+@app.before_request
+def enforce_csrf():
+    if request.method in SAFE_METHODS:
+        return None
+
+    # Skip endpoints that are explicitly exempted
+    if request.endpoint in CSRF_EXEMPT:
+        return None
+
+    token_session = session.get("csrf_token")
+    token_request = request.headers.get("X-CSRF-Token") or request.cookies.get("XSRF-TOKEN")
+
+    if not token_session:
+        return jsonify({"error": "Missing CSRF session token"}), 401
+
+    if not token_request or token_request != token_session:
+        return jsonify({"error": "CSRF token missing or invalid"}), 403
+
+    return None
 
 # Config BDD
 db.init_app(app)

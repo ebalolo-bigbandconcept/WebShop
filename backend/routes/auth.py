@@ -1,10 +1,11 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, current_app
 from flask_bcrypt import Bcrypt
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from models import db, User, UserSchema
 from utils import validate_user_fields, validated_json
 import logging
+import secrets
 
 # Get loggers
 logger = logging.getLogger(__name__)
@@ -20,6 +21,19 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"]
 )
+
+
+def _attach_csrf_cookie(resp):
+    token = session.get("csrf_token") or secrets.token_hex(32)
+    session["csrf_token"] = token
+    resp.set_cookie(
+        "XSRF-TOKEN",
+        token,
+        samesite="Lax",
+        secure=current_app.config.get("_IS_PROD", True),
+        httponly=False,
+    )
+    return resp
 
 # Get current user info
 @auth_bp.route("/me", methods=['GET'])
@@ -103,7 +117,8 @@ def register():
     session["user_id"] = new_user.id
     
     user_schema = UserSchema()
-    return user_schema.jsonify(new_user)
+    resp = user_schema.jsonify(new_user)
+    return _attach_csrf_cookie(resp)
 
 # Login route
 @auth_bp.route("/login", methods=["POST"])
@@ -156,7 +171,8 @@ def login_user():
     )
     
     user_schema = UserSchema()
-    return user_schema.jsonify(user)
+    resp = user_schema.jsonify(user)
+    return _attach_csrf_cookie(resp)
 
 # Logout route
 @auth_bp.route("/logout", methods=['POST'])
@@ -177,4 +193,7 @@ def logout():
             )
     
     session.pop('user_id', None)
-    return jsonify({"message": "Successfully logged out."}), 200
+    session.pop('csrf_token', None)
+    resp = jsonify({"message": "Successfully logged out."})
+    resp.delete_cookie("XSRF-TOKEN")
+    return resp, 200
