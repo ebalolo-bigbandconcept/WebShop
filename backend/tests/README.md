@@ -89,11 +89,11 @@ Available to all tests:
 - `auth_headers` - Authenticated session + CSRF token
 - `admin_user` - Admin role user
 - `regular_user` - Standard user
-- `test_client` - Sample client record
+- `test_client_record` - Sample client record
 - `test_article` - Sample article
 - `test_devis` - Sample devis
 - `taux_tva_20` / `taux_tva_10` - VAT rate fixtures
-- `parameters` - App parameters
+- `test_parameters` - App parameters
 
 ### Using Fixtures
 ```python
