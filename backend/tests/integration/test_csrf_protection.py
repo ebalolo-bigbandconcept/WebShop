@@ -1,7 +1,5 @@
 """Integration tests for CSRF protection."""
 
-import pytest
-
 
 class TestCSRFProtection:
     """Tests for CSRF token validation on state-changing operations."""

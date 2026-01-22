@@ -14,7 +14,7 @@ from flask_bcrypt import Bcrypt
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from app import app as flask_app
-from models import db, User, Clients, Articles, Devis, DevisArticles, TauxTVA, Parameters, EnvelopeTracking
+from models import db, User, Clients, Articles, Devis, DevisArticles, TauxTVA, Parameters
 from tests.fixtures.test_config import TestConfig
 
 

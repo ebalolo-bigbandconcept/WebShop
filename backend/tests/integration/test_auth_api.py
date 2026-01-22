@@ -1,9 +1,5 @@
 """Integration tests for authentication endpoints."""
 
-import pytest
-from flask import session
-from models import User
-
 
 class TestAuthRegister:
     """Tests for user registration endpoint (disabled for private app)."""

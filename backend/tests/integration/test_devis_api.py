@@ -5,9 +5,6 @@ These tests verify endpoint structure and basic error handling.
 Full integration testing should be done with Postman/curl or E2E tests.
 """
 
-import pytest
-from models import Devis, DevisArticles
-
 
 class TestDevisCreate:
     """Tests for devis creation endpoint."""
