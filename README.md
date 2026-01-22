@@ -2,8 +2,8 @@
 
 Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le cache, et intégration DocuSign.
 
-[![CI Tests](https://github.com/YOUR_USERNAME/WebShop/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/WebShop/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/YOUR_USERNAME/WebShop/branch/main/graph/badge.svg)](https://codecov.io/gh/YOUR_USERNAME/WebShop)
+[![CI Tests](https://github.com/ebalolo-bigbandconcept/WebShop/actions/workflows/ci.yml/badge.svg)](https://github.com/ebalolo-bigbandconcept/WebShop/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ebalolo-bigbandconcept/WebShop/branch/main/graph/badge.svg)](https://codecov.io/gh/ebalolo-bigbandconcept/WebShop)
 [![Test Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen)](backend/tests)
 [![React](https://img.shields.io/badge/Frontend-React-blue?logo=react)](https://reactjs.org/)
 [![Flask](https://img.shields.io/badge/Backend-Flask-lightgrey?logo=flask)](https://flask.palletsprojects.com/)
