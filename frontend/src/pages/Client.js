@@ -303,7 +303,7 @@ function Client() {
     getClientInfo();
     getClientAllDevis();
     setLoading(false);
-    }, []);
+    }, [client_id.id]);
 
   useEffect(() => {
     setNewPrenom(client.prenom);

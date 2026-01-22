@@ -161,7 +161,7 @@ function ListeDevis() {
               <th scope="col">Date</th>
               <th scope="col">Date de signature</th>
               <th scope="col">Montant HT</th>
-              <th scope="col">Montat TVA</th>
+              <th scope="col">Montant TVA</th>
               <th scope="col">Montant TTC</th>
               <th scope="col">Statut</th>
             </tr>
@@ -171,7 +171,7 @@ function ListeDevis() {
               paginatedDevis.map((d) => (
                 <tr key={d.id} onClick={() => {navigate(`/devis/${d.client.id}/${d.id}`, {state : {from: '/liste-devis'}});}}>
                   <td>{d.id}</td>
-                  <td>{d.client.nom.toUpperCase()} {d.client.prenom}</td>
+                  <td>{d.client?.nom?.toUpperCase() || ''} {d.client?.prenom || ''}</td>
                   <td>
                     {d.titre}
                   </td>
