@@ -6,7 +6,6 @@ including devis creation, PDF generation, DocuSign signing, and location scenari
 
 import pytest
 from datetime import datetime
-from models import Devis, DevisArticles, EnvelopeTracking
 
 
 class TestDevisCreationWorkflow:
