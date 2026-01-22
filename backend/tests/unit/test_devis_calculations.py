@@ -264,16 +264,19 @@ class TestLocationCalculations:
         assert location_total_ht == 1000.0
         assert monthly_ht == 27.78  # 1000 / 36 = 27.777... rounded to 27.78
     
+    def _compute_monthly_ttc(self, location_total_ttc: float, location_time: int) -> float:
+        """Helper: compute monthly TTC with protection against division by zero."""
+        if location_time > 0:
+            return round(location_total_ttc / location_time, 2)
+        return 0.0
+    
     def test_location_time_zero_protection(self, db_session):
         """Test: division by zero protection when location_time = 0"""
         location_total_ttc = 1000.0
         location_time = 0
         
         # Should handle gracefully (return 0 or raise exception)
-        if location_time > 0:
-            monthly_ttc = round(location_total_ttc / location_time, 2)
-        else:
-            monthly_ttc = 0.0
+        monthly_ttc = self._compute_monthly_ttc(location_total_ttc, location_time)
         
         assert monthly_ttc == 0.0
     
