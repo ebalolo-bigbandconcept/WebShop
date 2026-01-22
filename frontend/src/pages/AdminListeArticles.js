@@ -205,7 +205,7 @@ function ListeArticles() {
 
   const deleteArticle = async () => {
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${article_id}`)
+      .delete(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${article_id}`)
       .then((resp) => {
         handleClose();
         showToast({ message: "Article supprimé", variant: "success" });

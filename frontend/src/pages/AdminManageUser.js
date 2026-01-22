@@ -136,7 +136,7 @@ function ManageUser() {
   const delete_account = async () => {
     setFormSubmited(true);
     httpClient
-      .post(`${process.env.REACT_APP_BACKEND_URL}/admin/delete-user/${user_id.id}`)
+      .delete(`${process.env.REACT_APP_BACKEND_URL}/admin/delete-user/${user_id.id}`)
       .then((resp) => {
         showToast({ message: "Utilisateur supprimé avec succès", variant: "success" });
         navigate("/admin/dashboard");
