@@ -772,7 +772,7 @@ function Devis() {
 
   const modalBody = DELETE ? (
     <h5>
-      Êtes-vous sur de vouloir supprimer le devis {devis && devis.titre} {client && `de ${client.nom} ${client.prenom}`}?
+      Êtes-vous sur de vouloir supprimer le devis {devis && devis.titre} {client && `de ${client.nom.toUpperCase()} ${client.prenom}`}?
     </h5>
   ) : article_DELETE ? (
     <h5>Êtes-vous sur de vouloir supprimer l'article {article_selected?.nom} du devis ?</h5>
@@ -926,7 +926,7 @@ function Devis() {
       <br/>
       {client && (
         <>
-          <h3>Client: {client.nom} {client.prenom}</h3>
+          <h3>Client: {client.nom.toUpperCase()} {client.prenom}</h3>
           <h3>Adresse: {client.rue}, {client.code_postal} à {client.ville}</h3>
         </>
       )}

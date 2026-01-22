@@ -233,7 +233,7 @@
     {{ company.phone }}
   </div>
   <div class="info-box">
-    <strong>{{ devis.client.nom }} {{ devis.client.prenom }}</strong><br />
+    <strong>{{ devis.client.nom | upper }} {{ devis.client.prenom }}</strong><br />
     {{ devis.client.rue }}<br />
     {{ devis.client.code_postal }} {{ devis.client.ville }}<br />
     {{ devis.client.telephone }}

@@ -465,7 +465,7 @@ function ListeClients() {
               paginatedClients.map((client) => (
                 <tr key={client.id} onClick={() => {navigate({ pathname: `/client/` + client.id });}}>
                   <td>{client.id}</td>
-                  <td>{client.nom}</td>
+                  <td>{client.nom.toUpperCase()}</td>
                   <td>{client.prenom}</td>
                   <td>{client.rue}, {client.code_postal} <br/> {client.ville}</td>
                   <td>{client.telephone}</td>

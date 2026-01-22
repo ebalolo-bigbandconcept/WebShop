@@ -238,7 +238,7 @@ function AdminDashboard() {
                 navigate({ pathname: `/admin/manage-user/` + user.id });
               }}>
                 <td>{user.id}</td>
-                <td>{user.nom}</td>
+                <td>{user.nom.toUpperCase()}</td>
                 <td>{user.prenom}</td>
                 <td>{user.email}</td>
                 <td>{user.role}</td>

@@ -171,7 +171,7 @@ function ListeDevis() {
               paginatedDevis.map((d) => (
                 <tr key={d.id} onClick={() => {navigate(`/devis/${d.client.id}/${d.id}`, {state : {from: '/liste-devis'}});}}>
                   <td>{d.id}</td>
-                  <td>{d.client.nom} {d.client.prenom}</td>
+                  <td>{d.client.nom.toUpperCase()} {d.client.prenom}</td>
                   <td>
                     {d.titre}
                   </td>

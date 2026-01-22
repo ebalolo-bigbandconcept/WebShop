@@ -11,7 +11,17 @@ function Client() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  const [client, setClient] = useState("");
+  const [client, setClient] = useState({
+    nom: "",
+    prenom: "",
+    rue: "",
+    code_postal: "",
+    ville: "",
+    telephone: "",
+    email: "",
+    caduque: false,
+    id: null,
+  });
   const [devis, setDevis] = useState([]);
 
   const [new_prenom, setNewPrenom] = useState("");
@@ -311,7 +321,7 @@ function Client() {
   return (
     <div>
         <div className="d-flex justify-content-between align-items-start mb-4">
-          <h1 className="mb-0">Client - {client.nom} {client.prenom}</h1>
+          <h1 className="mb-0">Client - {client.nom.toUpperCase()} {client.prenom}</h1>
           <button className="btn btn-danger" onClick={() => navigate('/liste-clients')}>
             <ArrowReturnLeft className="me-1" /> Retour
           </button>
