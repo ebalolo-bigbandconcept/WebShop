@@ -1,8 +1,5 @@
 """Integration tests for Admin API endpoints."""
 
-import pytest
-from models import User, TauxTVA, Parameters
-
 
 class TestAdminUsers:
     """Tests for admin user management endpoints."""

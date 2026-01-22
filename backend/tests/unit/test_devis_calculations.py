@@ -9,16 +9,14 @@ Tests cover:
 - Edge cases (zero values, rounding, etc.)
 """
 
-import pytest
 import sys
 import os
-from decimal import Decimal
 from datetime import datetime
 
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from models import Devis, DevisArticles, Articles, TauxTVA, Parameters, db
+from models import Devis, DevisArticles
 
 
 class TestArticleLineCalculations:

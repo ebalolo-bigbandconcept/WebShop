@@ -1,9 +1,5 @@
 """Integration tests for DocuSign integration endpoints."""
 
-import pytest
-from unittest.mock import patch, MagicMock
-from models import EnvelopeTracking, Devis
-
 
 class TestDocuSignSendEnvelope:
     """Tests for DocuSign envelope sending."""
