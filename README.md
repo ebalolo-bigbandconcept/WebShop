@@ -15,16 +15,27 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 
 ## Table des matières
 
-1. [Démarrage rapide en développement](#démarrage-rapide-en-développement)
+### 📚 Documentation
+
+1. [Démarrage rapide - Développement](#démarrage-rapide--développement)
 2. [Gestion des migrations de base de données](#gestion-des-migrations-de-base-de-données)
+
+### 🚀 Déploiement & Production
+
 3. [Déploiement en production](#déploiement-en-production)
-4. [Support HTTPS avec Let's Encrypt](#support-https-avec-lets-encrypt)
-5. [Sauvegarde et restauration](#sauvegarde-et-restauration)
-6. [Dépannage](#dépannage)
+2. [Configuration CI/CD et déploiement automatique](#configuration-cicd-et-déploiement-automatique)
+3. [Support HTTPS avec Let's Encrypt](#support-https-avec-lets-encrypt)
+
+### 💾 Exploitation & Maintenance
+
+6. [Sauvegarde et restauration](#sauvegarde-et-restauration)
+2. [Logs et monitoring](#logs-et-monitoring)
+3. [Dépannage](#dépannage)
+4. [Aide et support](#aide-et-support)
 
 ---
 
-## Démarrage rapide en développement
+## Démarrage rapide — Développement
 
 ### 1. Mettre à jour le système
 
@@ -391,6 +402,223 @@ sudo docker compose -f docker-compose.prod.yml logs -f
 
 ---
 
+## Configuration CI/CD et Déploiement Automatique
+
+> **Note** : Cette section couvre la configuration de GitHub Actions pour tester automatiquement et déployer vers les serveurs de production et développement.
+
+### 1. Créer un Utilisateur Déploiement (Recommandé)
+
+Sur votre serveur, créez un utilisateur dédié avec accès Docker (au lieu d'utiliser root) :
+
+```bash
+ssh root@your-vps
+
+# Créer utilisateur
+useradd -m -s /bin/bash deploy
+usermod -aG docker deploy
+
+# Créer répertoire application
+mkdir -p /opt/webshop
+chown deploy:deploy /opt/webshop
+
+# Configuration sudo pour docker (optionnel)
+cat >> /etc/sudoers.d/deploy << 'EOF'
+deploy ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/local/bin/docker-compose
+EOF
+chmod 440 /etc/sudoers.d/deploy
+
+# Vérifier
+su - deploy
+docker ps  # Devrait fonctionner sans sudo
+exit
+exit
+```
+
+### 2. Générer des Clés SSH
+
+Sur votre machine locale :
+
+```bash
+# Clé pour production
+ssh-keygen -t ed25519 -C "ci-deploy-prod" -f ~/.ssh/webshop_deploy -N ""
+
+# Clé pour développement (optionnel, si dev server différent)
+ssh-keygen -t ed25519 -C "ci-deploy-dev" -f ~/.ssh/webshop_deploy_dev -N ""
+```
+
+### 3. Installer Clés Publiques sur le Serveur
+
+```bash
+# Copier la clé publique
+cat ~/.ssh/webshop_deploy.pub
+
+# Sur le serveur
+ssh root@your-vps
+
+# Installer pour utilisateur 'deploy'
+mkdir -p /home/deploy/.ssh
+chmod 700 /home/deploy/.ssh
+
+# Ajouter la clé (coller le contenu de webshop_deploy.pub)
+cat >> /home/deploy/.ssh/authorized_keys << 'EOF'
+ssh-ed25519 AAAA... ci-deploy-prod
+EOF
+
+chmod 600 /home/deploy/.ssh/authorized_keys
+chown -R deploy:deploy /home/deploy/.ssh
+
+# Copier l'application
+cp -r /root/WebShop/* /opt/webshop/
+chown -R deploy:deploy /opt/webshop
+exit
+```
+
+### 4. Tester la Connexion SSH
+
+```bash
+# Depuis votre machine locale
+ssh -i ~/.ssh/webshop_deploy deploy@your-vps "cd /opt/webshop && pwd"
+# Devrait afficher: /opt/webshop
+```
+
+### 5. Ajouter les Secrets GitHub
+
+Dans votre dépôt GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** :
+
+#### Secrets Production
+
+- **SSH_HOST** : votre VPS hostname ou IP (ex: `example.com` ou `123.45.67.89`)
+- **SSH_USER** : `deploy`
+- **SSH_KEY** : Contenu complet de `~/.ssh/webshop_deploy` (y compris `-----BEGIN OPENSSH PRIVATE KEY-----` et `-----END OPENSSH PRIVATE KEY-----`)
+- **WORK_DIR** : `/opt/webshop`
+- **DEPLOY_GIT_TOKEN** (optionnel) : GitHub PAT si repo privé
+
+#### Secrets Développement (si dev server différent)
+
+- **SSH_HOST_DEV** : hostname dev
+- **SSH_USER_DEV** : `deploy` (ou autre utilisateur)
+- **SSH_KEY_DEV** : Contenu de `~/.ssh/webshop_deploy_dev`
+- **WORK_DIR_DEV** : `/opt/webshop-dev` (ou votre chemin dev)
+
+### 6. Comment Fonctionne CI/CD
+
+#### Workflows Disponibles
+
+Trois workflows GitHub Actions sont disponibles dans `.github/workflows/` :
+
+**1. CI Tests & Build** (`.github/workflows/ci.yml`)
+
+- Déclenché sur : `push` et `pull_request` vers `dev` et `main`
+- Teste : Backend (pytest + coverage), Frontend (build)
+- Déploie automatiquement :
+  - `dev` branch → **Staging server** (deploy-staging)
+  - `main` branch → **Production server** (deploy-production)
+
+**2. Docker Publish** (`.github/workflows/docker-publish.yml`)
+
+- Déclenché sur : `push` vers `dev` et `main`
+- Pousse vers : GitHub Container Registry (GHCR)
+  - `dev` → `ghcr.io/owner/webshop-backend:dev`
+  - `main` → `ghcr.io/owner/webshop-backend:latest`
+
+**3. Nightly** (`.github/workflows/nightly.yml`)
+
+- Déclenché : Tous les jours à 02:00 UTC
+- Exécute : Full test suite, security scan (Trivy), dependency audit
+- Pousse : Images avec tag `nightly`
+
+#### Exemple de Déploiement
+
+```bash
+# 1. Faire des modifications localement
+git checkout dev
+git commit -m "Add new feature"
+git push origin dev
+
+# 2. GitHub Actions déclenche automatiquement :
+#    - Exécute les tests backend & frontend
+#    - Si tests réussissent, déploie sur staging server
+#    - Logs visibles dans Actions tab
+
+# 3. Vérifier le déploiement sur staging
+ssh deploy@dev-server "cd /opt/webshop && docker compose ps"
+
+# 4. Une fois validé, merger vers main
+git checkout main
+git pull
+git merge dev
+git push origin main
+
+# 5. Production se déploie automatiquement !
+```
+
+### 7. Monitorer les Déploiements
+
+```bash
+# Voir tous les déploiements
+# GitHub repo → Actions tab
+
+# Logs en temps réel sur le serveur
+ssh deploy@your-vps "cd /opt/webshop && docker compose logs -f backend"
+
+# Vérifier santé des services
+ssh deploy@your-vps "cd /opt/webshop && docker compose ps"
+```
+
+### 8. Sécurité SSH (Recommandé)
+
+Durcir SSH sur le serveur :
+
+```bash
+ssh root@your-vps
+
+nano /etc/ssh/sshd_config
+
+# Ajouter/modifier :
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+
+# Redémarrer SSH
+systemctl restart sshd
+exit
+```
+
+### 9. Dépannage CI/CD
+
+#### Déploiement échoue avec "Permission denied"
+
+```bash
+# Vérifier permissions de clé publique sur serveur
+ssh deploy@your-vps "cat ~/.ssh/authorized_keys | head -1"
+
+# Vérifier permissions du répertoire
+ssh deploy@your-vps "ls -la /home/deploy/.ssh/"
+# Doit être : drwx------ (700)
+```
+
+#### Services ne se relancent pas après déploiement
+
+```bash
+# Vérifier les logs
+ssh deploy@your-vps "cd /opt/webshop && docker compose logs --tail=50"
+
+# Redémarrer manuellement
+ssh deploy@your-vps "cd /opt/webshop && docker compose up -d"
+```
+
+#### Migrations échouent
+
+```bash
+# Vérifier la base de données
+ssh deploy@your-vps "cd /opt/webshop && docker compose exec -T db pg_isready -U dev_user"
+
+# Voir les migrations appliquées
+ssh deploy@your-vps "cd /opt/webshop && docker compose exec -T backend flask db current"
+```
+
+---
+
 ## Support HTTPS avec Let's Encrypt
 
 > **Note importante** : Remplacez `your-domain.tld` par votre vrai domaine dans toutes les commandes ci-dessous.
@@ -494,6 +722,8 @@ sudo docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot 
 
 Le flag `--dry-run` teste le renouvellement sans modifier les certificats réels.
 
+---
+
 ## Sauvegarde et restauration
 
 ### Sauvegarde de la base de données
@@ -563,7 +793,7 @@ sudo docker compose exec backend flask db upgrade
 
 ---
 
-## Logs et Monitoring
+## Logs et monitoring
 
 ### Consulter les logs
 
