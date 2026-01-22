@@ -26,12 +26,6 @@ class TestArticleLineCalculations:
     
     def test_montant_ht_calculation_basic(self, db_session, test_article, test_devis, taux_tva_20):
         """Test: montant_HT = prix_unitaire_ht * quantite"""
-        devis_article = DevisArticles(
-            devis_id=test_devis.id,
-            article_id=test_article.id,
-            quantite=3,
-            taux_tva_id=taux_tva_20.id
-        )
         
         # Expected: 150.0 * 3 = 450.0
         expected_ht = test_article.prix_vente_HT * 3
