@@ -125,10 +125,14 @@ class TestFullDevisLifecycle:
         4. Delete endpoint requires auth
         """
         # All lifecycle operations should require authentication
-        assert client.post('/api/devis/create', json={}).status_code == 401
-        assert client.get('/api/devis/all').status_code == 401
-        assert client.put('/api/devis/update/1', json={}).status_code == 401
-        assert client.delete('/api/devis/delete/1').status_code == 401
+        create_response = client.post('/api/devis/create', json={})
+        assert create_response.status_code == 401
+        list_response = client.get('/api/devis/all')
+        assert list_response.status_code == 401
+        update_response = client.put('/api/devis/update/1', json={})
+        assert update_response.status_code == 401
+        delete_response = client.delete('/api/devis/delete/1')
+        assert delete_response.status_code == 401
 
 
 class TestMultipleArticleDevis:
