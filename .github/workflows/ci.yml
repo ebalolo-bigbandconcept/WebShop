@@ -194,6 +194,9 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     
     steps:
       - name: Checkout code
@@ -210,7 +213,7 @@ jobs:
       
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && github.event.pull_request.head.repo.fork == false
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -425,6 +428,8 @@ jobs:
             git reset --hard origin/main
 
             # Build and restart services
+            export DOCKER_CONFIG="$WORK_DIR/.docker"
+            mkdir -p "$DOCKER_CONFIG"
             docker compose -f docker-compose.prod.yml build --pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
@@ -476,6 +481,8 @@ jobs:
             git reset --hard origin/dev
 
             # Build and restart services (dev compose)
+            export DOCKER_CONFIG="$WORK_DIR/.docker"
+            mkdir -p "$DOCKER_CONFIG"
             docker compose -f docker-compose.yml build --pull
             docker compose -f docker-compose.yml up -d --remove-orphans
 
