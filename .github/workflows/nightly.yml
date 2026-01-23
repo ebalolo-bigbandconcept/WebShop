@@ -1,0 +1,272 @@
+name: Nightly Tests & Checks
+
+on:
+  schedule:
+    # Run every night at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  extended-tests:
+    name: Extended Test Suite
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create test .env file
+        run: |
+          cat > .env << EOF
+          SECRET_KEY=nightly-test-key
+          ADMIN_MAIL=admin@test.com
+          ADMIN_PASSWORD=TestPassword123!
+          REACT_APP_BACKEND_URL=/api
+          FRONTEND_URL=http://localhost:3000
+          BACKEND_URL=http://localhost:3000
+          DATABASE_URL=postgresql://dev_user:dev_password@db:5432/users_db
+          DOCUSIGN_ACCOUNT_ID=test
+          DOCUSIGN_USER_ID=test
+          DOCUSIGN_INTEGRATION_KEY=test
+          DOCUSIGN_ENV=demo
+          FLASK_ENV=development
+          EOF
+
+      - name: Prepare prod-style secrets for CI
+        run: |
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          nightly-test-key
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          TestPassword123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-nightly
+          -----END PRIVATE KEY-----
+          EOF
+      
+      - name: Start services
+        run: docker compose -f docker-compose.prod.yml up -d --build
+      
+      - name: Run all tests with verbose output
+        run: |
+          docker compose -f docker-compose.prod.yml exec -T backend bash -c "
+            pip install --no-cache-dir pytest pytest-flask pytest-cov pytest-mock faker &&
+            python -m pytest tests/ -vv --cov=. --cov-report=term-missing
+          "
+      
+      - name: Run performance/load tests
+        continue-on-error: true
+        run: |
+          # Add load testing here (e.g., with locust)
+          echo "Performance tests would run here"
+      
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
+
+  dependency-check:
+    name: Check for Dependency Updates
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check Python dependencies
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt || true
+      
+      - name: Check npm dependencies
+        working-directory: frontend
+        run: |
+          npm audit --audit-level=high || true
+
+  database-migrations-check:
+    name: Verify Database Migrations
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          SECRET_KEY=nightly-test-key
+          ADMIN_MAIL=admin@test.com
+          ADMIN_PASSWORD=TestPassword123!
+          DATABASE_URL=postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+
+      - name: Prepare prod-style secrets for migrations check
+        run: |
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          nightly-test-key
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          TestPassword123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-nightly
+          -----END PRIVATE KEY-----
+          EOF
+      
+      - name: Start database
+        run: docker compose -f docker-compose.prod.yml up -d db
+      
+      - name: Test migrations up and down
+        run: |
+          # Test upgrade
+          docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
+          
+          # Test downgrade
+          docker compose -f docker-compose.prod.yml run --rm backend flask db downgrade
+          
+          # Test upgrade again
+          docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
+      
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down -v
+
+  frontend-nightly:
+    name: Frontend Nightly Build & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint (if available)
+        working-directory: frontend
+        continue-on-error: true
+        run: npm run lint || echo "No lint script configured"
+
+      - name: Build
+        working-directory: frontend
+        env:
+          REACT_APP_BACKEND_URL: /api
+          CI: false
+        run: npm run build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-nightly
+          path: frontend/build/
+          retention-days: 7
+
+  security-scan:
+    name: Security Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GHAS
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  docker-nightly-publish:
+    name: Publish Nightly Images (GHCR)
+    runs-on: ubuntu-latest
+    needs: [extended-tests, frontend-nightly]
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      matrix:
+        component: [ backend, frontend ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push :nightly
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ${{ matrix.component }}/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/webshop-${{ matrix.component }}:nightly
+          build-args: |
+            REACT_APP_BACKEND_URL=/api

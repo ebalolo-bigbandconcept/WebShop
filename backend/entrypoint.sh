@@ -14,6 +14,10 @@ echo "PostgreSQL is ready!"
 echo "Running database migrations..."
 flask db upgrade
 
+# Initialize default data (admin user, TVA rates, etc.)
+echo "Initializing default data..."
+python init_db.py
+
 # Start the application
 echo "Starting Flask application..."
 exec python app.py

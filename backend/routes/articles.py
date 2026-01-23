@@ -75,10 +75,19 @@ def add_article():
     prix_achat_HT = request.json["prix_achat_HT"]
     taux_tva = request.json["taux_tva"]
     
-    if not taux_tva:
+    if taux_tva is None:
         return jsonify({"error": "Le taux de TVA est requis."}), 400
-        
-    taux_tva_id = TauxTVA.query.filter_by(taux=taux_tva).first().id
+    try:
+        taux_val = float(taux_tva)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Le taux de TVA est invalide."}), 400
+    # Accept either 0.20 or 20.0 style inputs
+    if taux_val > 1:
+        taux_val = taux_val / 100.0
+    tva_obj = TauxTVA.query.filter_by(taux=taux_val).first()
+    if not tva_obj:
+        return jsonify({"error": "Taux TVA introuvable"}), 400
+    taux_tva_id = tva_obj.id
     
     # Get margin rate from parameters and calculate selling price
     params = Parameters.query.first()
@@ -121,10 +130,18 @@ def modify_article(article_id):
     new_prix_achat_HT = request.json["prix_achat_HT"]
     new_taux_tva = request.json["taux_tva"]
     
-    if not new_taux_tva:
+    if new_taux_tva is None:
         return jsonify({"error": "Le taux de TVA est requis."}), 400
-        
-    new_taux_tva_id = TauxTVA.query.filter_by(taux=new_taux_tva).first().id
+    try:
+        new_taux_val = float(new_taux_tva)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Le taux de TVA est invalide."}), 400
+    if new_taux_val > 1:
+        new_taux_val = new_taux_val / 100.0
+    new_tva_obj = TauxTVA.query.filter_by(taux=new_taux_val).first()
+    if not new_tva_obj:
+        return jsonify({"error": "Taux TVA introuvable"}), 400
+    new_taux_tva_id = new_tva_obj.id
 
     params = Parameters.query.first()
     margin_rate = params.margin_rate if params else 0.0
@@ -148,7 +165,7 @@ def modify_article(article_id):
     })
 
 # Delete article route
-@articles_bp.route("/delete/<article_id>", methods=['POST'])
+@articles_bp.route("/delete/<article_id>", methods=['DELETE'])
 def delete_article(article_id):
     # Check if user is authenticated
     user_id = session.get("user_id")
@@ -165,7 +182,7 @@ def delete_article(article_id):
     logging.info(f"Article supprimé: {article_name} (id: {article_id}) par l'utilisateur {session.get('user_id')}")
     
     return jsonify({
-        "200": "Article successfully deleted."
+        "message": "Article supprimé avec succès"
     })
 
 # Export all articles as PDF

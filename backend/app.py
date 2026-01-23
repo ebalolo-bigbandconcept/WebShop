@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 from routes.admin import admin_bp
 from routes.articles import articles_bp
-from routes.auth import auth_bp, limiter
+from routes.auth import auth_bp, auth_alias_bp, limiter
 from routes.clients import clients_bp
 from routes.devis import devis_bp
 from routes.docusign import docusign_bp
@@ -122,12 +122,17 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 CSRF_EXEMPT = {
     'auth_bp.login_user',
     'auth_bp.register',
+    'auth_alias_bp.login_user_alias',
     'docusign.webhook',
 }
 
 
 @app.before_request
 def enforce_csrf():
+    # Allow disabling CSRF entirely via config (used in tests)
+    if not app.config.get('WTF_CSRF_ENABLED', True):
+        return None
+
     if request.method in SAFE_METHODS:
         return None
 
@@ -146,6 +151,14 @@ def enforce_csrf():
 
     return None
 
+# Sync rate limiter enabled flag with config on each request (so tests can disable it)
+@app.before_request
+def sync_rate_limiter_enabled():
+    try:
+        limiter.enabled = app.config.get('RATELIMIT_ENABLED', True)
+    except Exception:
+        pass
+
 # Config BDD
 db.init_app(app)
 ma.init_app(app)
@@ -155,6 +168,7 @@ migrate = Migrate(app, db)
 app.register_blueprint(admin_bp)
 app.register_blueprint(articles_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(auth_alias_bp)
 app.register_blueprint(clients_bp)
 app.register_blueprint(devis_bp)
 app.register_blueprint(docusign_bp)

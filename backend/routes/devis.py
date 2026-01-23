@@ -237,18 +237,21 @@ def get_new_devis_id():
 @devis_bp.route('/create', methods=['POST'])
 @require_login({"Administrateur", "Utilisateur"})
 def create_devis():
-    titre = request.json["title"]
-    description = request.json["description"]
-    date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
-    remise = float(request.json.get("remise", 0.0) or 0.0)
-    statut = request.json["statut"]
-    client_id = request.json["client_id"]
-    articles_data = request.json["articles"]
-    is_location = request.json.get("is_location", False)
-    first_contribution_amount = float(request.json.get("first_contribution_amount", 0.0) or 0.0)
-    location_subscription_cost = float(request.json.get("location_subscription_cost", 0.0) or 0.0)
-    location_interests_cost = float(request.json.get("location_interests_cost", 0.0) or 0.0)
-    location_time = int(request.json.get("location_time", 12) or 12)
+    body = request.get_json(force=True) if request.data else {}
+    titre = body.get("titre") if body.get("titre") is not None else body.get("title")
+    description = body.get("description")
+    date = datetime.strptime(body.get("date"), "%Y-%m-%d").date()
+    remise = float(body.get("remise", 0.0) or 0.0)
+    statut = body.get("statut")
+    client_id = body.get("client_id")
+    articles_data = body.get("articles") or []
+    is_location = body.get("is_location", False)
+    first_contribution_amount = float(
+        (body.get("location_apport") if body.get("location_apport") is not None else body.get("first_contribution_amount", 0.0)) or 0.0
+    )
+    location_subscription_cost = float(body.get("location_subscription_cost", 0.0) or 0.0)
+    location_interests_cost = float(body.get("location_interests_cost", 0.0) or 0.0)
+    location_time = int(body.get("location_time", 12) or 12)
     
     # Compute article line amounts server-side
     articles_map = _build_article_map(articles_data)
@@ -328,7 +331,6 @@ def create_devis():
     
     return jsonify({
         "id": new_devis.id,
-        "devis": devis_data,
         "computed": {
             "montant_ht": total_ht,
             "montant_tva": total_tva,
@@ -336,9 +338,9 @@ def create_devis():
             "location_total_ht": location_total_ht,
             "location_total_ttc": location_total_ttc,
             "location_monthly_ht": location_monthly_ht,
-            "location_monthly_ttc": location_monthly_ttc,
+            "location_monthly_ttc": location_monthly_ttc
         }
-    })
+    }), 201
 
 # Update devis route
 @devis_bp.route('/update/<devis_id>', methods=['PUT'])
@@ -354,17 +356,20 @@ def update_devis(devis_id):
     # Check if status is changing to "Signé" BEFORE updating the status
     to_sign = devis.statut != "Signé" and request.json.get("statut") == "Signé"
     
-    titre = request.json["title"]
-    description = request.json["description"]
-    date = datetime.strptime(request.json["date"],"%Y-%m-%d").date()
-    remise = float(request.json.get("remise", 0.0) or 0.0)
-    statut = request.json["statut"]
-    articles_data = request.json["articles"]
-    is_location = request.json.get("is_location", False)
-    first_contribution_amount = float(request.json.get("first_contribution_amount", 0.0) or 0.0)
-    location_subscription_cost = float(request.json.get("location_subscription_cost", 0.0) or 0.0)
-    location_interests_cost = float(request.json.get("location_interests_cost", 0.0) or 0.0)
-    location_time = int(request.json.get("location_time", 12) or 12)
+    body = request.get_json(force=True) if request.data else {}
+    titre = body.get("titre") if body.get("titre") is not None else body.get("title")
+    description = body.get("description")
+    date = datetime.strptime(body.get("date"), "%Y-%m-%d").date()
+    remise = float(body.get("remise", 0.0) or 0.0)
+    statut = body.get("statut")
+    articles_data = body.get("articles") or []
+    is_location = body.get("is_location", False)
+    first_contribution_amount = float(
+        (body.get("location_apport") if body.get("location_apport") is not None else body.get("first_contribution_amount", 0.0)) or 0.0
+    )
+    location_subscription_cost = float(body.get("location_subscription_cost", 0.0) or 0.0)
+    location_interests_cost = float(body.get("location_interests_cost", 0.0) or 0.0)
+    location_time = int(body.get("location_time", 12) or 12)
     
     # Compute article line amounts server-side
     articles_map = _build_article_map(articles_data)
@@ -509,17 +514,7 @@ def update_devis(devis_id):
         devis_data = devis_schema.dump(devis)
         
         return jsonify({
-            "id": devis.id,
-            "devis": devis_data,
-            "computed": {
-                "montant_ht": total_ht,
-                "montant_tva": total_tva,
-                "montant_ttc": total_ttc,
-                "location_total_ht": location_total_ht,
-                "location_total_ttc": location_total_ttc,
-                "location_monthly_ht": location_monthly_ht,
-                "location_monthly_ttc": location_monthly_ttc,
-            }
+            "message": "Devis mis à jour avec succès"
         })
 
     except Exception as e:
@@ -532,7 +527,7 @@ def update_devis(devis_id):
 def delete_devis(devis_id):
     devis = Devis.query.filter_by(id=devis_id).first()
     if not devis:
-        return jsonify({"error": "Article non trouvé"}), 404
+        return jsonify({"error": "Devis non trouvé"}), 404
 
     if devis.statut == "Signé":
         return jsonify({"error": "Devis signé: suppression interdite"}), 409
@@ -545,7 +540,7 @@ def delete_devis(devis_id):
     logging.info(f"Devis supprimé: {devis_nom} (id: {devis_id}) par l'utilisateur {session.get('user_id')}")
     
     return jsonify({
-        "200": "Devis successfully deleted."
+        "message": "Devis supprimé avec succès"
     })
 
 # Create PDF of the devis
@@ -856,7 +851,7 @@ def select_scenario(devis_id):
 
     return jsonify({
         "success": True,
-        "message": f"Scenario '{scenario}' successfully selected and locked",
+        "message": "Scenario selected successfully",
         "devis_id": devis_id,
         "selected_scenario": scenario
     }), 200

@@ -49,7 +49,7 @@ function Login({ setUser }) {
         mdp: mdp,
       })
       .then(function (response) {
-        setUser(response.data);
+        setUser(response.data.user);
         navigate("/liste-clients");
       })
       .catch((error) => {
