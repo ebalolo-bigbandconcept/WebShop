@@ -86,11 +86,11 @@ jobs:
         run: |
           docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
 
-      - name: Run backend tests with coverage
+      - name: Run backend tests with coverage (unit+integration)
         run: |
           docker compose -f docker-compose.prod.yml run --rm -v $PWD/backend:/app backend bash -c "
             pip install --no-cache-dir pytest pytest-flask pytest-cov pytest-mock faker coverage &&
-            python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html &&
+            python -m pytest tests/unit tests/integration -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html &&
             python -m coverage report --fail-under=85 || (echo 'Coverage below 85% threshold' && exit 1)
           "
       
@@ -203,7 +203,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.24.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -387,7 +387,7 @@ jobs:
         run: docker compose -f docker-compose.prod.yml down -v
 
   deploy-production:
-    name: Deploy to Production (SSH)
+    name: Production Server Deploy
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
     if: github.ref == 'refs/heads/main' && success()
@@ -426,7 +426,35 @@ jobs:
 
             git fetch --all
             git checkout main || true
+            
+            # Backup prod secrets before reset
+            if [ -d .env_prod_secrets ]; then
+              cp -r .env_prod_secrets .env_prod_secrets.bak
+            fi
+            
             git reset --hard origin/main
+            
+            # Restore prod secrets after reset
+            if [ -d .env_prod_secrets.bak ]; then
+              rm -rf .env_prod_secrets
+              mv .env_prod_secrets.bak .env_prod_secrets
+            fi
+
+            # Create .env file from secrets
+            cat > .env << 'ENVEOF'
+            SECRET_KEY="${{ secrets.SECRET_KEY }}"
+            ADMIN_MAIL="${{ secrets.ADMIN_MAIL }}"
+            ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}"
+            DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
+            BACKEND_URL="${{ secrets.BACKEND_URL }}"
+            DOCUSIGN_ACCOUNT_ID="${{ secrets.DOCUSIGN_ACCOUNT_ID }}"
+            DOCUSIGN_USER_ID="${{ secrets.DOCUSIGN_USER_ID }}"
+            DOCUSIGN_INTEGRATION_KEY="${{ secrets.DOCUSIGN_INTEGRATION_KEY }}"
+            DOCUSIGN_ENV="${{ secrets.DOCUSIGN_ENV }}"
+            REACT_APP_BACKEND_URL="/api"
+            FLASK_ENV="production"
+            ENVEOF
 
             # Build and restart services
             export DOCKER_CONFIG="$WORK_DIR/.docker"
@@ -441,7 +469,7 @@ jobs:
             docker compose -f docker-compose.prod.yml ps
 
   deploy-staging:
-    name: Deploy to Staging (SSH)
+    name: Dev Server Deploy
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
     if: github.ref == 'refs/heads/dev' && success()
@@ -480,16 +508,44 @@ jobs:
 
             git fetch --all
             git checkout dev || true
+            
+            # Backup prod secrets before reset
+            if [ -d .env_prod_secrets ]; then
+              cp -r .env_prod_secrets .env_prod_secrets.bak
+            fi
+            
             git reset --hard origin/dev
+            
+            # Restore prod secrets after reset
+            if [ -d .env_prod_secrets.bak ]; then
+              rm -rf .env_prod_secrets
+              mv .env_prod_secrets.bak .env_prod_secrets
+            fi
+
+            # Create .env file from secrets
+            cat > .env << 'ENVEOF'
+            SECRET_KEY="${{ secrets.SECRET_KEY_DEV }}"
+            ADMIN_MAIL="${{ secrets.ADMIN_MAIL_DEV }}"
+            ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD_DEV }}"
+            DATABASE_URL="${{ secrets.DATABASE_URL_DEV }}"
+            FRONTEND_URL="${{ secrets.FRONTEND_URL_DEV }}"
+            BACKEND_URL="${{ secrets.BACKEND_URL_DEV }}"
+            DOCUSIGN_ACCOUNT_ID="${{ secrets.DOCUSIGN_ACCOUNT_ID_DEV }}"
+            DOCUSIGN_USER_ID="${{ secrets.DOCUSIGN_USER_ID_DEV }}"
+            DOCUSIGN_INTEGRATION_KEY="${{ secrets.DOCUSIGN_INTEGRATION_KEY_DEV }}"
+            DOCUSIGN_ENV="${{ secrets.DOCUSIGN_ENV_DEV }}"
+            REACT_APP_BACKEND_URL="/api"
+            FLASK_ENV="development"
+            ENVEOF
 
             # Build and restart services (dev compose)
             export DOCKER_CONFIG="$WORK_DIR/.docker"
             mkdir -p "$DOCKER_CONFIG"
-            docker compose -f docker-compose.yml build --pull
-            docker compose -f docker-compose.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml build --pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             # Apply DB migrations and init defaults (safe if already applied)
-            docker compose -f docker-compose.yml exec -T backend flask db upgrade || true
-            docker compose -f docker-compose.yml exec -T backend python init_db.py || true
+            docker compose -f docker-compose.prod.yml exec -T backend flask db upgrade || true
+            docker compose -f docker-compose.prod.yml exec -T backend python init_db.py || true
 
-            docker compose -f docker-compose.yml ps
+            docker compose -f docker-compose.prod.yml ps
