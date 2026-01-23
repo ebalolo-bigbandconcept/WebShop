@@ -460,7 +460,8 @@ jobs:
             export DOCKER_CONFIG="$WORK_DIR/.docker"
             mkdir -p "$DOCKER_CONFIG"
             docker compose -f docker-compose.prod.yml build --pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --timeout 30
 
             # Apply DB migrations and init defaults
             docker compose -f docker-compose.prod.yml exec -T backend flask db upgrade || true
@@ -542,7 +543,8 @@ jobs:
             export DOCKER_CONFIG="$WORK_DIR/.docker"
             mkdir -p "$DOCKER_CONFIG"
             docker compose -f docker-compose.prod.yml build --pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --timeout 30
 
             # Apply DB migrations and init defaults (safe if already applied)
             docker compose -f docker-compose.prod.yml exec -T backend flask db upgrade || true
