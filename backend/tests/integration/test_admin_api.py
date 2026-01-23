@@ -62,7 +62,7 @@ class TestAdminParameters:
         
         assert response.status_code == 200
         data = response.get_json()
-        assert 'margin_rate' in data
+        assert 'marginRate' in data
     
     def test_update_parameters_with_admin(self, client, admin_auth_headers, test_parameters):
         """Test updating parameters as admin."""

@@ -165,7 +165,7 @@ class TestDevisCreationWithArticles:
         
         assert response.status_code == 201
         data = response.get_json()
-        assert 'devis_id' in data
+        assert 'id' in data
     
     def test_create_devis_location(self, client, auth_headers, test_client_record, test_article, taux_tva_20):
         """Test creating a location devis."""
@@ -192,7 +192,7 @@ class TestDevisCreationWithArticles:
         
         assert response.status_code == 201
         data = response.get_json()
-        assert 'devis_id' in data
+        assert 'id' in data
 
 
 class TestDevisRetrieval:

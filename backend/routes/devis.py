@@ -330,7 +330,16 @@ def create_devis():
     devis_data = devis_schema.dump(new_devis)
     
     return jsonify({
-        "devis_id": new_devis.id
+        "id": new_devis.id,
+        "computed": {
+            "montant_ht": total_ht,
+            "montant_tva": total_tva,
+            "montant_ttc": total_ttc,
+            "location_total_ht": location_total_ht,
+            "location_total_ttc": location_total_ttc,
+            "location_monthly_ht": location_monthly_ht,
+            "location_monthly_ttc": location_monthly_ttc
+        }
     }), 201
 
 # Update devis route

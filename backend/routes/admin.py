@@ -265,23 +265,23 @@ def get_parameters():
         db.session.commit()
 
     return jsonify({
-        "margin_rate": params.margin_rate,
-        "margin_rate_location": params.margin_rate_location,
-        "location_time": params.location_time,
-        "location_subscription_cost": params.location_subscription_cost,
-        "location_interests_cost": params.location_interests_cost,
-        "general_conditions_sales": params.general_conditions_sales,
-        "company_name": params.company_name,
-        "company_address_line1": params.company_address_line1,
-        "company_address_line2": params.company_address_line2,
-        "company_zip": params.company_zip,
-        "company_city": params.company_city,
-        "company_phone": params.company_phone,
-        "company_email": params.company_email,
-        "company_iban": params.company_iban,
-        "company_tva": params.company_tva,
-        "company_siret": params.company_siret,
-        "company_aprm": params.company_aprm,
+        "marginRate": params.margin_rate,
+        "marginRateLocation": params.margin_rate_location,
+        "locationTime": params.location_time,
+        "locationSubscriptionCost": params.location_subscription_cost,
+        "locationInterestsCost": params.location_interests_cost,
+        "generalConditionsSales": params.general_conditions_sales,
+        "companyName": params.company_name,
+        "companyAddressLine1": params.company_address_line1,
+        "companyAddressLine2": params.company_address_line2,
+        "companyZip": params.company_zip,
+        "companyCity": params.company_city,
+        "companyPhone": params.company_phone,
+        "companyEmail": params.company_email,
+        "companyIban": params.company_iban,
+        "companyTva": params.company_tva,
+        "companySiret": params.company_siret,
+        "companyAprm": params.company_aprm,
     })
 
 
@@ -359,7 +359,7 @@ def update_parameters():
         }
     )
 
-    return jsonify({"message": "Parameters updated successfully"})
+    return jsonify({"message": "Parameters updated successfully"}), 200
 
 
 # TVA management

@@ -56,6 +56,7 @@ function Devis() {
   const [article_quantity_error, setArticleQuantityError] = useState("");
 
   const [isNewDevis, setIsNewDevis] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [DELETE, setDELETE] = useState(false);
   const [article_MODIFY, setArticleMODIFY] = useState(false);
@@ -305,6 +306,8 @@ function Devis() {
   // ### Save devis to database ###
   const saveDevis = async () => {
     if (blockSignedEdit()) return;
+    if (isSaving) return; // Prevent duplicate submissions
+    setIsSaving(true);
     setFormSubmited(true);
     const isTitleValid = devisTitleVerif(devis_title);
     const isDateValid = devisDateVerif(devis_date);
@@ -336,9 +339,8 @@ function Devis() {
 
       if (isNewDevis) {
         // Create new devis
-        httpClient
-        .post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData)
-        .then(async (resp) => {
+        try {
+        const resp = await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/devis/create`, devisData);
           const newDevisId = resp.data && resp.data.id;
           if (!newDevisId) {
             showToast({ message: "Erreur: id du devis manquant après création.", variant: "danger" });
@@ -378,19 +380,19 @@ function Devis() {
               }
             }
           }
-        })
-        .catch((error) => {
+        } catch (error) {
           if (error.response && error.response.data && error.response.data.error) {
             showToast({ message: error.response.data.error, variant: "danger" });
           } else {
             showToast({ message: "Une erreur est survenue lors de la création du devis.", variant: "danger" });
           }
-        });
+        } finally {
+          setIsSaving(false);
+        }
       } else {
         // Update existing devis
-        httpClient
-        .put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData)
-        .then(async (resp) => {
+        try {
+        const resp = await httpClient.put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData);
           // Update totals from API response
           if (resp.data.computed) {
             setDevisMontantHT(resp.data.computed.montant_ht);
@@ -406,15 +408,18 @@ function Devis() {
           await fetchDevisById(id_devis);
           
           showToast({ message: "Devis enregistré avec succès.", variant: "success" });
-        })
-        .catch((error) => {
+        } catch (error) {
           if (error.response && error.response.data && error.response.data.error) {
             showToast({ message: error.response.data.error, variant: "danger" });
           } else {
             showToast({ message: "Une erreur est survenue lors de la mise à jour du devis.", variant: "danger" });
           }
-        });
+        } finally {
+          setIsSaving(false);
+        }
       }
+    } else {
+      setIsSaving(false);
     }
   }
 
@@ -1142,8 +1147,8 @@ function Devis() {
         <div>
           {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}><Trash3Fill className="me-1" /> Supprimer le devis</button> : ""}
           {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}><FileEarmarkPdf className="me-1" />Générer le devis</button> : ""}
-          <button className="btn btn-success" onClick={saveDevis} disabled={isLocked && !isNewDevis}>
-            <FloppyFill className="me-1" /> Enregistrer le devis
+          <button className="btn btn-success" onClick={saveDevis} disabled={(isLocked && !isNewDevis) || isSaving}>
+            <FloppyFill className="me-1" /> {isSaving ? 'Enregistrement...' : 'Enregistrer le devis'}
           </button>
         </div>
       </div>
