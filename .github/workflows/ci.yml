@@ -389,7 +389,8 @@ jobs:
   deploy-production:
     name: Deploy to Production (SSH)
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    needs: [backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
+    if: github.ref == 'refs/heads/main' && success()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -442,7 +443,8 @@ jobs:
   deploy-staging:
     name: Deploy to Staging (SSH)
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev'
+    needs: [backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
+    if: github.ref == 'refs/heads/dev' && success()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
