@@ -458,7 +458,8 @@ jobs:
           script: |
             cd ${{ secrets.WORK_DIR }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR }}
-            git pull
+            git fetch origin
+            git reset --hard origin/main
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
 
@@ -480,6 +481,7 @@ jobs:
           script: |
             cd ${{ secrets.WORK_DIR_DEV }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }}
-            git pull
+            git fetch origin
+            git reset --hard origin/dev
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
