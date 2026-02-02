@@ -408,6 +408,9 @@ jobs:
             mkdir -p "$WORK_DIR"
             cd "$WORK_DIR"
 
+            # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
+            git config --global --add safe.directory "$WORK_DIR"
+
             # Clone repo if not present, else update
             if [ ! -d .git ]; then
               if [ -n "$TOKEN" ]; then
@@ -490,6 +493,9 @@ jobs:
 
             mkdir -p "$WORK_DIR"
             cd "$WORK_DIR"
+
+            # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
+            git config --global --add safe.directory "$WORK_DIR"
 
             # Clone repo if not present, else update
             if [ ! -d .git ]; then
