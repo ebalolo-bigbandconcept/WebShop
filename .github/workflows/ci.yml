@@ -12,9 +12,47 @@ env:
   COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
+  changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+      deploy: ${{ steps.filter.outputs.deploy }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+            infra:
+              - 'docker-compose*.yml'
+              - 'proxy/**'
+              - 'backend/Dockerfile*'
+              - 'frontend/Dockerfile*'
+              - '.github/workflows/ci.yml'
+            deploy:
+              - 'backend/**'
+              - 'frontend/**'
+              - 'docker-compose*.yml'
+              - 'proxy/**'
+              - 'backend/Dockerfile*'
+              - 'frontend/Dockerfile*'
+              - '.github/workflows/ci.yml'
+
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
     
     steps:
       - name: Checkout code
@@ -118,6 +156,8 @@ jobs:
   frontend-lint:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.infra == 'true'
     
     steps:
       - name: Checkout code
@@ -156,6 +196,8 @@ jobs:
   backend-lint:
     name: Backend Code Quality
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
     
     steps:
       - name: Checkout code
@@ -194,6 +236,8 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    needs: [changes]
+    if: needs.changes.outputs.deploy == 'true'
     
     steps:
       - name: Checkout code
@@ -217,7 +261,8 @@ jobs:
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-lint]
+    needs: [changes, backend-tests, frontend-lint]
+    if: needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped')
     
     steps:
       - name: Checkout code
@@ -294,7 +339,8 @@ jobs:
   integration-test:
     name: Full Integration Test
     runs-on: ubuntu-latest
-    needs: [docker-build]
+    needs: [changes, docker-build]
+    if: needs.changes.outputs.deploy == 'true' && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped')
     
     steps:
       - name: Checkout code
@@ -386,8 +432,8 @@ jobs:
   deploy-production:
     name: Production Server Deploy
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
-    if: github.ref == 'refs/heads/main' && success()
+    needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -410,6 +456,9 @@ jobs:
 
             # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
             git config --global --add safe.directory "$WORK_DIR"
+
+            # Ensure current user owns the repo directory
+            sudo chown -R "$(id -u):$(id -g)" "$WORK_DIR" || true
 
             # Clone repo if not present, else update
             if [ ! -d .git ]; then
@@ -472,8 +521,8 @@ jobs:
   deploy-staging:
     name: Dev Server Deploy
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
-    if: github.ref == 'refs/heads/dev' && success()
+    needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
+    if: github.ref == 'refs/heads/dev' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -496,6 +545,9 @@ jobs:
 
             # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
             git config --global --add safe.directory "$WORK_DIR"
+
+            # Ensure current user owns the repo directory
+            sudo chown -R "$(id -u):$(id -g)" "$WORK_DIR" || true
 
             # Clone repo if not present, else update
             if [ ! -d .git ]; then
