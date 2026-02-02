@@ -457,8 +457,13 @@ jobs:
             # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
             git config --global --add safe.directory "$WORK_DIR"
 
-            # Ensure current user owns the repo directory
-            sudo chown -R "$(id -u):$(id -g)" "$WORK_DIR" || true
+            # If the repo directory isn't writable, fall back to a user-writable path
+            if [ -d .git ] && [ ! -w .git ]; then
+              WORK_DIR="$HOME/webshop"
+              mkdir -p "$WORK_DIR"
+              cd "$WORK_DIR"
+              git config --global --add safe.directory "$WORK_DIR"
+            fi
 
             # Clone repo if not present, else update
             if [ ! -d .git ]; then
@@ -546,8 +551,13 @@ jobs:
             # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
             git config --global --add safe.directory "$WORK_DIR"
 
-            # Ensure current user owns the repo directory
-            sudo chown -R "$(id -u):$(id -g)" "$WORK_DIR" || true
+            # If the repo directory isn't writable, fall back to a user-writable path
+            if [ -d .git ] && [ ! -w .git ]; then
+              WORK_DIR="$HOME/webshop-dev"
+              mkdir -p "$WORK_DIR"
+              cd "$WORK_DIR"
+              git config --global --add safe.directory "$WORK_DIR"
+            fi
 
             # Clone repo if not present, else update
             if [ ! -d .git ]; then
