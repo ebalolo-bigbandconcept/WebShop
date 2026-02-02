@@ -19,6 +19,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       infra: ${{ steps.filter.outputs.infra }}
+      build: ${{ steps.filter.outputs.build }}
       deploy: ${{ steps.filter.outputs.deploy }}
     steps:
       - name: Checkout code
@@ -43,6 +44,13 @@ jobs:
               - 'backend/Dockerfile*'
               - 'frontend/Dockerfile*'
               - '.github/workflows/ci.yml'
+            build:
+              - 'backend/**'
+              - 'frontend/**'
+              - 'docker-compose*.yml'
+              - 'proxy/**'
+              - 'backend/Dockerfile*'
+              - 'frontend/Dockerfile*'
             deploy:
               - 'backend/**'
               - 'frontend/**'
@@ -266,7 +274,7 @@ jobs:
     name: Docker Build Test
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint]
-    if: ${{ always() && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') }}
+    if: ${{ always() && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') }}
     
     steps:
       - name: Checkout code
@@ -344,7 +352,7 @@ jobs:
     name: Full Integration Test
     runs-on: ubuntu-latest
     needs: [changes, docker-build]
-    if: ${{ always() && needs.changes.outputs.deploy == 'true' && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
+    if: ${{ always() && needs.changes.outputs.build == 'true' && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
     
     steps:
       - name: Checkout code
@@ -436,7 +444,7 @@ jobs:
     name: Production Server Deploy
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
-    if: ${{ always() && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped') }}
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -538,7 +546,7 @@ jobs:
     name: Dev Server Deploy
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
-    if: ${{ always() && github.ref == 'refs/heads/dev' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped') }}
+    if: ${{ always() && github.ref == 'refs/heads/dev' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -626,33 +634,15 @@ jobs:
             # Ensure prod-style secrets exist for docker-compose.prod.yml (do not overwrite if present)
             if [ ! -d .env_prod_secrets ]; then
               mkdir -p .env_prod_secrets
-              cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
-              ${{ secrets.SECRET_KEY_DEV }}
-              EOF
-              cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
-              ${{ secrets.ADMIN_MAIL_DEV }}
-              EOF
-              cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
-              ${{ secrets.ADMIN_PASSWORD_DEV }}
-              EOF
-              cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
-              ${{ secrets.DATABASE_URL_DEV }}
-              EOF
-              cat > .env_prod_secrets/DB_USER.txt <<'EOF'
-              ${{ secrets.DB_USER_DEV }}
-              EOF
-              cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
-              ${{ secrets.DB_PASSWORD_DEV }}
-              EOF
-              cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
-              ${{ secrets.DOCUSIGN_ACCOUNT_ID_DEV }}
-              EOF
-              cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
-              ${{ secrets.DOCUSIGN_USER_ID_DEV }}
-              EOF
-              cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
-              ${{ secrets.DOCUSIGN_INTEGRATION_KEY_DEV }}
-              EOF
+              printf '%s' "${{ secrets.SECRET_KEY_DEV }}" > .env_prod_secrets/SECRET_KEY.txt
+              printf '%s' "${{ secrets.ADMIN_MAIL_DEV }}" > .env_prod_secrets/ADMIN_MAIL.txt
+              printf '%s' "${{ secrets.ADMIN_PASSWORD_DEV }}" > .env_prod_secrets/ADMIN_PASSWORD.txt
+              printf '%s' "${{ secrets.DATABASE_URL_DEV }}" > .env_prod_secrets/DATABASE_URL.txt
+              printf '%s' "${{ secrets.DB_USER_DEV }}" > .env_prod_secrets/DB_USER.txt
+              printf '%s' "${{ secrets.DB_PASSWORD_DEV }}" > .env_prod_secrets/DB_PASSWORD.txt
+              printf '%s' "${{ secrets.DOCUSIGN_ACCOUNT_ID_DEV }}" > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt
+              printf '%s' "${{ secrets.DOCUSIGN_USER_ID_DEV }}" > .env_prod_secrets/DOCUSIGN_USER_ID.txt
+              printf '%s' "${{ secrets.DOCUSIGN_INTEGRATION_KEY_DEV }}" > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt
             fi
 
             # Build and restart services (dev compose)
