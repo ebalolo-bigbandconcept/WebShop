@@ -543,16 +543,64 @@ Durcir SSH sur le serveur :
 ```bash
 ssh root@your-vps
 
-nano /etc/ssh/sshd_config
+nano /etc/ssh/ssh_config
 
 # Ajouter/modifier :
-PermitRootLogin no
+PermitRootLogin prohibit-password
 PasswordAuthentication no
 PubkeyAuthentication yes
+```
 
-# Redémarrer SSH
-systemctl restart sshd
+### 8.1 Configurer une clé SSH pour l'accès root
+
+Si vous avez besoin d'accès SSH root pour certaines opérations, vous pouvez configurer une authentification par clé au lieu d'utiliser le mot de passe.
+
+#### Sur votre machine locale (générer la clé)
+
+```bash
+# Générer une nouvelle clé SSH pour l'accès root
+ssh-keygen -t ed25519 -C "root-access" -f ~/.ssh/webshop_root
+cat ~/.ssh/webshop_root.pub
+
+# Laissez la passphrase vide (ou définissez-en une pour plus de sécurité)
+# Passphrase vide : connexion sans prompt (recommandé pour les scripts)
+# Avec passphrase : connexion sécurisée mais nécessite d'entrer le mot de passe
+```
+
+#### Sur le VPS (ajouter la clé publique)
+
+```bash
+ssh root@your-vps
+
+# Créer le dossier .ssh s'il n'existe pas
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+# Ajouter votre clé publique à authorized_keys
+cat >> ~/.ssh/authorized_keys << 'EOF'
+ssh-ed25519 AAAA...your-public-key-here... root-access
+EOF
+
+# Définir les permissions correctes
+chmod 600 ~/.ssh/authorized_keys
+
+# Vérifier que la clé est bien ajoutée
+cat ~/.ssh/authorized_keys
+
 exit
+```
+
+#### Sauvegarde de la clé
+
+```bash
+# Sur votre machine locale, sauvegardez la clé privée dans un endroit sûr
+cat ~/.ssh/webshop_root
+```
+
+Redémarrez le service SSH pour appliquer les changements :
+
+```bash
+sudo systemctl restart ssh
 ```
 
 ### 9. Dépannage CI/CD
