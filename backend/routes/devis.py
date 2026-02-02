@@ -3,7 +3,9 @@ from models import db, Devis, DevisSchema, DevisArticles, Articles, TauxTVA, Par
 from utils import require_login
 from datetime import datetime
 from weasyprint import HTML
-from PyPDF2 import PdfMerger
+from PyPDF2 import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 import io
 import logging
 import os
@@ -768,6 +770,14 @@ def get_devis_pdf(devis_id):
     devis_display['remise'] = round(effective_remise, 2)
     devis_display['ttc_after_remise'] = round(ttc_after_remise_display, 2)
 
+    # Determine devis title based on scenario
+    if selected_scenario == "location_with_apport":
+        devis_title = "Devis de location avec apport"
+    elif selected_scenario == "location_without_apport":
+        devis_title = "Devis de location sans apport"
+    else:
+        devis_title = "Devis"
+    
     # Render HTML using Jinja2 template
     html_out = render_template(
         "pdf.html",
@@ -780,6 +790,7 @@ def get_devis_pdf(devis_id):
         payment_options=payment_options,
         remise=devis_display.get("remise", 0.0),
         ttc_after_remise=ttc_after_remise_display,
+        devis_title=devis_title,
     )
     
     # Calculate the absolute path to the folder containing your template and static files
@@ -793,16 +804,103 @@ def get_devis_pdf(devis_id):
         try:
             contract_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "pdf", "location_contract.pdf"))
             if os.path.isfile(contract_path):
-                merged = PdfMerger()
-                merged.append(io.BytesIO(pdf_bytes))
-                merged.append(contract_path)
+                # Read both PDFs
+                devis_pdf = PdfReader(io.BytesIO(pdf_bytes))
+                contract_pdf = PdfReader(contract_path)
+                
+                # Get the number of pages in both documents
+                devis_page_count = len(devis_pdf.pages)
+                contract_page_count = len(contract_pdf.pages)
+                total_page_count = devis_page_count + contract_page_count
+                
+                # Create a new PDF writer
+                writer = PdfWriter()
+                
+                # Add page numbers to devis pages
+                for i, page in enumerate(devis_pdf.pages):
+                    page_num = i + 1
+                    
+                    # Create a PDF with just the page number
+                    packet = io.BytesIO()
+                    can = canvas.Canvas(packet, pagesize=A4)
+
+                    can.setFont("Helvetica", 10)
+                    can.setFillColorRGB(0.333, 0.333, 0.333)  # #555 color
+                    can.drawRightString(A4[0] - 40, 32, f"Page {page_num} / {total_page_count}")
+                    
+                    can.save()
+                    packet.seek(0)
+                    
+                    # Merge the page number with the devis page
+                    page_num_pdf = PdfReader(packet)
+                    page.merge_page(page_num_pdf.pages[0])
+                    writer.add_page(page)
+                
+                # Add page numbers to contract pages
+                for i, page in enumerate(contract_pdf.pages):
+                    page_num = devis_page_count + i + 1
+                    
+                    # Create a PDF with just the page number
+                    packet = io.BytesIO()
+                    can = canvas.Canvas(packet, pagesize=A4)
+
+                    can.setFont("Helvetica", 10)
+                    can.setFillColorRGB(0.333, 0.333, 0.333)  # #555 color
+                    can.drawRightString(A4[0] - 40, 32, f"Page {page_num} / {total_page_count}")
+                    
+                    can.save()
+                    packet.seek(0)
+                    
+                    # Merge the page number with the contract page
+                    page_num_pdf = PdfReader(packet)
+                    page.merge_page(page_num_pdf.pages[0])
+                    writer.add_page(page)
+                
+                # Write to buffer
                 buffer = io.BytesIO()
-                merged.write(buffer)
+                writer.write(buffer)
                 pdf_bytes = buffer.getvalue()
+                
+                logging.info(f"Merged devis ({devis_page_count} pages) with location contract ({contract_page_count} pages) - total {total_page_count} pages with continuous numbering")
             else:
                 logging.warning(f"Location contract PDF not found at {contract_path}; returning devis PDF only.")
         except Exception as merge_err:
             logging.exception(f"Failed to append location contract PDF: {merge_err}")
+    else:
+        # For direct scenario, just update page numbers on devis
+        try:
+            devis_pdf = PdfReader(io.BytesIO(pdf_bytes))
+            devis_page_count = len(devis_pdf.pages)
+            
+            writer = PdfWriter()
+            
+            # Add page numbers to devis pages
+            for i, page in enumerate(devis_pdf.pages):
+                page_num = i + 1
+                
+                # Create a PDF with just the page number
+                packet = io.BytesIO()
+                can = canvas.Canvas(packet, pagesize=A4)
+
+                can.setFont("Helvetica", 10)
+                can.setFillColorRGB(0.333, 0.333, 0.333)  # #555 color
+                can.drawRightString(A4[0] - 40, 32, f"Page {page_num} / {devis_page_count}")
+                
+                can.save()
+                packet.seek(0)
+                
+                # Merge the page number with the devis page
+                page_num_pdf = PdfReader(packet)
+                page.merge_page(page_num_pdf.pages[0])
+                writer.add_page(page)
+            
+            # Write to buffer
+            buffer = io.BytesIO()
+            writer.write(buffer)
+            pdf_bytes = buffer.getvalue()
+        except Exception as e:
+            logging.exception(f"Failed to add page numbers to devis: {e}")
+            # Continue with original pdf_bytes if numbering fails
 
     # Return PDF as response
     response = make_response(pdf_bytes)

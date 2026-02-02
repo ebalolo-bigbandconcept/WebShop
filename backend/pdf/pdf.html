@@ -24,7 +24,14 @@
   .header img {
     height: 60px;
   }
-  .header .date {
+  .header-right {
+    text-align: right;
+  }
+  .header-right .devis-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  .header-right .date {
     font-size: 12px;
   }
 
@@ -221,7 +228,10 @@
 
 <header class="header">
   <img src="logo.jpg" alt="Artech Sécurité Logo" />
-  <div class="date">A Vitry-Le-François, Le {{ devis.date }}</div>
+  <div class="header-right">
+    <div class="devis-title">{{ devis_title }}</div>
+    <div class="date">A Vitry-Le-François, Le {{ devis.date }}</div>
+  </div>
 </header>
 
 <section class="info-row">
@@ -291,6 +301,8 @@
 
 {% set show_remise = (((not selected_scenario) and (not devis.is_location)) or selected_scenario == "direct") and remise and remise > 0 %}
 
+{% if selected_scenario == "direct" or (not selected_scenario and not devis.is_location) %}
+{# Direct payment devis - show totals table only #}
 <table class="totals">
   <tr>
     <td>Total Hors Taxes</td>
@@ -315,6 +327,37 @@
   </tr>
   {% endif %}
 </table>
+{% elif selected_scenario == "location_without_apport" %}
+{# Location without apport scenario #}
+<div class="totals" style="float: right; width: 35%; border: none;">
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr><th colspan="2" style="background-color: #4f688b; color: white; text-align: center; border: 1px solid #000; padding: 6px 8px;">Location sans apport<br>({{ location_time }} mois)</th></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Mensuel HT</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ht or 0) }} €</td></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;"><strong>Mensuel TTC</strong></td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;"><strong>{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ttc or 0) }} €</strong></td></tr>
+  </table>
+</div>
+{% elif selected_scenario == "location_with_apport" %}
+{# Location with apport scenario #}
+<div class="totals" style="float: right; width: 35%; border: none;">
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr><th colspan="2" style="background-color: #4f688b; color: white; text-align: center; border: 1px solid #000; padding: 6px 8px;">Location avec apport<br>({{ location_time }} mois)</th></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Apport</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(payment_options.location_with_apport.apport or 0) }} €</td></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Mensuel HT</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ht or 0) }} €</td></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;"><strong>Mensuel TTC</strong></td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;"><strong>{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ttc or 0) }} €</strong></td></tr>
+  </table>
+</div>
+{% elif devis.is_location %}
+{# Location devis without scenario #}
+<div class="totals" style="float: right; width: 35%; border: none;">
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr><th colspan="2" style="background-color: #4f688b; color: white; text-align: center; border: 1px solid #000; padding: 6px 8px;">Location</th></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Durée</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ location_time }} mois</td></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Apport</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(devis.first_contribution_amount or 0) }} €</td></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Mensuel</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(devis.location_monthly_total or 0) }} €</td></tr>
+    <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;"><strong>Total location</strong></td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;"><strong>{{ "{:.2f}".format(devis.location_total or 0) }} €</strong></td></tr>
+  </table>
+</div>
+{% endif %}
 
 {% if vat_tva_totals and 0.10 in vat_tva_totals %}
 <div class="vat-note">
@@ -324,57 +367,12 @@
 
 <div style="clear: both;"></div>
 
-{% if selected_scenario %}
-  {% if selected_scenario == "direct" %}
-    <table class="payment-options">
-      <tr><th colspan="2">Paiement direct</th></tr>
-      <tr>
-        <td><strong>Total TTC (après remise)</strong></td>
-        <td><strong>{{ "{:.2f}".format(payment_options.direct.total_ttc or 0) }} €</strong></td>
-      </tr>
-    </table>
-  {% elif selected_scenario == "location_without_apport" %}
-    <div class="location-box" style="margin-top: 16px;">
-      <table>
-        <tr><th colspan="2">Location sans apport<br>({{ location_time }} mois)</th></tr>
-        <tr><td>Mensuel HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ht or 0) }} €</td></tr>
-        <tr><td><strong>Mensuel TTC</strong></td><td class="right"><strong>{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ttc or 0) }} €</strong></td></tr>
-      </table>
-    </div>
-  {% elif selected_scenario == "location_with_apport" %}
-    <div class="location-box" style="margin-top: 16px;">
-      <table>
-        <tr><th colspan="2">Location avec apport<br>({{ location_time }} mois)</th></tr>
-        <tr><td>Apport</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.apport or 0) }} €</td></tr>
-        <tr><td>Mensuel HT</td><td class="right">{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ht or 0) }} €</td></tr>
-        <tr><td><strong>Mensuel TTC</strong></td><td class="right"><strong>{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ttc or 0) }} €</strong></td></tr>
-      </table>
-    </div>
-  {% endif %}
-{% elif devis.is_location %}
-  <div class="location-box">
-    <div class="location-row"><strong>Location</strong><span></span></div>
-    <div class="location-row"><span>Durée</span><span>{{ location_time }} mois</span></div>
-    <div class="location-row"><span>Apport</span><span>{{ "{:.2f}".format(devis.first_contribution_amount or 0) }} €</span></div>
-    <div class="location-row"><span>Mensuel</span><span>{{ "{:.2f}".format(devis.location_monthly_total or 0) }} €</span></div>
-    <div class="location-row"><span>Total location</span><span>{{ "{:.2f}".format(devis.location_total or 0) }} €</span></div>
-  </div>
-{% else %}
-  <table class="payment-options">
-    <tr><th colspan="2">Paiement direct</th></tr>
-    <tr>
-      <td>Total TTC</td>
-      <td>{{ "{:.2f}".format(devis.montant_TTC or 0) }} €</td>
-    </tr>
-  </table>
-{% endif %}
-
 <p>Conditions générales de ventes :</p>
 <p style="font-size: 11px; line-height: 1.4;">{{ general_conditions }}</p>
 
 <footer>
   <div class="footer-center">{{ company.name }} - {{ company.address_line1 }} {{ company.zip }} {{ company.city }}</div>
-  <div class="footer-right"><span class="page-number"></span></div>
+  <div class="footer-right"></div>
 </footer>
 
 </body>

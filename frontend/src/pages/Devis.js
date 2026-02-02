@@ -154,11 +154,23 @@ function Devis() {
   const applyVatToSelected = (taux) => {
     if (blockSignedEdit()) return;
     if (selectedArticleIds.length === 0) return;
-    // Update article VAT rates in local state (for UI display only)
+    // Update article VAT rates and recalculate amounts for immediate display
     const updated = articles_in_devis.map((article) => {
       if (!selectedArticleIds.includes(article.id)) return article;
       const taux_tva = { ...(article.taux_tva || {}), taux };
-      return { ...article, taux_tva };
+      const unit_price = parseFloat(article.prix_vente_HT) || 0;
+      const qty = parseFloat(article.quantite) || 0;
+      const vat = parseFloat(taux) || 0;
+      const montant_HT = (unit_price * qty).toFixed(2);
+      const montant_TVA = (unit_price * vat * qty).toFixed(2);
+      const montant_TTC = (unit_price * (1 + vat) * qty).toFixed(2);
+      return {
+        ...article,
+        taux_tva,
+        montant_HT,
+        montant_TVA,
+        montant_TTC,
+      };
     });
     setArticlesInDevis(updated);
     // Backend will recalculate amounts when devis is saved

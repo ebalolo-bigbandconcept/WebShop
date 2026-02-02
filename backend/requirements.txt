@@ -31,6 +31,7 @@ pydyf==0.11.0
 python-dotenv==1.1.1
 pyjwt==2.10.0
 redis==6.4.0
+reportlab==4.2.5
 requests
 SQLAlchemy==2.0.40
 typing_extensions==4.15.0
