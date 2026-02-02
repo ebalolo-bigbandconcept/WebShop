@@ -266,7 +266,7 @@ jobs:
     name: Docker Build Test
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint]
-    if: needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped')
+    if: ${{ always() && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') }}
     
     steps:
       - name: Checkout code
@@ -344,7 +344,7 @@ jobs:
     name: Full Integration Test
     runs-on: ubuntu-latest
     needs: [changes, docker-build]
-    if: needs.changes.outputs.deploy == 'true' && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped')
+    if: ${{ always() && needs.changes.outputs.deploy == 'true' && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
     
     steps:
       - name: Checkout code
@@ -437,7 +437,7 @@ jobs:
     name: Production Server Deploy
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
-    if: github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -539,7 +539,7 @@ jobs:
     name: Dev Server Deploy
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build, integration-test]
-    if: github.ref == 'refs/heads/dev' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
+    if: ${{ always() && github.ref == 'refs/heads/dev' && needs.changes.outputs.deploy == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
