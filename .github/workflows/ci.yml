@@ -449,98 +449,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy via SSH and Docker
+      - name: Deploy to production server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          # port: ${{ secrets.SSH_PORT }}  # Optional, defaults to 22
           script: |
-            set -e
-            WORK_DIR="${{ secrets.WORK_DIR }}"
-            REPO="${{ github.repository }}"
-            TOKEN="${{ secrets.DEPLOY_GIT_TOKEN }}"
-
-            mkdir -p "$WORK_DIR"
-            cd "$WORK_DIR"
-
-            # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
-            git config --global --add safe.directory "$WORK_DIR"
-
-            # If the workdir isn't writable, fall back to a user-writable path
-            if [ ! -w "$WORK_DIR" ]; then
-              WORK_DIR="$HOME/webshop"
-              mkdir -p "$WORK_DIR"
-              cd "$WORK_DIR"
-              git config --global --add safe.directory "$WORK_DIR"
-            fi
-
-            # If the repo directory isn't writable, fall back to a user-writable path
-            if [ -d .git ] && [ ! -w .git ]; then
-              WORK_DIR="$HOME/webshop"
-              mkdir -p "$WORK_DIR"
-              cd "$WORK_DIR"
-              git config --global --add safe.directory "$WORK_DIR"
-            fi
-
-            # Clone repo if not present, else update
-            if [ ! -d .git ]; then
-              if [ -n "$TOKEN" ]; then
-                git clone "https://x-access-token:$TOKEN@github.com/$REPO" .
-              else
-                git clone "https://github.com/$REPO" .
-              fi
-            fi
-
-            if [ -n "$TOKEN" ]; then
-              git remote set-url origin "https://x-access-token:$TOKEN@github.com/$REPO.git"
-            fi
-
-            git fetch --all
-            git checkout main || true
-            
-            # Backup prod secrets before reset
-            if [ -d .env_prod_secrets ]; then
-              cp -r .env_prod_secrets .env_prod_secrets.bak
-            fi
-            
-            git reset --hard origin/main
-            
-            # Restore prod secrets after reset
-            if [ -d .env_prod_secrets.bak ]; then
-              rm -rf .env_prod_secrets
-              mv .env_prod_secrets.bak .env_prod_secrets
-            fi
-
-            # Create .env file from secrets
-            cat > .env << 'ENVEOF'
-            SECRET_KEY="${{ secrets.SECRET_KEY }}"
-            ADMIN_MAIL="${{ secrets.ADMIN_MAIL }}"
-            ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}"
-            DATABASE_URL="${{ secrets.DATABASE_URL }}"
-            FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
-            BACKEND_URL="${{ secrets.BACKEND_URL }}"
-            DOCUSIGN_ACCOUNT_ID="${{ secrets.DOCUSIGN_ACCOUNT_ID }}"
-            DOCUSIGN_USER_ID="${{ secrets.DOCUSIGN_USER_ID }}"
-            DOCUSIGN_INTEGRATION_KEY="${{ secrets.DOCUSIGN_INTEGRATION_KEY }}"
-            DOCUSIGN_ENV="${{ secrets.DOCUSIGN_ENV }}"
-            REACT_APP_BACKEND_URL="/api"
-            FLASK_ENV="production"
-            ENVEOF
-
-            # Build and restart services
-            export DOCKER_CONFIG="$WORK_DIR/.docker"
-            mkdir -p "$DOCKER_CONFIG"
-            docker compose -f docker-compose.prod.yml build --pull
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans --timeout 30
-
-            # Apply DB migrations and init defaults
-            docker compose -f docker-compose.prod.yml exec -T backend flask db upgrade || true
-            docker compose -f docker-compose.prod.yml exec -T backend python init_db.py || true
-
-            docker compose -f docker-compose.prod.yml ps
+            cd ${{ secrets.WORK_DIR }}
+            git pull
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml exec backend flask db upgrade
 
   deploy-staging:
     name: Dev Server Deploy
@@ -557,103 +476,8 @@ jobs:
           host: ${{ secrets.SSH_HOST_DEV }}
           username: ${{ secrets.SSH_USER_DEV }}
           key: ${{ secrets.SSH_KEY_DEV }}
-          # port: ${{ secrets.SSH_PORT_DEV }}  # Optional, defaults to 22
           script: |
-            set -e
-            WORK_DIR="${{ secrets.WORK_DIR_DEV }}"
-            REPO="${{ github.repository }}"
-            TOKEN="${{ secrets.DEPLOY_GIT_TOKEN }}"
-
-            mkdir -p "$WORK_DIR"
-            cd "$WORK_DIR"
-
-            # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
-            git config --global --add safe.directory "$WORK_DIR"
-
-            # If the workdir isn't writable, fall back to a user-writable path
-            if [ ! -w "$WORK_DIR" ]; then
-              WORK_DIR="$HOME/webshop-dev"
-              mkdir -p "$WORK_DIR"
-              cd "$WORK_DIR"
-              git config --global --add safe.directory "$WORK_DIR"
-            fi
-
-            # If the repo directory isn't writable, fall back to a user-writable path
-            if [ -d .git ] && [ ! -w .git ]; then
-              WORK_DIR="$HOME/webshop-dev"
-              mkdir -p "$WORK_DIR"
-              cd "$WORK_DIR"
-              git config --global --add safe.directory "$WORK_DIR"
-            fi
-
-            # Clone repo if not present, else update
-            if [ ! -d .git ]; then
-              if [ -n "$TOKEN" ]; then
-                git clone "https://x-access-token:$TOKEN@github.com/$REPO" .
-              else
-                git clone "https://github.com/$REPO" .
-              fi
-            fi
-
-            if [ -n "$TOKEN" ]; then
-              git remote set-url origin "https://x-access-token:$TOKEN@github.com/$REPO.git"
-            fi
-
-            git fetch --all
-            git checkout dev || true
-            
-            # Backup prod secrets before reset
-            if [ -d .env_prod_secrets ]; then
-              cp -r .env_prod_secrets .env_prod_secrets.bak
-            fi
-            
-            git reset --hard origin/dev
-            
-            # Restore prod secrets after reset
-            if [ -d .env_prod_secrets.bak ]; then
-              rm -rf .env_prod_secrets
-              mv .env_prod_secrets.bak .env_prod_secrets
-            fi
-
-            # Create .env file from secrets
-            cat > .env << 'ENVEOF'
-            SECRET_KEY="${{ secrets.SECRET_KEY_DEV }}"
-            ADMIN_MAIL="${{ secrets.ADMIN_MAIL_DEV }}"
-            ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD_DEV }}"
-            DATABASE_URL="${{ secrets.DATABASE_URL_DEV }}"
-            FRONTEND_URL="${{ secrets.FRONTEND_URL_DEV }}"
-            BACKEND_URL="${{ secrets.BACKEND_URL_DEV }}"
-            DOCUSIGN_ACCOUNT_ID="${{ secrets.DOCUSIGN_ACCOUNT_ID_DEV }}"
-            DOCUSIGN_USER_ID="${{ secrets.DOCUSIGN_USER_ID_DEV }}"
-            DOCUSIGN_INTEGRATION_KEY="${{ secrets.DOCUSIGN_INTEGRATION_KEY_DEV }}"
-            DOCUSIGN_ENV="${{ secrets.DOCUSIGN_ENV_DEV }}"
-            REACT_APP_BACKEND_URL="/api"
-            FLASK_ENV="development"
-            ENVEOF
-
-            # Ensure prod-style secrets exist for docker-compose.prod.yml (do not overwrite if present)
-            if [ ! -d .env_prod_secrets ]; then
-              mkdir -p .env_prod_secrets
-              printf '%s' "${{ secrets.SECRET_KEY_DEV }}" > .env_prod_secrets/SECRET_KEY.txt
-              printf '%s' "${{ secrets.ADMIN_MAIL_DEV }}" > .env_prod_secrets/ADMIN_MAIL.txt
-              printf '%s' "${{ secrets.ADMIN_PASSWORD_DEV }}" > .env_prod_secrets/ADMIN_PASSWORD.txt
-              printf '%s' "${{ secrets.DATABASE_URL_DEV }}" > .env_prod_secrets/DATABASE_URL.txt
-              printf '%s' "${{ secrets.DB_USER_DEV }}" > .env_prod_secrets/DB_USER.txt
-              printf '%s' "${{ secrets.DB_PASSWORD_DEV }}" > .env_prod_secrets/DB_PASSWORD.txt
-              printf '%s' "${{ secrets.DOCUSIGN_ACCOUNT_ID_DEV }}" > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt
-              printf '%s' "${{ secrets.DOCUSIGN_USER_ID_DEV }}" > .env_prod_secrets/DOCUSIGN_USER_ID.txt
-              printf '%s' "${{ secrets.DOCUSIGN_INTEGRATION_KEY_DEV }}" > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt
-            fi
-
-            # Build and restart services (dev compose)
-            export DOCKER_CONFIG="$WORK_DIR/.docker"
-            mkdir -p "$DOCKER_CONFIG"
-            docker compose -f docker-compose.prod.yml build --pull
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans --timeout 30
-
-            # Apply DB migrations and init defaults (safe if already applied)
-            docker compose -f docker-compose.prod.yml exec -T backend flask db upgrade || true
-            docker compose -f docker-compose.prod.yml exec -T backend python init_db.py || true
-
-            docker compose -f docker-compose.prod.yml ps
+            cd ${{ secrets.WORK_DIR_DEV }}
+            git pull
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml exec backend flask db upgrade
