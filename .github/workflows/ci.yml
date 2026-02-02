@@ -42,6 +42,7 @@ jobs:
               - 'proxy/**'
               - 'backend/Dockerfile*'
               - 'frontend/Dockerfile*'
+              - '.github/workflows/ci.yml'
             deploy:
               - 'backend/**'
               - 'frontend/**'
@@ -49,6 +50,7 @@ jobs:
               - 'proxy/**'
               - 'backend/Dockerfile*'
               - 'frontend/Dockerfile*'
+              - '.github/workflows/ci.yml'
 
   backend-tests:
     name: Backend Tests
@@ -459,6 +461,14 @@ jobs:
             # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
             git config --global --add safe.directory "$WORK_DIR"
 
+            # If the workdir isn't writable, fall back to a user-writable path
+            if [ ! -w "$WORK_DIR" ]; then
+              WORK_DIR="$HOME/webshop"
+              mkdir -p "$WORK_DIR"
+              cd "$WORK_DIR"
+              git config --global --add safe.directory "$WORK_DIR"
+            fi
+
             # If the repo directory isn't writable, fall back to a user-writable path
             if [ -d .git ] && [ ! -w .git ]; then
               WORK_DIR="$HOME/webshop"
@@ -552,6 +562,14 @@ jobs:
 
             # Allow git operations in this directory (avoids "dubious ownership" in CI deploy)
             git config --global --add safe.directory "$WORK_DIR"
+
+            # If the workdir isn't writable, fall back to a user-writable path
+            if [ ! -w "$WORK_DIR" ]; then
+              WORK_DIR="$HOME/webshop-dev"
+              mkdir -p "$WORK_DIR"
+              cd "$WORK_DIR"
+              git config --global --add safe.directory "$WORK_DIR"
+            fi
 
             # If the repo directory isn't writable, fall back to a user-writable path
             if [ -d .git ] && [ ! -w .git ]; then
