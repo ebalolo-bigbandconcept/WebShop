@@ -1,10 +1,12 @@
-from flask_sqlalchemy import SQLAlchemy
-from flask_marshmallow import Marshmallow
 from datetime import datetime, timezone
+
+from flask_marshmallow import Marshmallow
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
 
 db = SQLAlchemy()
 ma = Marshmallow()
+
 
 class User(db.Model):
     __tablename__ = "users"
@@ -23,8 +25,10 @@ class User(db.Model):
             # Fallback: store as-is (tests do not verify login with this user)
             self.mdp = plain_password
 
+
 # Backward-compatible alias expected by some tests
 Users = User
+
 
 class Clients(db.Model):
     __tablename__ = "clients"
@@ -38,10 +42,13 @@ class Clients(db.Model):
     email = db.Column(db.String(345), nullable=False, index=True)
     caduque = db.Column(db.Boolean, nullable=False, default=False)
 
+
 class Devis(db.Model):
     __tablename__ = "devis"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
-    client_id = db.Column(db.Integer(), db.ForeignKey('clients.id'), nullable=False, index=True)
+    client_id = db.Column(
+        db.Integer(), db.ForeignKey("clients.id"), nullable=False, index=True
+    )
     titre = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     date = db.Column(db.Date(), nullable=False)
@@ -51,9 +58,11 @@ class Devis(db.Model):
     remise = db.Column(db.Float(), nullable=True, default=0.0)
     statut = db.Column(db.String(50), nullable=False)
     date_paiement = db.Column(db.Date(), nullable=True)
-    
+
     is_location = db.Column(db.Boolean, nullable=False, default=False)
-    selected_scenario = db.Column(db.String(50), nullable=True)  # "direct", "location_without_apport", "location_with_apport"
+    selected_scenario = db.Column(
+        db.String(50), nullable=True
+    )  # "direct", "location_without_apport", "location_with_apport"
     first_contribution_amount = db.Column(db.Float(), nullable=True)
     location_monthly_total = db.Column(db.Float(), nullable=True)
     location_monthly_total_ht = db.Column(db.Float(), nullable=True)
@@ -61,9 +70,10 @@ class Devis(db.Model):
     location_total_ht = db.Column(db.Float(), nullable=True)
     signed_at = db.Column(db.DateTime(), nullable=True)
     signed_data = db.Column(db.JSON(), nullable=True)
-    
-    client = db.relationship('Clients', backref='devis', lazy=True)
-    articles = db.relationship('DevisArticles', backref='devis', lazy=True)
+
+    client = db.relationship("Clients", backref="devis", lazy=True)
+    articles = db.relationship("DevisArticles", backref="devis", lazy=True)
+
 
 class Articles(db.Model):
     __tablename__ = "articles"
@@ -72,17 +82,20 @@ class Articles(db.Model):
     reference = db.Column(db.Text, nullable=False)
     prix_achat_HT = db.Column(db.Float(), nullable=False)
     prix_vente_HT = db.Column(db.Float(), nullable=False)
-    taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=False)
-    
-    taux_tva = db.relationship('TauxTVA', backref='articles', lazy=True)
+    taux_tva_id = db.Column(db.Integer(), db.ForeignKey("taux_tva.id"), nullable=False)
+
+    taux_tva = db.relationship("TauxTVA", backref="articles", lazy=True)
+
 
 class DevisArticles(db.Model):
     __tablename__ = "devis_articles"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
-    devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=False, index=True)
-    article_id = db.Column(db.Integer(), db.ForeignKey('articles.id'), nullable=False)
+    devis_id = db.Column(
+        db.Integer(), db.ForeignKey("devis.id"), nullable=False, index=True
+    )
+    article_id = db.Column(db.Integer(), db.ForeignKey("articles.id"), nullable=False)
     quantite = db.Column(db.Integer(), nullable=False)
-    taux_tva_id = db.Column(db.Integer(), db.ForeignKey('taux_tva.id'), nullable=True)
+    taux_tva_id = db.Column(db.Integer(), db.ForeignKey("taux_tva.id"), nullable=True)
     commentaire = db.Column(db.Text, nullable=True)
     montant_HT = db.Column(db.Float(), nullable=True)
     montant_TVA = db.Column(db.Float(), nullable=True)
@@ -92,9 +105,10 @@ class DevisArticles(db.Model):
     montant_ht_snapshot = db.Column(db.Float(), nullable=True)
     montant_tva_snapshot = db.Column(db.Float(), nullable=True)
     montant_ttc_snapshot = db.Column(db.Float(), nullable=True)
-    
-    article = db.relationship('Articles', backref='devis_articles', lazy=True)
-    taux_tva = db.relationship('TauxTVA', lazy=True)
+
+    article = db.relationship("Articles", backref="devis_articles", lazy=True)
+    taux_tva = db.relationship("TauxTVA", lazy=True)
+
 
 class TauxTVA(db.Model):
     __tablename__ = "taux_tva"
@@ -126,28 +140,30 @@ class Parameters(db.Model):
 
 class EnvelopeTracking(db.Model):
     """Model to track DocuSign envelopes and their callback information"""
-    __tablename__ = 'envelope_tracking'
-    
+
+    __tablename__ = "envelope_tracking"
+
     id = db.Column(db.Integer, primary_key=True)
     envelope_id = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    devis_id = db.Column(db.Integer(), db.ForeignKey('devis.id'), nullable=True)
+    devis_id = db.Column(db.Integer(), db.ForeignKey("devis.id"), nullable=True)
     requester_host = db.Column(db.String(255), nullable=True)
-    status = db.Column(db.String(50), default='sent')
+    status = db.Column(db.String(50), default="sent")
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     signed_at = db.Column(db.DateTime, nullable=True)
-    
+
     def __repr__(self):
-        return f'<EnvelopeTracking {self.envelope_id}>'
-    
+        return f"<EnvelopeTracking {self.envelope_id}>"
+
     def to_dict(self):
         return {
-            'id': self.id,
-            'envelope_id': self.envelope_id,
-            'requester_host': self.requester_host,
-            'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'signed_at': self.signed_at.isoformat() if self.signed_at else None,
+            "id": self.id,
+            "envelope_id": self.envelope_id,
+            "requester_host": self.requester_host,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "signed_at": self.signed_at.isoformat() if self.signed_at else None,
         }
+
 
 # Marshmallow Schema to structure the JSON response
 class UserSchema(ma.SQLAlchemyAutoSchema):
@@ -155,35 +171,40 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
         model = User
         load_instance = True
 
+
 class ClientsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Clients
         load_instance = True
+
 
 class TauxTVASchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = TauxTVA
         load_instance = True
 
+
 class ArticlesSchema(ma.SQLAlchemyAutoSchema):
-    taux_tva = ma.Nested('TauxTVASchema')
-    
+    taux_tva = ma.Nested("TauxTVASchema")
+
     class Meta:
         model = Articles
         load_instance = True
 
+
 class DevisArticlesSchema(ma.SQLAlchemyAutoSchema):
-    article = ma.Nested('ArticlesSchema')
-    taux_tva = ma.Nested('TauxTVASchema')
-    
+    article = ma.Nested("ArticlesSchema")
+    taux_tva = ma.Nested("TauxTVASchema")
+
     class Meta:
         model = DevisArticles
         load_instance = True
 
+
 class DevisSchema(ma.SQLAlchemyAutoSchema):
-    client = ma.Nested('ClientsSchema')
-    articles = ma.Nested('DevisArticlesSchema', many=True)
-    
+    client = ma.Nested("ClientsSchema")
+    articles = ma.Nested("DevisArticlesSchema", many=True)
+
     class Meta:
         model = Devis
         load_instance = True

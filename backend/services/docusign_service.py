@@ -3,25 +3,32 @@ DocuSign eSign API Service Module
 Handles PDF signing via DocuSign with JWT authentication
 """
 
-from flask import request, jsonify
-from docusign_esign import ApiClient, ApiException, EnvelopesApi, EventNotification
-from docusign_esign.models import Document, EnvelopeDefinition, Signer, SignHere, Tabs, Recipients, EnvelopeEvent
 import base64
-import time
+import json
 import logging
 import os
-import json
+import time
 from datetime import datetime, timezone
-from models import db, EnvelopeTracking, Devis, DevisArticles, Parameters, TauxTVA
+
+from docusign_esign import ApiClient, ApiException, EnvelopesApi, EventNotification
+from docusign_esign.models import (
+    Document,
+    EnvelopeDefinition,
+    EnvelopeEvent,
+    Recipients,
+    Signer,
+    SignHere,
+    Tabs,
+)
+from flask import jsonify, request
+
+from models import Devis, DevisArticles, EnvelopeTracking, Parameters, TauxTVA, db
 
 logger = logging.getLogger(__name__)
 
 # Token caching
 _CACHED_PRIVATE_KEY = None
-DOCUSIGN_TOKEN_CACHE = {
-    "access_token": None,
-    "expires_at": 0
-}
+DOCUSIGN_TOKEN_CACHE = {"access_token": None, "expires_at": 0}
 
 
 def load_private_key():
@@ -35,12 +42,14 @@ def load_private_key():
         raise ValueError("DOCUSIGN_PRIVATE_KEY_PATH environment variable is not set")
 
     if not os.path.isfile(private_key_path):
-        raise FileNotFoundError(f"Private key file not found at path: {private_key_path}")
+        raise FileNotFoundError(
+            f"Private key file not found at path: {private_key_path}"
+        )
 
     # Read as bytes and decode to text (PEM keys are textual). Cache as string.
     with open(private_key_path, "rb") as f:
         _CACHED_PRIVATE_KEY = f.read().decode("utf-8")
-    
+
     logger.info("Loaded DocuSign private key")
     return _CACHED_PRIVATE_KEY
 
@@ -48,22 +57,27 @@ def load_private_key():
 def get_docusign_token(integrator_key, user_id):
     """
     Get DocuSign JWT access token with caching.
-    
+
     Args:
         integrator_key: DocuSign Integration Key (Client ID)
         user_id: DocuSign User ID
-        
+
     Returns:
         access_token: JWT token for API calls
     """
     # If cached token is still valid then reuse it
-    if DOCUSIGN_TOKEN_CACHE["access_token"] and DOCUSIGN_TOKEN_CACHE["expires_at"] > time.time():
+    if (
+        DOCUSIGN_TOKEN_CACHE["access_token"]
+        and DOCUSIGN_TOKEN_CACHE["expires_at"] > time.time()
+    ):
         logger.info("Using cached DocuSign JWT token")
         return DOCUSIGN_TOKEN_CACHE["access_token"]
 
     private_key = load_private_key()
     docusign_env = os.getenv("DOCUSIGN_ENV", "demo")
-    auth_server = "account-d.docusign.com" if docusign_env == "demo" else "account.docusign.com"
+    auth_server = (
+        "account-d.docusign.com" if docusign_env == "demo" else "account.docusign.com"
+    )
 
     logger.info("Requesting new DocuSign JWT token")
 
@@ -77,7 +91,7 @@ def get_docusign_token(integrator_key, user_id):
             oauth_host_name=auth_server,
             private_key_bytes=private_key.encode("utf-8"),
             expires_in=3600,
-            scopes=["signature", "impersonation"]
+            scopes=["signature", "impersonation"],
         )
 
         access_token = token_response.access_token
@@ -97,11 +111,11 @@ def get_docusign_token(integrator_key, user_id):
 def prepare_document(pdf_bytes, filename="Document à signer"):
     """
     Prepare a PDF document for DocuSign signing.
-    
+
     Args:
         pdf_bytes: PDF file bytes
         filename: Name of the document
-        
+
     Returns:
         Document: DocuSign Document object
     """
@@ -109,10 +123,7 @@ def prepare_document(pdf_bytes, filename="Document à signer"):
     pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
 
     document = Document(
-        document_base64=pdf_base64,
-        name=filename,
-        file_extension="pdf",
-        document_id="1"
+        document_base64=pdf_base64, name=filename, file_extension="pdf", document_id="1"
     )
 
     logger.info("Prepared document for DocuSign")
@@ -122,11 +133,11 @@ def prepare_document(pdf_bytes, filename="Document à signer"):
 def get_sign_here_tab(anchor_x_offset="100", anchor_y_offset="100"):
     """
     Create a SignHere tab for document signing.
-    
+
     Args:
         anchor_x_offset: X pixel offset for signature placement
         anchor_y_offset: Y pixel offset for signature placement
-        
+
     Returns:
         SignHere: DocuSign SignHere tab object
     """
@@ -134,9 +145,9 @@ def get_sign_here_tab(anchor_x_offset="100", anchor_y_offset="100"):
         anchor_string="SIGN_HERE",
         anchor_units="pixels",
         anchor_x_offset=anchor_x_offset,
-        anchor_y_offset=anchor_y_offset
+        anchor_y_offset=anchor_y_offset,
     )
-    
+
     logger.info("Prepared sign here tab for DocuSign")
     return sign_here
 
@@ -144,28 +155,28 @@ def get_sign_here_tab(anchor_x_offset="100", anchor_y_offset="100"):
 def get_signers(signers_data, sign_here):
     """
     Create signer objects from provided data.
-    
+
     Args:
         signers_data: JSON string or list of signer info with 'email' and 'name'
         sign_here: SignHere tab to apply to all signers
-        
+
     Returns:
         signers: List of DocuSign Signer objects
     """
     # Format signers into json
     try:
         if isinstance(signers_data, str):
-            if not signers_data.strip().startswith('['):
-                signers_data = f'[{signers_data}]'
+            if not signers_data.strip().startswith("["):
+                signers_data = f"[{signers_data}]"
             signers_data = json.loads(signers_data)
-        
+
         if not isinstance(signers_data, list):
             signers_data = [signers_data]
 
     except json.JSONDecodeError as e:
         logger.error(f"Failed to decode signers JSON string: {signers_data}")
         raise ValueError("Invalid signers format. Must be valid JSON string.")
-    
+
     # Create every signer
     signers = []
     for i, signer_info in enumerate(signers_data):
@@ -183,14 +194,12 @@ def get_signers(signers_data, sign_here):
             recipient_id=recipient_id,
             routing_order=1,
         )
-        
-        signer.tabs = Tabs(
-            sign_here_tabs=[sign_here]
-        )
-        
+
+        signer.tabs = Tabs(sign_here_tabs=[sign_here])
+
         signers.append(signer)
         logger.info(f"Added signer {i}: {name} <{email}>")
-    
+
     logger.info(f"Total signers added: {len(signers)}")
     return signers
 
@@ -198,12 +207,12 @@ def get_signers(signers_data, sign_here):
 def get_envelope_definition(document, recipients, webhook_url):
     """
     Create envelope definition with webhook notification.
-    
+
     Args:
         document: DocuSign Document object
         recipients: DocuSign Recipients object with signers
         webhook_url: URL for webhook notifications
-        
+
     Returns:
         EnvelopeDefinition: Configured envelope definition
     """
@@ -224,27 +233,35 @@ def get_envelope_definition(document, recipients, webhook_url):
         envelope_events=[
             EnvelopeEvent(envelope_event_status_code="completed"),
             EnvelopeEvent(envelope_event_status_code="declined"),
-            EnvelopeEvent(envelope_event_status_code="voided")
-        ]
+            EnvelopeEvent(envelope_event_status_code="voided"),
+        ],
     )
-    
+
     envelope_definition = EnvelopeDefinition(
         email_subject="Veuillez signer le document",
         documents=[document],
         recipients=recipients,
         status="sent",
-        event_notification=event_notification
+        event_notification=event_notification,
     )
-    
+
     logger.info("Prepared envelope definition for DocuSign")
     return envelope_definition
 
 
-def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_id, user_id, 
-                             requester_host=None, filename="Document à signer", devis_id=None):
+def send_envelope_for_signing(
+    pdf_bytes,
+    signers_data,
+    integrator_key,
+    account_id,
+    user_id,
+    requester_host=None,
+    filename="Document à signer",
+    devis_id=None,
+):
     """
     Send a PDF for signing via DocuSign.
-    
+
     Args:
         pdf_bytes: PDF file bytes
         signers_data: JSON string or list of signer info
@@ -254,7 +271,7 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         requester_host: Origin of the request (for audit)
         filename: Name of the document
         devis_id: ID of the devis being signed (for auto-update)
-        
+
     Returns:
         dict: Response containing envelope_id, webhook_url, tracking_id
     """
@@ -264,11 +281,11 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         sign_here = get_sign_here_tab()
         signers = get_signers(signers_data, sign_here)
         recipients = Recipients(signers=signers)
-        
+
         # Get the webhook URL for DocuSign to call our API
         backend_url = os.getenv("BACKEND_URL", "http://localhost:5000")
         webhook_url = f"{backend_url}/api/docusign/webhook"
-        
+
         envelope_definition = get_envelope_definition(document, recipients, webhook_url)
 
         # Get DocuSign token
@@ -276,7 +293,11 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
 
         # Determine API endpoint
         docusign_env = os.getenv("DOCUSIGN_ENV", "demo")
-        base_path = "https://demo.docusign.net/restapi" if docusign_env == "demo" else "https://www.docusign.net/restapi"
+        base_path = (
+            "https://demo.docusign.net/restapi"
+            if docusign_env == "demo"
+            else "https://www.docusign.net/restapi"
+        )
 
         logger.info("Sending envelope to DocuSign...")
 
@@ -286,7 +307,9 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         api_client.set_default_header("Authorization", f"Bearer {access_token}")
 
         envelope_api = EnvelopesApi(api_client)
-        results = envelope_api.create_envelope(account_id, envelope_definition=envelope_definition)
+        results = envelope_api.create_envelope(
+            account_id, envelope_definition=envelope_definition
+        )
 
         logger.info(f"Envelope sent with ID: {results.envelope_id}")
 
@@ -297,11 +320,13 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
                 envelope_id=results.envelope_id,
                 devis_id=devis_id,
                 requester_host=requester_host,
-                status='sent'
+                status="sent",
             )
             db.session.add(tracking)
             db.session.commit()
-            logger.info(f"Stored tracking info for envelope {results.envelope_id} (devis_id={devis_id})")
+            logger.info(
+                f"Stored tracking info for envelope {results.envelope_id} (devis_id={devis_id})"
+            )
         except Exception as db_error:
             logger.error(f"Failed to store tracking info: {db_error}")
             db.session.rollback()
@@ -309,7 +334,7 @@ def send_envelope_for_signing(pdf_bytes, signers_data, integrator_key, account_i
         return {
             "envelope_id": results.envelope_id,
             "webhook_url": webhook_url,
-            "tracking_id": tracking.id if tracking else None
+            "tracking_id": tracking.id if tracking else None,
         }
 
     except ValueError as e:
@@ -324,60 +349,62 @@ def create_devis_signed_snapshot(devis):
     """
     Create a signed_data snapshot for a devis, capturing its current state.
     Similar logic to the update_devis endpoint.
-    
+
     Args:
         devis: Devis model instance
-        
+
     Returns:
         dict: Snapshot data to store in signed_data field
     """
     try:
         params = Parameters.query.first()
         remise_value = float(devis.remise or 0.0)
-        
+
         snapshot_lines = []
         total_ht = 0.0
         total_tva = 0.0
         total_ttc = 0.0
-        
+
         # Recalculate based on current articles
         for article in devis.articles:
             article_obj = article.article if article.article else None
-            
+
             # Get unit price
             unit_price = 0.0
             if article_obj:
                 unit_price = float(article_obj.prix_vente_HT or 0.0)
-            
+
             # Get VAT rate
             taux_val = 0.0
             if article.taux_tva:
                 taux_val = float(article.taux_tva.taux)
             elif article_obj and article_obj.taux_tva:
                 taux_val = float(article_obj.taux_tva.taux)
-            
+
             qty = float(article.quantite)
             line_ht = unit_price * qty
             line_tva = line_ht * (taux_val or 0.0)
             line_ttc = line_ht + line_tva
-            
+
             total_ht += line_ht
             total_tva += line_tva
             total_ttc += line_ttc
-            
-            snapshot_lines.append({
-                "article_id": article_obj.id if article_obj else article.article_id,
-                "nom": getattr(article_obj, "nom", ""),
-                "reference": getattr(article_obj, "reference", ""),
-                "quantite": qty,
-                "taux_tva": taux_val,
-                "prix_unitaire_ht": unit_price,
-                "montant_ht": line_ht,
-                "montant_tva": line_tva,
-                "montant_ttc": line_ttc,
-                "commentaire": article.commentaire or "",
-            })
-        
+
+            snapshot_lines.append(
+                {
+                    "article_id": article_obj.id if article_obj else article.article_id,
+                    "nom": getattr(article_obj, "nom", ""),
+                    "reference": getattr(article_obj, "reference", ""),
+                    "quantite": qty,
+                    "taux_tva": taux_val,
+                    "prix_unitaire_ht": unit_price,
+                    "montant_ht": line_ht,
+                    "montant_tva": line_tva,
+                    "montant_ttc": line_ttc,
+                    "commentaire": article.commentaire or "",
+                }
+            )
+
         return {
             "lines": snapshot_lines,
             "totals": {
@@ -390,10 +417,16 @@ def create_devis_signed_snapshot(devis):
             "params": {
                 "margin_rate": params.margin_rate if params else 0.0,
                 "margin_rate_location": params.margin_rate_location if params else 0.0,
-                "location_subscription_cost": params.location_subscription_cost if params else 0.0,
-                "location_interests_cost": params.location_interests_cost if params else 0.0,
+                "location_subscription_cost": (
+                    params.location_subscription_cost if params else 0.0
+                ),
+                "location_interests_cost": (
+                    params.location_interests_cost if params else 0.0
+                ),
                 "location_time": params.location_time if params else 0,
-                "general_conditions_sales": params.general_conditions_sales if params else "",
+                "general_conditions_sales": (
+                    params.general_conditions_sales if params else ""
+                ),
             },
             "company": {
                 "name": params.company_name if params else "",
@@ -425,58 +458,64 @@ def create_devis_signed_snapshot(devis):
 def handle_webhook(data):
     """
     Handle DocuSign webhook event.
-    
+
     Args:
         data: dict with envelope_id and status
-        
+
     Returns:
         tuple: (dict response, status_code)
     """
     try:
         envelope_id = data.get("envelope_id") or data.get("envelopeId")
         status = data.get("status", "").lower()
-        
+
         logger.info(f"Webhook received for envelope {envelope_id} with status {status}")
-        
+
         # Find the tracking record
         tracking = EnvelopeTracking.query.filter_by(envelope_id=envelope_id).first()
-        
+
         if not tracking:
             logger.warning(f"No tracking record found for envelope {envelope_id}")
             return {"status": "ignored", "reason": "envelope not tracked"}, 200
-        
+
         # Update tracking status
         tracking.status = status
-        
+
         # If envelope is completed (signed), record the timestamp and update devis
-        if status == 'completed':
+        if status == "completed":
             tracking.signed_at = datetime.now(timezone.utc)
             logger.info(f"Envelope {envelope_id} completed at {tracking.signed_at}")
-            
+
             # Auto-update the devis if devis_id is present
             if tracking.devis_id:
                 try:
                     devis = Devis.query.filter_by(id=tracking.devis_id).first()
                     if devis:
-                        logger.info(f"Auto-updating devis {tracking.devis_id} to signed status")
-                        
+                        logger.info(
+                            f"Auto-updating devis {tracking.devis_id} to signed status"
+                        )
+
                         # Only update if not already signed (idempotency)
                         if devis.statut != "Signé":
                             # Create signed snapshot
                             devis.signed_data = create_devis_signed_snapshot(devis)
                             devis.signed_at = datetime.now(timezone.utc)
                             devis.statut = "Signé"
-                            
+
                             db.session.commit()
-                            logger.info(f"Devis {tracking.devis_id} auto-signed via DocuSign webhook")
+                            logger.info(
+                                f"Devis {tracking.devis_id} auto-signed via DocuSign webhook"
+                            )
                         else:
-                            logger.warning(f"Devis {tracking.devis_id} was already signed, skipping")
+                            logger.warning(
+                                f"Devis {tracking.devis_id} was already signed, skipping"
+                            )
                     else:
                         logger.error(f"Devis {tracking.devis_id} not found")
                 except Exception as e:
                     logger.error(f"Error updating devis {tracking.devis_id}: {e}")
                     db.session.rollback()
-            
+
             # Commit tracking update if not already committed
             try:
                 db.session.commit()
@@ -484,10 +523,9 @@ def handle_webhook(data):
                 pass
         else:
             db.session.commit()
-        
+
         return {"status": "processed", "envelope_id": envelope_id}, 200
-        
+
     except Exception as e:
         logger.error(f"Webhook processing error: {e}")
         return {"error": str(e)}, 500
-

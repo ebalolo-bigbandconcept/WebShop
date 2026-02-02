@@ -3,6 +3,7 @@
 Database initialization script.
 Run this after migrations to populate default data.
 """
+
 from app import app, init_default_data
 
 if __name__ == "__main__":

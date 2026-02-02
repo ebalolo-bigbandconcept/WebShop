@@ -120,6 +120,44 @@ sudo docker compose exec backend flask db upgrade
 - **Frontend** : [http://localhost:3000](http://localhost:3000)
 - **Backend API** : [http://localhost:5000](http://localhost:5000)
 
+### 6. Formatage du code Python
+
+Cette application utilise **Black** et **isort** pour assurer un formatage cohérent du code Python. Ces outils sont également utilisés dans le CI/CD pour vérifier le formatage.
+
+#### Installer les outils de formatage dans le conteneur
+
+```bash
+# Installer black et isort dans le conteneur backend
+sudo docker compose exec backend pip install black isort
+```
+
+#### Formater le code
+
+```bash
+# Formater tous les fichiers Python avec black
+sudo docker compose exec backend black .
+
+# Organiser les imports avec isort
+sudo docker compose exec backend isort .
+```
+
+#### Vérifier le formatage (sans modifier les fichiers)
+
+```bash
+# Vérifier avec black (comme dans le CI)
+sudo docker compose exec backend black --check .
+
+# Vérifier avec isort (comme dans le CI)
+sudo docker compose exec backend isort --check-only .
+```
+
+> **Note** : Le CI/CD échouera si le code n'est pas correctement formaté. Exécutez toujours `black .` et `isort .` avant de pousser vos commits.
+
+#### Configuration
+
+- **Black** : Utilise les paramètres par défaut (ligne de 88 caractères)
+- **isort** : Compatible avec Black (profil automatique)
+
 ---
 
 ## Gestion des migrations de base de données

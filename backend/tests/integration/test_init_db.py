@@ -2,11 +2,14 @@
 Tests for init_db.py - Database initialization module.
 Covers default data population for users, TVA rates, and parameters.
 """
-import pytest
+
 import sys
-from unittest.mock import patch, MagicMock
-from models import db, User, TauxTVA, Parameters
-from app import init_default_data, ADMIN_MAIL
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from app import ADMIN_MAIL, init_default_data
+from models import Parameters, TauxTVA, User, db
 
 
 class TestInitDBModule:
@@ -16,11 +19,13 @@ class TestInitDBModule:
         """Test that init_db module can be imported"""
         # Module should be importable
         import init_db
-        assert hasattr(init_db, '__name__')
+
+        assert hasattr(init_db, "__name__")
 
     def test_init_db_has_main_block(self):
         """Test that init_db has main execution block"""
         import init_db
+
         # The module should execute when run as main
         assert init_db is not None
 
@@ -43,9 +48,9 @@ class TestInitDefaultData:
             # Verify admin user was created
             admin_user = User.query.filter_by(email=ADMIN_MAIL).first()
             assert admin_user is not None
-            assert admin_user.nom == 'Admin'
-            assert admin_user.prenom == 'Admin'
-            assert admin_user.role == 'Administrateur'
+            assert admin_user.nom == "Admin"
+            assert admin_user.prenom == "Admin"
+            assert admin_user.role == "Administrateur"
 
     def test_init_default_data_does_not_duplicate_admin(self, app):
         """Test that init_default_data doesn't duplicate admin user"""
@@ -177,9 +182,9 @@ class TestInitDefaultData:
             admin_user = User.query.filter_by(email=ADMIN_MAIL).first()
             assert admin_user is not None
             # Hashed password should not equal plaintext
-            assert admin_user.mdp != 'TestPassword123!'
+            assert admin_user.mdp != "TestPassword123!"
             # Should start with bcrypt hash format
-            assert admin_user.mdp.startswith('$2')
+            assert admin_user.mdp.startswith("$2")
 
     def test_init_default_data_creates_all_tva_rates(self, app):
         """Test that all required TVA rates are created"""
@@ -198,10 +203,12 @@ class TestInitDefaultData:
             assert 0.20 in rates  # 20% VAT
             assert 0.10 in rates  # 10% VAT
 
-    @patch('app.User.query')
-    @patch('app.TauxTVA.query')
-    @patch('app.Parameters.query')
-    def test_init_default_data_handles_exception(self, mock_params_query, mock_tva_query, mock_user_query, app):
+    @patch("app.User.query")
+    @patch("app.TauxTVA.query")
+    @patch("app.Parameters.query")
+    def test_init_default_data_handles_exception(
+        self, mock_params_query, mock_tva_query, mock_user_query, app
+    ):
         """Test that init_default_data handles exceptions gracefully"""
         # Mock a query error
         mock_user_query.filter_by.side_effect = Exception("Database error")
@@ -253,23 +260,21 @@ class TestInitDBIntegration:
             # Initialize
             init_default_data()
             counts_first = {
-                'users': User.query.count(),
-                'tva': TauxTVA.query.count(),
-                'params': Parameters.query.count()
+                "users": User.query.count(),
+                "tva": TauxTVA.query.count(),
+                "params": Parameters.query.count(),
             }
 
             # Initialize again
             init_default_data()
             counts_second = {
-                'users': User.query.count(),
-                'tva': TauxTVA.query.count(),
-                'params': Parameters.query.count()
+                "users": User.query.count(),
+                "tva": TauxTVA.query.count(),
+                "params": Parameters.query.count(),
             }
 
             # Counts should remain the same
             assert counts_first == counts_second
-
-
 
     def test_init_with_partial_data(self, app):
         """Test initialization when some data exists"""
@@ -282,13 +287,14 @@ class TestInitDBIntegration:
 
             # Create admin
             from flask_bcrypt import Bcrypt
+
             bcrypt = Bcrypt(app)
             admin = User(
-                nom='Admin',
-                prenom='Admin',
+                nom="Admin",
+                prenom="Admin",
                 email=ADMIN_MAIL,
-                mdp=bcrypt.generate_password_hash('test').decode(),
-                role='Administrateur'
+                mdp=bcrypt.generate_password_hash("test").decode(),
+                role="Administrateur",
             )
             db.session.add(admin)
             db.session.commit()
