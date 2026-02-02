@@ -620,10 +620,10 @@ cat ~/.ssh/webshop_deploy
 
 ```bash
 # Vérifier permissions de clé publique sur serveur
-ssh deploy@your-vps "cat ~/.ssh/authorized_keys | head -1"
+cat /home/deploy/.ssh/authorized_keys | head -1
 
 # Vérifier permissions du répertoire
-ssh deploy@your-vps "ls -la /home/deploy/.ssh/"
+ls -la /home/deploy/.ssh/
 # Doit être : drwx------ (700)
 ```
 
@@ -631,20 +631,20 @@ ssh deploy@your-vps "ls -la /home/deploy/.ssh/"
 
 ```bash
 # Vérifier les logs
-ssh deploy@your-vps "cd /opt/webshop && docker compose logs --tail=50"
+cd /opt/webshop && docker compose logs --tail=50
 
 # Redémarrer manuellement
-ssh deploy@your-vps "cd /opt/webshop && docker compose up -d"
+cd /opt/webshop && docker compose up -d
 ```
 
 #### Migrations échouent
 
 ```bash
 # Vérifier la base de données
-ssh deploy@your-vps "cd /opt/webshop && docker compose exec -T db pg_isready -U dev_user"
+cd /opt/webshop && docker compose exec -T db pg_isready -U dev_user
 
 # Voir les migrations appliquées
-ssh deploy@your-vps "cd /opt/webshop && docker compose exec -T backend flask db current"
+cd /opt/webshop && docker compose exec -T backend flask db current
 ```
 
 ---
