@@ -292,7 +292,7 @@ Créez un dossier de secrets sécurisés :
 mkdir -p .env_prod_secrets
 cd .env_prod_secrets
 
-# Generate and store secrets
+# Générer les fichiers de secrets
 echo "$(openssl rand -base64 32)" > SECRET_KEY.txt
 echo "admin@example.com" > ADMIN_MAIL.txt
 echo "SecurePassword123!" > ADMIN_PASSWORD.txt
@@ -302,8 +302,9 @@ echo "your_docusign_integration_key" > DOCUSIGN_INTEGRATION_KEY.txt
 echo "postgresql://user:password@db:5432/users_db" > DATABASE_URL.txt # Change user/password
 echo "user" > DB_USER.txt
 echo "password" > DB_PASSWORD.txt
+# Copiez aussi votre clé privée DocuSign (private.pem) dans ce dossier
 
-# Secure permissions
+# Permissions sécurisées
 cd ..
 chmod 600 .env_prod_secrets/*
 ```
@@ -319,48 +320,17 @@ Mettez à jour [docker-compose.prod.yml](docker-compose.prod.yml) avec :
 ```yaml
 backend:
   environment:
-    - DATABASE_URL=postgresql://secure_user:secure_password@db:5432/users_db
-    - DOCUSIGN_SERVER_IP=http://your-docusign-ip:5001/api
+    - DOCUSIGN_SERVER_IP=http://your-docusign-ip
     - FRONTEND_URL=https://your-domain.tld
+``` - REACT_APP_BACKEND_URL=https://your-domain.tld/api
 ```
 
-#### 3.2 Variables du frontend
+#### 3.2 Configuration Nginx
 
-```yaml
-frontend:
-  build:
-    args:
-      - REACT_APP_BACKEND_URL=https://your-domain.tld/api
-```
-
-#### 3.3 Identifiants de base de données
-
-```yaml
-db:
-  environment:
-    POSTGRES_USER: secure_user
-    POSTGRES_PASSWORD: secure_password
-```
-
-Dans le backend, mettez à jour `DATABASE_URL` :
-
-```yaml
-backend:
-  environment:
-    DATABASE_URL: postgresql://secure_user:secure_password@db:5432/users_db
-```
-
-#### 3.4 Configuration Nginx
-
-Mettez à jour [frontend/nginx.conf](frontend/nginx.conf) :
+Mettez à jour [frontend/nginx.conf](frontend/nginx.conf) et [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine réel :
 
 ```nginx
-server {
-    listen 80;
-    server_name your-domain.tld;  # Change this
-    
-    # ... rest of configuration
-}
+  server_name your-domain.tld;  # Changer toutes les occurrences de 'server_name'
 ```
 
 ### 4. Configurer le pare-feu
