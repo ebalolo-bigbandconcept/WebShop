@@ -327,7 +327,7 @@ jobs:
       - name: Test container startup
         run: |
           docker compose -f docker-compose.prod.yml up -d
-          sleep 10
+          timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml ps --status=running | grep -q "Up"; do sleep 2; done'
           docker compose -f docker-compose.prod.yml ps
           docker compose -f docker-compose.prod.yml logs
       
@@ -406,7 +406,6 @@ jobs:
       - name: Start all services
         run: |
           docker compose -f docker-compose.prod.yml up -d --build
-          sleep 15
       
       - name: Wait for services to be ready
         run: |
@@ -623,6 +622,38 @@ jobs:
             REACT_APP_BACKEND_URL="/api"
             FLASK_ENV="development"
             ENVEOF
+
+            # Ensure prod-style secrets exist for docker-compose.prod.yml (do not overwrite if present)
+            if [ ! -d .env_prod_secrets ]; then
+              mkdir -p .env_prod_secrets
+              cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+              ${{ secrets.SECRET_KEY_DEV }}
+              EOF
+              cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+              ${{ secrets.ADMIN_MAIL_DEV }}
+              EOF
+              cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+              ${{ secrets.ADMIN_PASSWORD_DEV }}
+              EOF
+              cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+              ${{ secrets.DATABASE_URL_DEV }}
+              EOF
+              cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+              ${{ secrets.DB_USER_DEV }}
+              EOF
+              cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+              ${{ secrets.DB_PASSWORD_DEV }}
+              EOF
+              cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+              ${{ secrets.DOCUSIGN_ACCOUNT_ID_DEV }}
+              EOF
+              cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+              ${{ secrets.DOCUSIGN_USER_ID_DEV }}
+              EOF
+              cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+              ${{ secrets.DOCUSIGN_INTEGRATION_KEY_DEV }}
+              EOF
+            fi
 
             # Build and restart services (dev compose)
             export DOCKER_CONFIG="$WORK_DIR/.docker"
