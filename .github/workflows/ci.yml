@@ -457,6 +457,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd ${{ secrets.WORK_DIR }}
+            git config --global --add safe.directory ${{ secrets.WORK_DIR }}
             git pull
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
@@ -478,6 +479,7 @@ jobs:
           key: ${{ secrets.SSH_KEY_DEV }}
           script: |
             cd ${{ secrets.WORK_DIR_DEV }}
+            git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }}
             git pull
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
