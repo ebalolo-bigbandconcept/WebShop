@@ -353,8 +353,6 @@ sudo docker compose -f docker-compose.prod.yml build
 sudo docker compose -f docker-compose.prod.yml up -d
 
 # Initialize database with migrations
-sudo docker compose -f docker-compose.prod.yml exec backend flask db init
-sudo docker compose -f docker-compose.prod.yml exec backend flask db migrate -m "Initial migration"
 sudo docker compose -f docker-compose.prod.yml exec backend flask db upgrade
 sudo docker compose -f docker-compose.prod.yml exec backend python init_db.py
 
@@ -392,10 +390,7 @@ ssh root@your-vps
 # Créer utilisateur
 useradd -m -s /bin/bash deploy
 usermod -aG docker deploy
-
-# Créer répertoire application
-mkdir -p /opt/webshop
-chown deploy:deploy /opt/webshop
+chown deploy:deploy /opt/WebShop
 
 # Configuration sudo pour docker (optionnel)
 cat >> /etc/sudoers.d/deploy << 'EOF'
@@ -444,8 +439,8 @@ chmod 600 /home/deploy/.ssh/authorized_keys
 chown -R deploy:deploy /home/deploy/.ssh
 
 # Copier l'application
-cp -r /root/WebShop/* /opt/webshop/
-chown -R deploy:deploy /opt/webshop
+cp -r /root/WebShop/* /opt/WebShop/
+chown -R deploy:deploy /opt/WebShop
 exit
 ```
 
@@ -562,6 +557,17 @@ exit
 
 ### 9. Dépannage CI/CD
 
+#### Conserver l'accès SSH pour la maintenance
+
+**Important** : Gardez précieusement votre clé privée SSH (`~/.ssh/webshop_deploy`) sur votre machine locale. C'est cette clé qui vous permet de vous connecter au serveur pour les opérations de maintenance manuelle.
+
+```bash
+# Sauvegardez votre clé dans un endroit sûr
+cat ~/.ssh/webshop_deploy 
+```
+
+> **Conseil** : Si vous travaillez en équipe, chaque administrateur devrait avoir sa propre clé SSH ajoutée au fichier `~/.ssh/authorized_keys` du serveur.
+
 #### Déploiement échoue avec "Permission denied"
 
 ```bash
@@ -613,6 +619,8 @@ ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
 
 Générez un certificat autosigné éphémère partagé via le volume `letsencrypt` :
 
+> Remplacez `your-domain.tld` par votre domaine réel.
+
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
   sh -c "apk add --no-cache openssl >/dev/null && \
@@ -640,6 +648,8 @@ sudo ss -ltnp | grep ':80'
 
 Supprimer l'ancien certificat autosigné avant de lancer certbot :
 
+> Remplacez `your-domain.tld` par votre domaine réel.
+
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
   sh -c "rm -rf /etc/letsencrypt/live/your-domain.tld \
@@ -648,6 +658,9 @@ sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot 
 ```
 
 Puis lancez certbot :
+
+> Remplacez `your-domain.tld` par votre domaine réel.
+> Remplacez `admin@example.com` par votre adresse email.
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm certbot certonly \
