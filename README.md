@@ -322,7 +322,7 @@ backend:
   environment:
     - DOCUSIGN_SERVER_IP=http://your-docusign-ip
     - FRONTEND_URL=https://your-domain.tld
-``` - REACT_APP_BACKEND_URL=https://your-domain.tld/api
+    - REACT_APP_BACKEND_URL=https://your-domain.tld/api
 ```
 
 #### 3.2 Configuration Nginx
@@ -363,7 +363,15 @@ sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
 ```
 
-### 6. Accéder à l'application
+### 6. Configurer le certificat SSL
+
+Voir la section [Support HTTPS avec Let's Encrypt](#support-https-avec-lets-encrypt) ci-dessous.
+
+### 7. Configurer le CI/CD et déploiement automatique
+
+Voir la section [Configuration CI/CD et déploiement automatique](#configuration-cicd-et-déploiement-automatique) ci-dessous.
+
+### 8. Accéder à l'application
 
 - **Frontend** : [http://your-domain.tld](http://your-domain.tld)
 - **Backend API** : [http://your-domain.tld/api](http://your-domain.tld/api)
