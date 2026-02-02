@@ -63,7 +63,7 @@ sudo apt-get update
 ```bash
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 sudo systemctl start docker
-sudo docker run hello-world  # Test quick
+sudo systemctl status docker
 ```
 
 ### 3. Configurer les variables d'environnement
@@ -258,15 +258,15 @@ sudo apt update && sudo apt upgrade -y
 #### 1.2 Installer Docker
 
 ```bash
-# Install dependencies
+# Installer les dépendances
 sudo apt-get install ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 
-# Add Docker's official GPG key
+# Ajouter la clé GPG de Docker
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-# Add Docker repository
+# Ajouter le repository Docker
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
@@ -281,7 +281,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 
 ```bash
 sudo systemctl start docker
-sudo docker run hello-world  # Quick test
+sudo systemctl status docker
 ```
 
 ### 2. Configurer les secrets
@@ -338,25 +338,25 @@ Mettez à jour [frontend/nginx.conf](frontend/nginx.conf) et [proxy/nginx.conf](
 ```bash
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw allow OpenSSH  # Keep SSH access
+sudo ufw allow OpenSSH  # Garder l'accès SSH (optionnel mais recommandé)
 sudo ufw enable
-sudo ufw status  # Verify
+sudo ufw status
 ```
 
 ### 5. Déployer l'application
 
 ```bash
-# Build production images
+# Build images Docker
 sudo docker compose -f docker-compose.prod.yml build
 
-# Start services
+# Démarrer les conteneurs en arrière-plan
 sudo docker compose -f docker-compose.prod.yml up -d
 
-# Initialize database with migrations
+# Initialiser la base de données
 sudo docker compose -f docker-compose.prod.yml exec backend flask db upgrade
 sudo docker compose -f docker-compose.prod.yml exec backend python init_db.py
 
-# Verify services are running
+# Vérifier que tout fonctionne
 sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
 ```
@@ -390,6 +390,7 @@ ssh root@your-vps
 # Créer utilisateur
 useradd -m -s /bin/bash deploy
 usermod -aG docker deploy
+usermod -p 'StrongPassword' deploy  # Changez le mot de passe
 chown deploy:deploy /opt/WebShop
 
 # Configuration sudo pour docker (optionnel)
@@ -423,9 +424,6 @@ ssh-keygen -t ed25519 -C "ci-deploy-dev" -f ~/.ssh/webshop_deploy_dev -N ""
 # Copier la clé publique
 cat ~/.ssh/webshop_deploy.pub
 
-# Sur le serveur
-ssh root@your-vps
-
 # Installer pour utilisateur 'deploy'
 mkdir -p /home/deploy/.ssh
 chmod 700 /home/deploy/.ssh
@@ -444,15 +442,7 @@ chown -R deploy:deploy /opt/WebShop
 exit
 ```
 
-### 4. Tester la Connexion SSH
-
-```bash
-# Depuis votre machine locale
-ssh -i ~/.ssh/webshop_deploy deploy@your-vps "cd /opt/webshop && pwd"
-# Devrait afficher: /opt/webshop
-```
-
-### 5. Ajouter les Secrets GitHub
+### 4. Ajouter les Secrets GitHub
 
 Dans votre dépôt GitHub → **Settings** → **Secrets and variables** → **Actions** → **New repository secret** :
 
@@ -471,7 +461,7 @@ Dans votre dépôt GitHub → **Settings** → **Secrets and variables** → **A
 - **SSH_KEY_DEV** : Contenu de `~/.ssh/webshop_deploy_dev`
 - **WORK_DIR_DEV** : `/opt/webshop-dev` (ou votre chemin dev)
 
-### 6. Comment Fonctionne CI/CD
+### 5. Comment Fonctionne CI/CD
 
 #### Workflows Disponibles
 
@@ -523,7 +513,7 @@ git push origin main
 # 5. Production se déploie automatiquement !
 ```
 
-### 7. Monitorer les Déploiements
+### 6. Monitorer les Déploiements
 
 ```bash
 # Voir tous les déploiements
@@ -536,7 +526,7 @@ ssh deploy@your-vps "cd /opt/webshop && docker compose logs -f backend"
 ssh deploy@your-vps "cd /opt/webshop && docker compose ps"
 ```
 
-### 8. Sécurité SSH (Recommandé)
+### 7. Sécurité SSH (Recommandé)
 
 Durcir SSH sur le serveur :
 
@@ -551,7 +541,7 @@ PasswordAuthentication no
 PubkeyAuthentication yes
 ```
 
-### 8.1 Configurer une clé SSH pour l'accès root
+### 7.1 Configurer une clé SSH pour l'accès root
 
 Si vous avez besoin d'accès SSH root pour certaines opérations, vous pouvez configurer une authentification par clé au lieu d'utiliser le mot de passe.
 
@@ -603,7 +593,7 @@ Redémarrez le service SSH pour appliquer les changements :
 sudo systemctl restart ssh
 ```
 
-### 9. Dépannage CI/CD
+### 8. Dépannage CI/CD
 
 #### Conserver l'accès SSH pour la maintenance
 
@@ -766,14 +756,14 @@ Le flag `--dry-run` teste le renouvellement sans modifier les certificats réels
 ### Sauvegarde de la base de données
 
 ```bash
-# Create timestamped backup
+# Créer une backup
 sudo docker compose -f docker-compose.prod.yml exec db pg_dump -U secure_user users_db > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ### Restauration de la base de données
 
 ```bash
-# Restore from backup
+# Restauration depuis une backup
 sudo docker compose -f docker-compose.prod.yml exec -T db psql -U secure_user users_db < backup_20240127_120000.sql
 ```
 
@@ -799,27 +789,26 @@ sudo docker compose exec backend flask db upgrade
 
 ```bash
 sudo docker compose exec backend flask db revision -m "Manual migration"
-# Edit backend/migrations/versions/xxx_manual_migration.py
 sudo docker compose exec backend flask db upgrade
 ```
 
 ### Les volumes Docker occupent trop d'espace
 
 ```bash
-# List all volumes
+# Lister tous les volumes
 sudo docker volume ls
 
-# Remove unused volumes (caution!)
+# Retirer les volumes inutilisés
 sudo docker volume prune
 
-# See volume size
+# Vérifier la taille des volumes
 sudo du -sh /var/lib/docker/volumes/*/
 ```
 
 ### Réinitialiser complètement l'application
 
 ```bash
-# CAUTION: This will delete ALL data!
+# ATTENTION : Cela supprimera toutes les données !
 sudo docker compose down -v
 sudo docker compose build
 sudo docker compose up -d
@@ -915,5 +904,4 @@ sudo docker compose exec backend flask db upgrade
 
 ```bash
 sudo docker compose exec backend flask db revision -m "Manual migration"
-# Éditez ensuite le fichier dans backend/migrations/versions/
 ```
