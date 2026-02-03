@@ -464,7 +464,7 @@ def _init_test_defaults():
         ranges = [
             InterestRateRange(minimum=0, maximum=5000, interests=50.0),
             InterestRateRange(minimum=5000, maximum=10000, interests=100.0),
-            InterestRateRange(minimum=10000, maximum=float('inf'), interests=150.0),
+            InterestRateRange(minimum=10000, maximum=float("inf"), interests=150.0),
         ]
         for rate_range in ranges:
             db.session.add(rate_range)

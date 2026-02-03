@@ -154,21 +154,21 @@ def compute_location_totals(
 
     # Calculate the base total before interests
     base_total_ttc = articles_ttc + subscription_ttc - apport
-    
+
     # Calculate monthly TTC (not rounded) to determine the total for interest lookup
     monthly_ttc_raw = base_total_ttc / location_time
     total_for_interest_lookup = monthly_ttc_raw * location_time
-    
+
     # Look up the interest rate from the database based on the total
     interest_amount = 0.0
     interest_range = InterestRateRange.query.filter(
         InterestRateRange.minimum <= total_for_interest_lookup,
-        InterestRateRange.maximum > total_for_interest_lookup
+        InterestRateRange.maximum > total_for_interest_lookup,
     ).first()
-    
+
     if interest_range:
         interest_amount = float(interest_range.interests)
-    
+
     # Calculate final total with interest
     total_ttc_location = base_total_ttc + interest_amount
     total_ht_location = total_ttc_location / (1 + LOCATION_VAT_RATE)
