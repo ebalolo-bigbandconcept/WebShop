@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import Quill from "quill";
-import "quill/dist/quill.snow.css";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
 import { Trash3Fill, PlusLg, Download } from "react-bootstrap-icons";
+import QuillEditor from "../components/QuillEditor";
+import RichTextDisplay from "../components/RichTextDisplay";
 
 function ListeArticles() {
   const [loading, setLoading] = useState(true);
@@ -32,8 +32,6 @@ function ListeArticles() {
 
   const modalRef = useRef(null);
   const referenceEditorRef = useRef(null);
-  const referenceQuillRef = useRef(null);
-  const initialContentLoaded = useRef(false);
 
   // Filter and Pagination state
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -261,17 +259,6 @@ function ListeArticles() {
     setArticleNomError("");
     setArticleReferenceError("");
     setArticlePrixAchatHTError("");
-    
-    // Clean up Quill editor
-    if (referenceQuillRef.current) {
-      referenceQuillRef.current = null;
-    }
-    if (referenceEditorRef.current) {
-      referenceEditorRef.current.innerHTML = '';
-    }
-    
-    // Reset initial content flag
-    initialContentLoaded.current = false;
 
     setCREATE(false);
     setMODIFY(false);
@@ -321,63 +308,6 @@ function ListeArticles() {
     }
   }, [filteredArticles, currentPage, itemsPerPage]);
 
-  // ### Quill Editor Initialization ###
-  useEffect(() => {
-    // Only initialize when modal is open (CREATE or MODIFY is true)
-    if (!CREATE && !MODIFY) return;
-    if (!referenceEditorRef.current) return;
-    if (referenceQuillRef.current) return; // Already initialized
-    
-    // Clean the container and its parent from any Quill artifacts
-    const container = referenceEditorRef.current;
-    const parent = container.parentElement;
-    
-    // Remove any existing toolbar in the parent
-    const existingToolbar = parent?.querySelector('.ql-toolbar');
-    if (existingToolbar) {
-      existingToolbar.remove();
-    }
-    
-    // Clear the editor container
-    container.innerHTML = '';
-    
-    const quill = new Quill(container, {
-      theme: "snow",
-      modules: {
-        toolbar: [
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
-          ["link"],
-          ["clean"],
-        ],
-      },
-    });
-    
-    quill.on("text-change", () => {
-      setArticleReference(quill.root.innerHTML);
-    });
-    
-    referenceQuillRef.current = quill;
-    
-    // Set initial content
-    if (article_reference) {
-      quill.root.innerHTML = article_reference;
-      initialContentLoaded.current = true;
-    }
-  }, [CREATE, MODIFY]);
-
-  // ### Load content when article_reference changes ###
-  useEffect(() => {
-    if (!referenceQuillRef.current) return;
-    if (initialContentLoaded.current) return;
-    
-    if (article_reference) {
-      referenceQuillRef.current.root.innerHTML = article_reference;
-      initialContentLoaded.current = true;
-    }
-  }, [article_reference]);
-
   // Reset to page 1 when itemsPerPage changes
   useEffect(() => {
     setCurrentPage(1);
@@ -410,7 +340,13 @@ function ListeArticles() {
       <div className="col-12 mt-4">
         <label className="form-label">Référence</label>
         <div>
-          <div ref={referenceEditorRef} style={{ minHeight: "200px" }} />
+          <QuillEditor
+            containerRef={referenceEditorRef}
+            value={article_reference}
+            onChange={setArticleReference}
+            isActive={CREATE || MODIFY}
+            minHeight="200px"
+          />
         </div>
         <div className="invalid-feedback">{article_reference_error}</div>
       </div>
@@ -475,16 +411,6 @@ function ListeArticles() {
   
   return (
     <div>
-      <style>{`
-        .quill-content p {
-          margin: 0;
-          padding: 0;
-        }
-        .quill-content ul, .quill-content ol {
-          margin: 0;
-          padding-left: 1.5em;
-        }
-      `}</style>
       <h1>Liste des articles</h1>
       <br/>
       <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-lg">
@@ -534,7 +460,7 @@ function ListeArticles() {
                 <tr key={article.id} onClick={() => {handleModifyArticle(article.id)}}>
                   <td>{article.id}</td>
                   <td>{article.nom}</td>
-                  <td><div dangerouslySetInnerHTML={{ __html: article.reference || "" }} style={{ lineHeight: '1.2' }} className="quill-content" /></td>
+                  <td><RichTextDisplay content={article.reference} lineHeight="1.2" /></td>
                   <td>{article.prix_achat_HT} €</td>
                   <td>{article.prix_vente_HT} €</td>
                   <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>

@@ -2,11 +2,11 @@ import { PlusLg, Trash3Fill, ArrowReturnLeft, FloppyFill, FileEarmarkPdf } from 
 import { useParams } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import Quill from "quill";
-import "quill/dist/quill.snow.css";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
+import QuillEditor from "../components/QuillEditor";
+import RichTextDisplay from "../components/RichTextDisplay";
 
 function Devis() {
   const { id_client, id_devis } = useParams();
@@ -63,10 +63,7 @@ function Devis() {
   const { showToast } = useToast();
 
   const modalRef = useRef(null);
-  const commentModalRef = useRef(null);
   const commentEditorRef = useRef(null);
-  const commentQuillRef = useRef(null);
-  const commentInitialContentLoaded = useRef(false);
   const [commentEditingArticleId, setCommentEditingArticleId] = useState(null);
   const [commentDraft, setCommentDraft] = useState("");
   const isLocked = !isNewDevis && devis?.statut === "Signé";
@@ -197,13 +194,6 @@ function Devis() {
     // Clean up comment editor
     setCommentEditingArticleId(null);
     setCommentDraft("");
-    if (commentQuillRef.current) {
-      commentQuillRef.current = null;
-    }
-    if (commentEditorRef.current) {
-      commentEditorRef.current.innerHTML = '';
-    }
-    commentInitialContentLoaded.current = false;
   }
 
   const stripHtml = (value) => {
@@ -215,85 +205,9 @@ function Devis() {
       .trim();
   };
 
-  useEffect(() => {
-    if (!commentEditingArticleId) return;
-    if (!commentEditorRef.current) return;
-    if (commentQuillRef.current) return; // Already initialized
-    
-    // Clean the container and its parent from any Quill artifacts
-    const container = commentEditorRef.current;
-    const parent = container.parentElement;
-    
-    // Remove any existing toolbar in the parent
-    const existingToolbar = parent?.querySelector('.ql-toolbar');
-    if (existingToolbar) {
-      existingToolbar.remove();
-    }
-    
-    // Clear the editor container
-    container.innerHTML = '';
-    
-    const quill = new Quill(container, {
-      theme: "snow",
-      modules: {
-        toolbar: [
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
-          ["link"],
-          ["clean"],
-        ],
-      },
-    });
-    
-    quill.on("text-change", () => {
-      setCommentDraft(quill.root.innerHTML);
-    });
-    
-    commentQuillRef.current = quill;
-    
-    // Set initial content
-    if (commentDraft) {
-      quill.root.innerHTML = commentDraft;
-      commentInitialContentLoaded.current = true;
-    } else {
-      commentInitialContentLoaded.current = true;
-    }
-  }, [commentEditingArticleId, article_MODIFY]);
-
-  // ### Load content when commentDraft changes ###
-  useEffect(() => {
-    if (!commentQuillRef.current) return;
-    if (commentInitialContentLoaded.current) return;
-    
-    if (commentDraft) {
-      commentQuillRef.current.root.innerHTML = commentDraft;
-      commentInitialContentLoaded.current = true;
-    }
-  }, [commentDraft]);
-
-  const openCommentEditor = (article) => {
-    if (blockSignedEdit()) return;
-    setCommentEditingArticleId(article.id);
-    setCommentDraft(article.commentaire || "");
-    commentModalRef.current && commentModalRef.current.open();
-  };
-
   const closeCommentEditor = () => {
-    commentModalRef.current && commentModalRef.current.close();
     setCommentEditingArticleId(null);
     setCommentDraft("");
-    
-    // Clean up Quill editor
-    if (commentQuillRef.current) {
-      commentQuillRef.current = null;
-    }
-    if (commentEditorRef.current) {
-      commentEditorRef.current.innerHTML = '';
-    }
-    
-    // Reset initial content flag
-    commentInitialContentLoaded.current = false;
   };
 
   const saveCommentEditor = () => {
@@ -905,7 +819,13 @@ function Devis() {
         <div className="invalid-feedback">{article_quantity_error}</div>
       </div>
       <p className="mt-4">Ajouter un commentaire :</p>
-      <div ref={commentEditorRef} style={{ minHeight: "150px", marginBottom: "1rem" }} />
+      <QuillEditor
+        containerRef={commentEditorRef}
+        value={commentDraft}
+        onChange={setCommentDraft}
+        isActive={article_MODIFY && commentEditingArticleId !== null}
+        minHeight="150px"
+      />
     </div>
   ) : (
     <div>
@@ -1034,16 +954,6 @@ function Devis() {
 
   return (
     <div>
-      <style>{`
-        .quill-content p {
-          margin: 0;
-          padding: 0;
-        }
-        .quill-content ul, .quill-content ol {
-          margin: 0;
-          padding-left: 1.5em;
-        }
-      `}</style>
       <div className="d-flex justify-content-between align-items-start">
         <h1 className="mb-0">Devis N°{id_devis}</h1>
         <button className="btn btn-danger" onClick={goBack}>
@@ -1240,11 +1150,7 @@ function Devis() {
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TVA} €</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TTC} €</td>
                 <td>
-                  {article.commentaire ? (
-                    <div dangerouslySetInnerHTML={{ __html: article.commentaire }} style={{ lineHeight: '1.2', fontSize: '0.9rem' }} className="quill-content" />
-                  ) : (
-                    <span className="text-muted small">Aucun commentaire</span>
-                  )}
+                  <RichTextDisplay content={article.commentaire} fontSize="0.9rem" lineHeight="1.2" />
                 </td>
                 <td onClick={() => { if (!isLocked) handleDeleteArticle(article); }}><Trash3Fill color="red"/></td>
               </tr>
@@ -1268,23 +1174,6 @@ function Devis() {
           </button>
         </div>
       </div>
-      <Modal
-        ref={commentModalRef}
-        title="Commentaire"
-        size="modal-lg"
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={closeCommentEditor}>
-              Annuler
-            </button>
-            <button className="btn btn-primary" onClick={saveCommentEditor}>
-              Enregistrer
-            </button>
-          </>
-        }
-      >
-        <div ref={commentEditorRef} style={{ minHeight: "220px" }} />
-      </Modal>
       <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-lg" backdrop="static" keyboard={false}>
         {modalBody}
       </Modal>
