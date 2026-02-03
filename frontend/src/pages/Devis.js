@@ -2,6 +2,8 @@ import { PlusLg, Trash3Fill, ArrowReturnLeft, FloppyFill, FileEarmarkPdf } from 
 import { useParams } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import Quill from "quill";
+import "quill/dist/quill.snow.css";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
@@ -45,10 +47,6 @@ function Devis() {
   const [location_subscription_cost, setLocationSubscriptionCost] = useState(0);
   const [location_interests_cost, setLocationInterestsCost] = useState(0);
   const [location_time, setLocationTime] = useState(0); // in months
-  const [location_monthly_total, setLocationMonthlyTotal] = useState(0);
-  const [location_monthly_total_ht, setLocationMonthlyTotalHt] = useState(0);
-  const [devis_location_total, setDevisLocationTotal] = useState(0);
-  const [devis_location_total_ht, setDevisLocationTotalHt] = useState(0);
 
   const [devis_title_error, setDevisTitleError] = useState("");
   const [devis_date_error, setDevisDateError] = useState("");
@@ -65,6 +63,12 @@ function Devis() {
   const { showToast } = useToast();
 
   const modalRef = useRef(null);
+  const commentModalRef = useRef(null);
+  const commentEditorRef = useRef(null);
+  const commentQuillRef = useRef(null);
+  const commentInitialContentLoaded = useRef(false);
+  const [commentEditingArticleId, setCommentEditingArticleId] = useState(null);
+  const [commentDraft, setCommentDraft] = useState("");
   const isLocked = !isNewDevis && devis?.statut === "Signé";
   const isPendingOrSigned = devis_status === "En attente de signature" || devis_status === "Signé";
   const isLocationDisabled = isPendingOrSigned && selected_scenario === "direct";
@@ -189,7 +193,118 @@ function Devis() {
     setDELETE(false);
     setArticleMODIFY(false);
     setArticleDELETE(false);
+    
+    // Clean up comment editor
+    setCommentEditingArticleId(null);
+    setCommentDraft("");
+    if (commentQuillRef.current) {
+      commentQuillRef.current = null;
+    }
+    if (commentEditorRef.current) {
+      commentEditorRef.current.innerHTML = '';
+    }
+    commentInitialContentLoaded.current = false;
   }
+
+  const stripHtml = (value) => {
+    if (!value) return "";
+    return value
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  useEffect(() => {
+    if (!commentEditingArticleId) return;
+    if (!commentEditorRef.current) return;
+    if (commentQuillRef.current) return; // Already initialized
+    
+    // Clean the container and its parent from any Quill artifacts
+    const container = commentEditorRef.current;
+    const parent = container.parentElement;
+    
+    // Remove any existing toolbar in the parent
+    const existingToolbar = parent?.querySelector('.ql-toolbar');
+    if (existingToolbar) {
+      existingToolbar.remove();
+    }
+    
+    // Clear the editor container
+    container.innerHTML = '';
+    
+    const quill = new Quill(container, {
+      theme: "snow",
+      modules: {
+        toolbar: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
+          ["link"],
+          ["clean"],
+        ],
+      },
+    });
+    
+    quill.on("text-change", () => {
+      setCommentDraft(quill.root.innerHTML);
+    });
+    
+    commentQuillRef.current = quill;
+    
+    // Set initial content
+    if (commentDraft) {
+      quill.root.innerHTML = commentDraft;
+      commentInitialContentLoaded.current = true;
+    } else {
+      commentInitialContentLoaded.current = true;
+    }
+  }, [commentEditingArticleId, article_MODIFY]);
+
+  // ### Load content when commentDraft changes ###
+  useEffect(() => {
+    if (!commentQuillRef.current) return;
+    if (commentInitialContentLoaded.current) return;
+    
+    if (commentDraft) {
+      commentQuillRef.current.root.innerHTML = commentDraft;
+      commentInitialContentLoaded.current = true;
+    }
+  }, [commentDraft]);
+
+  const openCommentEditor = (article) => {
+    if (blockSignedEdit()) return;
+    setCommentEditingArticleId(article.id);
+    setCommentDraft(article.commentaire || "");
+    commentModalRef.current && commentModalRef.current.open();
+  };
+
+  const closeCommentEditor = () => {
+    commentModalRef.current && commentModalRef.current.close();
+    setCommentEditingArticleId(null);
+    setCommentDraft("");
+    
+    // Clean up Quill editor
+    if (commentQuillRef.current) {
+      commentQuillRef.current = null;
+    }
+    if (commentEditorRef.current) {
+      commentEditorRef.current.innerHTML = '';
+    }
+    
+    // Reset initial content flag
+    commentInitialContentLoaded.current = false;
+  };
+
+  const saveCommentEditor = () => {
+    if (commentEditingArticleId == null) return;
+    setArticlesInDevis((prev) =>
+      prev.map((a) =>
+        a.id === commentEditingArticleId ? { ...a, commentaire: commentDraft } : a
+      )
+    );
+    closeCommentEditor();
+  };
 
   const handleAddArticle = () => {
     if (blockSignedEdit()) return;
@@ -210,6 +325,8 @@ function Devis() {
     setArticleSelected(article);
     setArticleQuantite(article.quantite);
     setArticleQuantityError("");
+    setCommentDraft(article.commentaire || "");
+    setCommentEditingArticleId(article.id);
     showModal();
   };
 
@@ -231,12 +348,12 @@ function Devis() {
   };
 
   // ### Modify selected article in devis
-  const modifyArticle = () => {
+  const modifyArticleWithComment = () => {
     if (blockSignedEdit()) return;
     const isQuantityValid = articleQuantityVerif(article_quantite);
     
     if (isQuantityValid){
-      // Update quantity and recalculate amounts for immediate display
+      // Update quantity, comment, and recalculate amounts for immediate display
       const updatedArticles = articles_in_devis.map(article => {
         if (article.id === article_selected.id) {
           const unit_price = parseFloat(article.prix_vente_HT) || 0;
@@ -253,6 +370,7 @@ function Devis() {
             montant_HT: montant_HT,
             montant_TVA: montant_TVA,
             montant_TTC: montant_TTC,
+            commentaire: commentDraft,
           };
         }
         return article;
@@ -364,10 +482,6 @@ function Devis() {
             setDevisMontantHT(resp.data.computed.montant_ht);
             setDevisMontantTVA(resp.data.computed.montant_tva);
             setDevisMontantTTC(resp.data.computed.montant_ttc);
-            setDevisLocationTotal(resp.data.computed.location_total_ttc);
-            setDevisLocationTotalHt(resp.data.computed.location_total_ht);
-            setLocationMonthlyTotal(resp.data.computed.location_monthly_ttc);
-            setLocationMonthlyTotalHt(resp.data.computed.location_monthly_ht);
           }
           
           setIsNewDevis(false);
@@ -410,10 +524,6 @@ function Devis() {
             setDevisMontantHT(resp.data.computed.montant_ht);
             setDevisMontantTVA(resp.data.computed.montant_tva);
             setDevisMontantTTC(resp.data.computed.montant_ttc);
-            setDevisLocationTotal(resp.data.computed.location_total_ttc);
-            setDevisLocationTotalHt(resp.data.computed.location_total_ht);
-            setLocationMonthlyTotal(resp.data.computed.location_monthly_ttc);
-            setLocationMonthlyTotalHt(resp.data.computed.location_monthly_ht);
           }
           
           // Fetch the updated devis to get article amounts
@@ -485,10 +595,6 @@ function Devis() {
         setDevisMontantHT(resp.data.computed.montant_ht);
         setDevisMontantTVA(resp.data.computed.montant_tva);
         setDevisMontantTTC(resp.data.computed.montant_ttc);
-        setDevisLocationTotal(resp.data.computed.location_total_ttc);
-        setDevisLocationTotalHt(resp.data.computed.location_total_ht);
-        setLocationMonthlyTotal(resp.data.computed.location_monthly_ttc);
-        setLocationMonthlyTotalHt(resp.data.computed.location_monthly_ht);
       }
       // Navigate to PDF page after saving
       navigate(`/devis/${id_client}/${id_devis}/pdf`, { state: location.state });
@@ -556,10 +662,6 @@ function Devis() {
       setDevisStatus(data.statut);
       setSelectedScenario(data.selected_scenario || null); // load selected scenario if already chosen
       setFirstContributionAmount(data.first_contribution_amount || 0);
-      setLocationMonthlyTotal(data.location_monthly_total || 0);
-      setLocationMonthlyTotalHt(data.location_monthly_total_ht || 0);
-      setDevisLocationTotal(data.location_total || 0);
-      setDevisLocationTotalHt(data.location_total_ht || 0);
 
       if (Array.isArray(data.articles)) {
         setArticlesInDevis(
@@ -733,10 +835,6 @@ function Devis() {
     setDevisRemise(devis.remise || 0);
     setDevisStatus(devis.statut);
     setFirstContributionAmount(devis.first_contribution_amount || 0);
-    setLocationMonthlyTotal(devis.location_monthly_total || 0);
-    setLocationMonthlyTotalHt(devis.location_monthly_total_ht || 0);
-    setDevisLocationTotal(devis.location_total || 0);
-    setDevisLocationTotalHt(devis.location_total_ht || 0);
 
     if (Array.isArray(devis.articles)){
       setArticlesInDevis(
@@ -794,9 +892,9 @@ function Devis() {
   ) : article_DELETE ? (
     <h5>Êtes-vous sur de vouloir supprimer l'article {article_selected?.nom} du devis ?</h5>
   ) : article_MODIFY ? (
-    <div className="d-flex flex-inline align-items-center">
+    <div>
       <p>Modifier le nombre de {article_selected?.nom} :</p>
-      <div className="form-outline col-2 ms-4">
+      <div className="form-outline col-md-6 mb-4">
         <input
           type="number"
           id="quantite"
@@ -806,6 +904,8 @@ function Devis() {
         />
         <div className="invalid-feedback">{article_quantity_error}</div>
       </div>
+      <p className="mt-4">Ajouter un commentaire :</p>
+      <div ref={commentEditorRef} style={{ minHeight: "150px", marginBottom: "1rem" }} />
     </div>
   ) : (
     <div>
@@ -852,7 +952,7 @@ function Devis() {
                 onClick={() => { setArticleSelected(article); }}
               >
                 <td>{article.nom}</td>
-                <td>{article.reference}</td>
+                <td><div dangerouslySetInnerHTML={{ __html: article.reference || "" }} style={{ lineHeight: '1.2' }} className="quill-content" /></td>
                 <td>{article.prix_vente_HT?.toFixed(2) || '0.00'} €</td>
               </tr>
             ))
@@ -917,7 +1017,7 @@ function Devis() {
   ) : article_MODIFY ? (
     <div className="d-flex justify-content-between w-100">
       <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
-      <button className="btn btn-lg btn-success" onClick={modifyArticle}>Modifier</button>
+      <button className="btn btn-lg btn-success" onClick={modifyArticleWithComment}>Modifier</button>
     </div>
   ) : (
     <div className="d-flex justify-content-between w-100">
@@ -934,6 +1034,16 @@ function Devis() {
 
   return (
     <div>
+      <style>{`
+        .quill-content p {
+          margin: 0;
+          padding: 0;
+        }
+        .quill-content ul, .quill-content ol {
+          margin: 0;
+          padding-left: 1.5em;
+        }
+      `}</style>
       <div className="d-flex justify-content-between align-items-start">
         <h1 className="mb-0">Devis N°{id_devis}</h1>
         <button className="btn btn-danger" onClick={goBack}>
@@ -1130,17 +1240,11 @@ function Devis() {
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TVA} €</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TTC} €</td>
                 <td>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    value={article.commentaire || ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setArticlesInDevis(prev => prev.map(a => a.id === article.id ? { ...a, commentaire: value } : a));
-                    }}
-                    placeholder="Commentaire"
-                    disabled={isLocked}
-                  />
+                  {article.commentaire ? (
+                    <div dangerouslySetInnerHTML={{ __html: article.commentaire }} style={{ lineHeight: '1.2', fontSize: '0.9rem' }} className="quill-content" />
+                  ) : (
+                    <span className="text-muted small">Aucun commentaire</span>
+                  )}
                 </td>
                 <td onClick={() => { if (!isLocked) handleDeleteArticle(article); }}><Trash3Fill color="red"/></td>
               </tr>
@@ -1164,6 +1268,23 @@ function Devis() {
           </button>
         </div>
       </div>
+      <Modal
+        ref={commentModalRef}
+        title="Commentaire"
+        size="modal-lg"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={closeCommentEditor}>
+              Annuler
+            </button>
+            <button className="btn btn-primary" onClick={saveCommentEditor}>
+              Enregistrer
+            </button>
+          </>
+        }
+      >
+        <div ref={commentEditorRef} style={{ minHeight: "220px" }} />
+      </Modal>
       <Modal ref={modalRef} title={modalTitle} footer={modalFooter} size="modal-lg" backdrop="static" keyboard={false}>
         {modalBody}
       </Modal>

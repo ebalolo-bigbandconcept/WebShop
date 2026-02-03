@@ -2,7 +2,6 @@ import io
 import logging
 import os
 from datetime import datetime
-
 from flask import Blueprint, jsonify, make_response, render_template, request, session
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import A4

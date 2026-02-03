@@ -429,7 +429,11 @@ ssh root@your-vps
 useradd -m -s /bin/bash deploy
 usermod -aG docker deploy
 usermod -p 'StrongPassword' deploy  # Changez le mot de passe
-chown deploy:deploy /opt/WebShop
+
+# Donner ownership à deploy sauf .env_prod_secrets
+chown -R deploy:deploy /opt/WebShop
+chown -R root:root /opt/WebShop/.env_prod_secrets
+chmod 755 /opt/WebShop/.env_prod_secrets  # Lisible par deploy mais modifiable que par root
 
 # Configuration sudo pour docker (optionnel)
 cat >> /etc/sudoers.d/deploy << 'EOF'
