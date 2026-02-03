@@ -323,7 +323,7 @@
   <tbody>
     {% for item in devis.articles %}
     {% set taux = item.taux_tva.taux if item.taux_tva and item.taux_tva.taux is not none else (item.article.taux_tva.taux if item.article and item.article.taux_tva and item.article.taux_tva.taux is not none else 0) %}
-    {% set designation = item.article.nom ~ (' (Rénovation)' if taux == 0.10 else '') %}
+    {% set designation = item.article.nom ~ (' (Rénovation)' if devis.client.renovation else '') %}
     <tr>
       <td class="left-align">
         <strong>{{ designation }}</strong>

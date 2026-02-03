@@ -44,13 +44,19 @@ def _resolve_tva_id(article_payload, articles_map):
 
     taux_value = article_payload.get("taux_tva")
     if taux_value is not None:
-        existing_tva = TauxTVA.query.filter_by(taux=taux_value).first()
-        if existing_tva:
-            return existing_tva.id
-        new_tva = TauxTVA(taux=taux_value)
-        db.session.add(new_tva)
-        db.session.flush()
-        return new_tva.id
+        # Handle case where taux_tva is a dict with "taux" key
+        if isinstance(taux_value, dict):
+            taux_value = taux_value.get("taux")
+        
+        if taux_value is not None:
+            taux_value = float(taux_value)
+            existing_tva = TauxTVA.query.filter_by(taux=taux_value).first()
+            if existing_tva:
+                return existing_tva.id
+            new_tva = TauxTVA(taux=taux_value)
+            db.session.add(new_tva)
+            db.session.flush()
+            return new_tva.id
 
     article = articles_map.get(article_payload.get("article_id"))
     return article.taux_tva_id if article else None
@@ -65,7 +71,7 @@ def _compute_unit_price(article_obj, params, is_location):
     return float(article_obj.prix_vente_HT or 0.0)
 
 
-def _compute_article_lines(articles_data, articles_map):
+def _compute_article_lines(articles_data, articles_map, is_location=False):
     """
     Compute line amounts for each article: montant_HT, montant_TVA, montant_TTC
     Returns: list of dicts with computed values, and totals
@@ -87,11 +93,17 @@ def _compute_article_lines(articles_data, articles_map):
         # Get VAT rate
         tva_id = _resolve_tva_id(article_payload, articles_map)
         taux_val = 0.0
-        if tva_id:
-            tva_obj = TauxTVA.query.get(tva_id)
-            taux_val = float(tva_obj.taux) if tva_obj else 0.0
-        elif article_obj and article_obj.taux_tva:
-            taux_val = float(article_obj.taux_tva.taux)
+        
+        if is_location:
+            # For location devis: always enforce VAT 20% for articles
+            taux_val = 0.20
+        else:
+            # For direct payment devis: use the provided VAT rate
+            if tva_id:
+                tva_obj = TauxTVA.query.get(tva_id)
+                taux_val = float(tva_obj.taux) if tva_obj else 0.0
+            elif article_obj and article_obj.taux_tva:
+                taux_val = float(article_obj.taux_tva.taux)
 
         # Compute line amounts
         line_ht = round(unit_price * qty, 2)
@@ -292,6 +304,7 @@ def create_devis():
     client_id = body.get("client_id")
     articles_data = body.get("articles") or []
     is_location = body.get("is_location", False)
+    selected_scenario = body.get("selected_scenario")
     first_contribution_amount = float(
         (
             body.get("location_apport")
@@ -309,7 +322,7 @@ def create_devis():
     # Compute article line amounts server-side
     articles_map = _build_article_map(articles_data)
     lines, total_ht, total_tva, total_ttc = _compute_article_lines(
-        articles_data, articles_map
+        articles_data, articles_map, is_location
     )
 
     # Compute location totals if applicable
@@ -342,6 +355,7 @@ def create_devis():
         remise=remise,
         statut=statut,
         is_location=is_location,
+        selected_scenario=selected_scenario,
         first_contribution_amount=first_contribution_amount,
         location_monthly_total=location_monthly_ttc,
         location_monthly_total_ht=location_monthly_ht,
@@ -361,11 +375,23 @@ def create_devis():
 
         # Get VAT rate
         taux_val = 0.0
-        if tva_id:
-            tva_obj = TauxTVA.query.get(tva_id)
-            taux_val = float(tva_obj.taux) if tva_obj else 0.0
-        elif article_obj and article_obj.taux_tva:
-            taux_val = float(article_obj.taux_tva.taux)
+        if is_location:
+            # For location devis: always enforce VAT 20% for articles
+            taux_val = 0.20
+            # Get or create VAT 20% record
+            tva_20 = TauxTVA.query.filter_by(taux=0.20).first()
+            if not tva_20:
+                tva_20 = TauxTVA(taux=0.20)
+                db.session.add(tva_20)
+                db.session.flush()
+            tva_id = tva_20.id
+        else:
+            # For direct payment devis: use the provided VAT rate
+            if tva_id:
+                tva_obj = TauxTVA.query.get(tva_id)
+                taux_val = float(tva_obj.taux) if tva_obj else 0.0
+            elif article_obj and article_obj.taux_tva:
+                taux_val = float(article_obj.taux_tva.taux)
 
         # Calculate line amounts
         unit_price = float(article_obj.prix_vente_HT or 0.0)
@@ -436,6 +462,7 @@ def update_devis(devis_id):
     statut = body.get("statut")
     articles_data = body.get("articles") or []
     is_location = body.get("is_location", False)
+    selected_scenario = body.get("selected_scenario")
     first_contribution_amount = float(
         (
             body.get("location_apport")
@@ -453,7 +480,7 @@ def update_devis(devis_id):
     # Compute article line amounts server-side
     articles_map = _build_article_map(articles_data)
     lines, total_ht, total_tva, total_ttc = _compute_article_lines(
-        articles_data, articles_map
+        articles_data, articles_map, is_location
     )
 
     # Compute location totals if applicable
@@ -488,6 +515,7 @@ def update_devis(devis_id):
         devis.remise = remise
         devis.statut = statut
         devis.is_location = is_location
+        devis.selected_scenario = selected_scenario
         devis.first_contribution_amount = first_contribution_amount
         devis.location_monthly_total = location_monthly_ttc
         devis.location_monthly_total_ht = location_monthly_ht
@@ -508,11 +536,23 @@ def update_devis(devis_id):
 
             # Get VAT rate
             taux_val = 0.0
-            if tva_id:
-                tva_obj = TauxTVA.query.get(tva_id)
-                taux_val = float(tva_obj.taux) if tva_obj else 0.0
-            elif article_obj and article_obj.taux_tva:
-                taux_val = float(article_obj.taux_tva.taux)
+            if is_location:
+                # For location devis: always enforce VAT 20% for articles
+                taux_val = 0.20
+                # Get or create VAT 20% record
+                tva_20 = TauxTVA.query.filter_by(taux=0.20).first()
+                if not tva_20:
+                    tva_20 = TauxTVA(taux=0.20)
+                    db.session.add(tva_20)
+                    db.session.flush()
+                tva_id = tva_20.id
+            else:
+                # For direct payment devis: use the provided VAT rate
+                if tva_id:
+                    tva_obj = TauxTVA.query.get(tva_id)
+                    taux_val = float(tva_obj.taux) if tva_obj else 0.0
+                elif article_obj and article_obj.taux_tva:
+                    taux_val = float(article_obj.taux_tva.taux)
 
             # Get unit price and line amounts from pre-computed lines
             unit_price = float(article_obj.prix_vente_HT or 0.0)
@@ -719,6 +759,10 @@ def get_devis_pdf(devis_id):
                     taux = float(item["taux_tva"]["taux"])
                 else:
                     taux = float(item["article"]["taux_tva"]["taux"])
+                
+                # For location scenarios: always enforce VAT 20% for articles
+                if use_location_pricing:
+                    taux = 0.20
 
                 qty = float(item.get("quantite") or 0)
 

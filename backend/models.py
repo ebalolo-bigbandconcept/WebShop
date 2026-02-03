@@ -41,6 +41,7 @@ class Clients(db.Model):
     telephone = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(345), nullable=False, index=True)
     caduque = db.Column(db.Boolean, nullable=False, default=False)
+    renovation = db.Column(db.Boolean, nullable=False, default=False)
 
 
 class Devis(db.Model):

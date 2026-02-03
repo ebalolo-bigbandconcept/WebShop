@@ -20,6 +20,7 @@ function Client() {
     telephone: "",
     email: "",
     caduque: false,
+    renovation: false,
     id: null,
   });
   const [devis, setDevis] = useState([]);
@@ -31,7 +32,8 @@ function Client() {
   const [new_ville, setNewVille] = useState("");
   const [new_tel, setNewTel] = useState("");
   const [new_email, setNewEmail] = useState("");
-  const [new_caduque, setNewCaduque] = useState("");
+  const [new_caduque, setNewCaduque] = useState(false);
+  const [new_renovation, setNewRenovation] = useState(false);
 
   const [activeTab, setActiveTab] = useState("devis");
 
@@ -223,6 +225,7 @@ function Client() {
         email: new_email,
         telephone: new_tel,
         caduque: new_caduque,
+        renovation: new_renovation,
         force: forceValue,
       };
 
@@ -314,6 +317,7 @@ function Client() {
     setNewTel(client.telephone);
     setNewEmail(client.email);
     setNewCaduque(client.caduque);
+    setNewRenovation(client.renovation);
   }, [client])
   
   if (loading) return <div>Chargement...</div>;
@@ -449,6 +453,10 @@ function Client() {
           <div className="form-outline col-6 mt-4">
           <label className="form-check-label me-2">Caduque :</label>
           <input type="checkbox" checked={!!new_caduque} onChange={(e) => {setNewCaduque(e.target.checked)}} className="form-check-input" id="caduque"/>
+          </div>
+          <div className="form-outline col-6 mt-4">
+          <label className="form-check-label me-2">Rénovation :</label>
+          <input type="checkbox" checked={!!new_renovation} onChange={(e) => {setNewRenovation(e.target.checked)}} className="form-check-input" id="renovation"/>
           </div>
         </form>
         <div className="d-flex w-100 justify-content-end">

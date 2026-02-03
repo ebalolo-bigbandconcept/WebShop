@@ -81,6 +81,7 @@ def add_client():
         telephone=telephone,
         email=email,
         caduque=False,
+        renovation=False,
     )
     db.session.add(new_client)
     db.session.commit()
@@ -106,6 +107,7 @@ def modify_client(client_id):
     new_telephone = request.json["telephone"]
     new_email = request.json["email"]
     new_caduque = request.json["caduque"]
+    new_renovation = request.json.get("renovation", False)
     force = request.json["force"]
 
     # Validate fields
@@ -144,6 +146,7 @@ def modify_client(client_id):
     client.telephone = new_telephone
     client.email = new_email
     client.caduque = new_caduque
+    client.renovation = new_renovation
 
     db.session.commit()
     logging.info(
@@ -168,5 +171,6 @@ def get_client_info(client_id):
             "telephone": client.telephone,
             "email": client.email,
             "caduque": client.caduque,
+            "renovation": client.renovation,
         }
     )
