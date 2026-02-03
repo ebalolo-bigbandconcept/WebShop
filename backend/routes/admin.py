@@ -5,7 +5,16 @@ import bleach
 from flask import Blueprint, jsonify, request, session
 from flask_bcrypt import Bcrypt
 
-from models import Articles, DevisArticles, Parameters, TauxTVA, User, UserSchema, db
+from models import (
+    Articles,
+    DevisArticles,
+    InterestRateRange,
+    Parameters,
+    TauxTVA,
+    User,
+    UserSchema,
+    db,
+)
 from utils import (
     _coerce_float,
     _coerce_int,
@@ -548,6 +557,222 @@ def delete_tva(tva_id: int):
             "ip_address": request.remote_addr,
             "status": "SUCCESS",
             "vat_rate": vat_rate,
+        },
+    )
+
+    return jsonify({"status": "deleted"})
+
+
+# Interest Rate Range Endpoints
+
+
+def _ranges_overlap(minimum1, maximum1, minimum2, maximum2):
+    """Check if two ranges overlap (exclusive on upper bounds)"""
+    # Ranges [min1, max1) and [min2, max2) where max1 and max2 are exclusive
+    return minimum1 < maximum2 and minimum2 < maximum1
+
+
+def _check_overlap_with_existing(minimum, maximum, exclude_id=None):
+    """Check if a new range overlaps with existing ranges"""
+    existing_ranges = InterestRateRange.query.all()
+
+    for existing in existing_ranges:
+        if exclude_id and existing.id == exclude_id:
+            continue
+
+        if _ranges_overlap(minimum, maximum, existing.minimum, existing.maximum):
+            return existing
+
+    return None
+
+
+@admin_bp.route("/interest-rates", methods=["GET"])
+@require_login()
+def list_interest_rates():
+    """Get all interest rate ranges"""
+    ranges = InterestRateRange.query.order_by(InterestRateRange.minimum.asc()).all()
+    return jsonify(
+        {
+            "data": [
+                {
+                    "id": r.id,
+                    "minimum": r.minimum,
+                    "maximum": r.maximum,
+                    "interests": r.interests,
+                }
+                for r in ranges
+            ]
+        }
+    )
+
+
+@admin_bp.route("/interest-rates", methods=["POST"])
+@admin_required
+def add_interest_rate():
+    """Add a new interest rate range with overlap validation"""
+    body = request.get_json(force=True) if request.data else {}
+
+    try:
+        minimum = _coerce_float(body.get("minimum"))
+        maximum = _coerce_float(body.get("maximum"))
+        interests = _coerce_float(body.get("interests"))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    # Validate min < max
+    if minimum >= maximum:
+        return (
+            jsonify(
+                {
+                    "error": "Le minimum doit être inférieur au maximum. Utilisez des valeurs comme 0-999, 1000-1999."
+                }
+            ),
+            400,
+        )
+
+    # Check for overlaps
+    overlap = _check_overlap_with_existing(minimum, maximum)
+    if overlap:
+        return (
+            jsonify(
+                {
+                    "error": f"Cette plage chevauche une plage existante ({overlap.minimum}-{overlap.maximum}). Vous ne pouvez pas créer 0-1000 et 1000-2000 ensemble, utilisez 0-999 et 1000-1999."
+                }
+            ),
+            409,
+        )
+
+    new_range = InterestRateRange(minimum=minimum, maximum=maximum, interests=interests)
+    db.session.add(new_range)
+    db.session.commit()
+
+    admin_id = session.get("user_id")
+    admin = User.query.filter_by(id=admin_id).first()
+
+    security_logger.info(
+        f"Admin added interest rate range: {minimum}-{maximum}: {interests}%",
+        extra={
+            "action": "INTEREST_RATE_CREATED",
+            "user_id": admin.id if admin else admin_id,
+            "user_email": admin.email if admin else "unknown",
+            "resource": f"interest_rate:{new_range.id}",
+            "ip_address": request.remote_addr,
+            "status": "SUCCESS",
+            "range": f"{minimum}-{maximum}",
+            "interest_rate": interests,
+        },
+    )
+
+    return jsonify(
+        {
+            "id": new_range.id,
+            "minimum": new_range.minimum,
+            "maximum": new_range.maximum,
+            "interests": new_range.interests,
+        }
+    )
+
+
+@admin_bp.route("/interest-rates/<int:rate_id>", methods=["PUT"])
+@admin_required
+def update_interest_rate(rate_id: int):
+    """Update an interest rate range with overlap validation"""
+    rate = InterestRateRange.query.get(rate_id)
+    if not rate:
+        return jsonify({"error": "Plage de taux d'intérêt introuvable"}), 404
+
+    body = request.get_json(force=True) if request.data else {}
+
+    try:
+        minimum = _coerce_float(body.get("minimum", rate.minimum))
+        maximum = _coerce_float(body.get("maximum", rate.maximum))
+        interests = _coerce_float(body.get("interests", rate.interests))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    # Validate min < max
+    if minimum >= maximum:
+        return (
+            jsonify(
+                {
+                    "error": "Le minimum doit être inférieur au maximum. Utilisez des valeurs comme 0-999, 1000-1999."
+                }
+            ),
+            400,
+        )
+
+    # Check for overlaps (excluding this range)
+    overlap = _check_overlap_with_existing(minimum, maximum, exclude_id=rate_id)
+    if overlap:
+        return (
+            jsonify(
+                {
+                    "error": f"Cette plage chevauche une plage existante ({overlap.minimum}-{overlap.maximum}). Vous ne pouvez pas créer 0-1000 et 1000-2000 ensemble, utilisez 0-999 et 1000-1999."
+                }
+            ),
+            409,
+        )
+
+    old_range = f"{rate.minimum}-{rate.maximum}"
+    rate.minimum = minimum
+    rate.maximum = maximum
+    rate.interests = interests
+    db.session.commit()
+
+    admin_id = session.get("user_id")
+    admin = User.query.filter_by(id=admin_id).first()
+
+    security_logger.info(
+        f"Admin updated interest rate range: {old_range} -> {minimum}-{maximum}: {interests}%",
+        extra={
+            "action": "INTEREST_RATE_UPDATED",
+            "user_id": admin.id if admin else admin_id,
+            "user_email": admin.email if admin else "unknown",
+            "resource": f"interest_rate:{rate_id}",
+            "ip_address": request.remote_addr,
+            "status": "SUCCESS",
+            "old_range": old_range,
+            "new_range": f"{minimum}-{maximum}",
+            "interest_rate": interests,
+        },
+    )
+
+    return jsonify(
+        {
+            "id": rate.id,
+            "minimum": rate.minimum,
+            "maximum": rate.maximum,
+            "interests": rate.interests,
+        }
+    )
+
+
+@admin_bp.route("/interest-rates/<int:rate_id>", methods=["DELETE"])
+@admin_required
+def delete_interest_rate(rate_id: int):
+    """Delete an interest rate range"""
+    rate = InterestRateRange.query.get(rate_id)
+    if not rate:
+        return jsonify({"error": "Plage de taux d'intérêt introuvable"}), 404
+
+    range_str = f"{rate.minimum}-{rate.maximum}"
+    db.session.delete(rate)
+    db.session.commit()
+
+    admin_id = session.get("user_id")
+    admin = User.query.filter_by(id=admin_id).first()
+
+    security_logger.warning(
+        f"Admin deleted interest rate range: {range_str}: {rate.interests}%",
+        extra={
+            "action": "INTEREST_RATE_DELETED",
+            "user_id": admin.id if admin else admin_id,
+            "user_email": admin.email if admin else "unknown",
+            "resource": f"interest_rate:{rate_id}",
+            "ip_address": request.remote_addr,
+            "status": "SUCCESS",
+            "range": range_str,
+            "interest_rate": rate.interests,
         },
     )
 

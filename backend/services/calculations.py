@@ -1,6 +1,6 @@
 import math
 
-from models import Articles, TauxTVA, db
+from models import Articles, InterestRateRange, TauxTVA, db
 
 LOCATION_VAT_RATE = 0.20
 
@@ -143,21 +143,34 @@ def compute_location_totals(
     """
     Compute location payment plan totals
     Assumes 20% VAT for location costs (subscription + interests)
+    The interest is now calculated based on interest_rate_ranges table
     """
     if location_time <= 0:
         return 0.0, 0.0, 0.0, 0.0
 
-    # Location costs are typically provided as TTC, but we need to handle both HT and TTC
-    # Assume they come as TTC values
     subscription_ttc = float(location_subscription_cost or 0.0)
-    interests_ttc = float(location_interests_cost or 0.0)
-
-    # For location scenario: total = (articles_ttc + subscription + interests - apport)
-    # Split into HT and TTC assuming 20% VAT on everything
     articles_ttc = float(total_ttc or 0.0)
     apport = float(first_contribution or 0.0)
 
-    total_ttc_location = articles_ttc + subscription_ttc + interests_ttc - apport
+    # Calculate the base total before interests
+    base_total_ttc = articles_ttc + subscription_ttc - apport
+    
+    # Calculate monthly TTC (not rounded) to determine the total for interest lookup
+    monthly_ttc_raw = base_total_ttc / location_time
+    total_for_interest_lookup = monthly_ttc_raw * location_time
+    
+    # Look up the interest rate from the database based on the total
+    interest_amount = 0.0
+    interest_range = InterestRateRange.query.filter(
+        InterestRateRange.minimum <= total_for_interest_lookup,
+        InterestRateRange.maximum > total_for_interest_lookup
+    ).first()
+    
+    if interest_range:
+        interest_amount = float(interest_range.interests)
+    
+    # Calculate final total with interest
+    total_ttc_location = base_total_ttc + interest_amount
     total_ht_location = total_ttc_location / (1 + LOCATION_VAT_RATE)
 
     monthly_ht, monthly_ttc = compute_monthly_from_total_ttc(
@@ -180,7 +193,9 @@ def compute_location_display_totals(
     location_time,
     vat_rate=LOCATION_VAT_RATE,
 ):
-    total_ht_value = articles_ttc + subscription_ttc + maintenance_ttc - apport
+    # Ensure apport is not None
+    apport_value = float(apport or 0.0)
+    total_ht_value = articles_ttc + subscription_ttc + maintenance_ttc - apport_value
     total_ht_value = max(total_ht_value, 0.0)
 
     total_ttc_value = total_ht_value * (1 + vat_rate)
@@ -194,5 +209,5 @@ def compute_location_display_totals(
         "total_ht": round(total_ht_value, 2),
         "total_ttc": round(total_ttc_value, 2),
         "total_tva": round(total_ttc_value - total_ht_value, 2),
-        "apport": round(apport, 2),
+        "apport": round(apport_value, 2),
     }

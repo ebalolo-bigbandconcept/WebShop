@@ -7,13 +7,21 @@ import Modal from "../components/Modal";
 function AdminParameters() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [vats, setVats] = useState([]);
   const [newVat, setNewVat] = useState("");
   const [addingVat, setAddingVat] = useState(false);
   const [deletingVatId, setDeletingVatId] = useState(null);
   const [vatToDelete, setVatToDelete] = useState(null);
   const [DELETE, setDELETE] = useState(false);
+  const [interestRates, setInterestRates] = useState([]);
+  const [newInterestRate, setNewInterestRate] = useState({ minimum: "", maximum: "", interests: "" });
+  const [addingInterestRate, setAddingInterestRate] = useState(false);
+  const [deletingRateId, setDeletingRateId] = useState(null);
+  const [editingRateId, setEditingRateId] = useState(null);
+  const [editingRate, setEditingRate] = useState({ minimum: "", maximum: "", interests: "" });
+  const [updatingRateId, setUpdatingRateId] = useState(null);
+  const [rateToDelete, setRateToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState(null);
   const modalRef = useRef(null);
   const { showToast } = useToast();
   const [parameters, setParameters] = useState({
@@ -43,9 +51,10 @@ function AdminParameters() {
 
     const fetchAll = async () => {
       try {
-        const [paramsResp, tvaResp] = await Promise.all([
+        const [paramsResp, tvaResp, interestResp] = await Promise.all([
           httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/admin/parameters`),
           httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/admin/tva`),
+          httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/admin/interest-rates`),
         ]);
         if (!isMounted) return;
         setParameters({
@@ -68,6 +77,7 @@ function AdminParameters() {
           companyAprm: paramsResp.data?.companyAprm ?? "",
         });
         setVats(tvaResp.data?.data ?? []);
+        setInterestRates(interestResp.data?.data ?? []);
       } catch (err) {
         if (!isMounted) return;
         showToast({ message: "Erreur lors du chargement des paramètres", variant: "danger" });
@@ -89,7 +99,6 @@ function AdminParameters() {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setErrorMessage("");
     try {
       await httpClient.post(
         `${process.env.REACT_APP_BACKEND_URL}/admin/parameters`,
@@ -98,7 +107,7 @@ function AdminParameters() {
       showToast({ message: "Parametres mis à jour", variant: "success" });
     } catch (err) {
       const message = err.response?.data?.error ?? "Une erreur est survenue.";
-      setErrorMessage(message);
+      showToast({ message, variant: "danger" });
     } finally {
       setSaving(false);
     }
@@ -109,12 +118,11 @@ function AdminParameters() {
     const sanitized = String(newVat).replace(",", ".").replace(/[^0-9.]/g, "");
     const valuePercent = parseFloat(sanitized);
     if (Number.isNaN(valuePercent)) {
-      setErrorMessage("Veuillez saisir un pourcentage valide (ex: 20 pour 20%)");
+      showToast({ message: "Veuillez saisir un pourcentage valide (ex: 20 pour 20%)", variant: "danger" });
       return;
     }
 
     setAddingVat(true);
-    setErrorMessage("");
     try {
       const resp = await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/admin/tva`, {
         taux: valuePercent / 100,
@@ -128,13 +136,14 @@ function AdminParameters() {
       showToast({ message: "Taux TVA ajouté", variant: "success" });
     } catch (err) {
       const message = err.response?.data?.error ?? "Impossible d'ajouter le taux";
-      setErrorMessage(message);
+      showToast({ message, variant: "danger" });
     } finally {
       setAddingVat(false);
     }
   };
 
   const handleDeleteVat = async (vatId, vatTaux) => {
+    setDeleteType("vat");
     setVatToDelete({ id: vatId, taux: vatTaux });
     setDELETE(true);
     showModal();
@@ -148,12 +157,13 @@ function AdminParameters() {
     modalRef.current && modalRef.current.close();
     setDELETE(false);
     setVatToDelete(null);
+    setRateToDelete(null);
+    setDeleteType(null);
   };
 
   const deleteVat = async () => {
     if (!vatToDelete || deletingVatId) return;
     setDeletingVatId(vatToDelete.id);
-    setErrorMessage("");
     try {
       await httpClient.delete(`${process.env.REACT_APP_BACKEND_URL}/admin/tva/${vatToDelete.id}`);
       setVats((prev) => prev.filter((v) => v.id !== vatToDelete.id));
@@ -161,9 +171,145 @@ function AdminParameters() {
       handleCloseModal();
     } catch (err) {
       const message = err.response?.data?.error ?? "Suppression impossible";
-      setErrorMessage(message);
+      showToast({ message, variant: "danger" });
     } finally {
       setDeletingVatId(null);
+    }
+  };
+
+  // Interest Rate Handlers
+  const handleAddInterestRate = async () => {
+    if (addingInterestRate) return;
+    
+    const minimum = parseFloat(newInterestRate.minimum);
+    const maximum = parseFloat(newInterestRate.maximum);
+    const interests = parseFloat(newInterestRate.interests);
+
+    if (Number.isNaN(minimum) || Number.isNaN(maximum) || Number.isNaN(interests)) {
+      showToast({ message: "Veuillez remplir tous les champs avec des nombres valides", variant: "danger" });
+      return;
+    }
+
+    if (minimum >= maximum) {
+      showToast({ message: "Le minimum doit être inférieur au maximum (ex: 0-999, 1000-1999)", variant: "danger" });
+      return;
+    }
+
+    // Check for overlapping ranges
+    const overlap = interestRates.find(
+      (rate) => minimum <= rate.maximum && rate.minimum <= maximum
+    );
+    if (overlap) {
+      showToast({
+        message: `Cette plage chevauche une plage existante (${overlap.minimum}-${overlap.maximum}).`,
+        variant: "danger"
+      });
+      return;
+    }
+
+    setAddingInterestRate(true);
+    try {
+      const resp = await httpClient.post(
+        `${process.env.REACT_APP_BACKEND_URL}/admin/interest-rates`,
+        {
+          minimum,
+          maximum,
+          interests,
+        }
+      );
+      setInterestRates((prev) => [...prev, resp.data].sort((a, b) => a.minimum - b.minimum));
+      setNewInterestRate({ minimum: "", maximum: "", interests: "" });
+      showToast({ message: "Plage de taux d'intérêt ajoutée", variant: "success" });
+    } catch (err) {
+      const message = err.response?.data?.error ?? "Impossible d'ajouter la plage";
+      showToast({ message, variant: "danger" });
+    } finally {
+      setAddingInterestRate(false);
+    }
+  };
+
+  const handleDeleteInterestRate = async (rateId) => {
+    setDeleteType("rate");
+    setRateToDelete(rateId);
+    setDELETE(true);
+    showModal();
+  };
+
+  const deleteInterestRate = async () => {
+    if (!rateToDelete || deletingRateId) return;
+    setDeletingRateId(rateToDelete);
+    try {
+      await httpClient.delete(`${process.env.REACT_APP_BACKEND_URL}/admin/interest-rates/${rateToDelete}`);
+      setInterestRates((prev) => prev.filter((r) => r.id !== rateToDelete));
+      showToast({ message: "Plage supprimée", variant: "success" });
+      handleCloseModal();
+    } catch (err) {
+      const message = err.response?.data?.error ?? "Suppression impossible";
+      showToast({ message, variant: "danger" });
+    } finally {
+      setDeletingRateId(null);
+    }
+  };
+
+  const handleStartEdit = (rate) => {
+    setEditingRateId(rate.id);
+    setEditingRate({
+      minimum: rate.minimum,
+      maximum: rate.maximum,
+      interests: rate.interests,
+    });
+  };
+
+  const handleUpdateInterestRate = async () => {
+    if (updatingRateId || !editingRateId) return;
+
+    const minimum = parseFloat(editingRate.minimum);
+    const maximum = parseFloat(editingRate.maximum);
+    const interests = parseFloat(editingRate.interests);
+
+    if (Number.isNaN(minimum) || Number.isNaN(maximum) || Number.isNaN(interests)) {
+      showToast({ message: "Veuillez remplir tous les champs avec des nombres valides", variant: "danger" });
+      return;
+    }
+
+    if (minimum >= maximum) {
+      showToast({ message: "Le minimum doit être inférieur au maximum (ex: 0-999, 1000-1999)", variant: "danger" });
+      return;
+    }
+
+    // Check for overlapping ranges (excluding the current rate being edited)
+    const overlap = interestRates.find(
+      (rate) => rate.id !== editingRateId && minimum <= rate.maximum && rate.minimum <= maximum
+    );
+    if (overlap) {
+      showToast({
+        message: `Cette plage chevauche une plage existante (${overlap.minimum}-${overlap.maximum}).`,
+        variant: "danger"
+      });
+      return;
+    }
+
+    setUpdatingRateId(editingRateId);
+    try {
+      const resp = await httpClient.put(
+        `${process.env.REACT_APP_BACKEND_URL}/admin/interest-rates/${editingRateId}`,
+        {
+          minimum,
+          maximum,
+          interests,
+        }
+      );
+      setInterestRates((prev) =>
+        prev.map((r) => (r.id === editingRateId ? resp.data : r)).sort((a, b) => a.minimum - b.minimum)
+      );
+      setEditingRateId(null);
+      setEditingRate({ minimum: "", maximum: "", interests: "" });
+      showToast({ message: "Plage mise à jour", variant: "success" });
+    } catch (err) {
+      const message = err.response?.data?.error ?? "Mise à jour impossible";
+      showToast({ message, variant: "danger" });
+    } finally {
+      setUpdatingRateId(null);
     }
   };
 
@@ -184,11 +330,6 @@ function AdminParameters() {
           <ArrowReturnLeft className="me-1" /> Retour
         </button>
       </div>
-      {errorMessage && (
-        <div className="alert alert-danger" role="alert">
-          {errorMessage}
-        </div>
-      )}
       <form className="row g-3" onSubmit={handleSave}>
         <ul className="nav nav-tabs mb-3">
           <li className="nav-item">
@@ -216,6 +357,15 @@ function AdminParameters() {
               onClick={() => setActiveTab("tva")}
             >
               TVA
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              type="button"
+              className={`nav-link ${activeTab === "interests" ? "active" : ""}`}
+              onClick={() => setActiveTab("interests")}
+            >
+              Intérêts
             </button>
           </li>
         </ul>
@@ -459,8 +609,196 @@ function AdminParameters() {
               </div>
             </div>
           </div>
+
+          <div className={`tab-pane fade ${activeTab === "interests" ? "show active" : ""}`}>
+            <div className="row g-3">
+              <div className="col-12">
+                <h5>Ajouter une nouvelle plage</h5>
+                <div className="row g-2">
+                  <div className="col-md-3">
+                    <label className="form-label">Minimum</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={newInterestRate.minimum}
+                      onChange={(e) =>
+                        setNewInterestRate({ ...newInterestRate, minimum: e.target.value })
+                      }
+                      step="0.01"
+                      min="0"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label">Maximum</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={newInterestRate.maximum}
+                      onChange={(e) =>
+                        setNewInterestRate({ ...newInterestRate, maximum: e.target.value })
+                      }
+                      step="0.01"
+                      min="0"
+                      placeholder="999"
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label">Intérêts (EUR)</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={newInterestRate.interests}
+                      onChange={(e) =>
+                        setNewInterestRate({ ...newInterestRate, interests: e.target.value })
+                      }
+                      step="1"
+                      min="0"
+                      placeholder="500"
+                    />
+                  </div>
+                  <div className="col-md-3 d-flex align-items-end">
+                    <button
+                      type="button"
+                      className="btn btn-primary w-100"
+                      onClick={handleAddInterestRate}
+                      disabled={addingInterestRate || editingRateId !== null}
+                    >
+                      {addingInterestRate ? "Ajout..." : (
+                        <>
+                          <PlusLg className="me-1" /> Ajouter
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-12">
+                <h5>Plages de taux d'intérêt</h5>
+                <table className="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th scope="col">Minimum</th>
+                      <th scope="col">Maximum</th>
+                      <th scope="col">Intérêts (EUR)</th>
+                      <th scope="col"></th>
+                      <th scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {interestRates.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="text-center text-muted">
+                          Aucune plage enregistrée.
+                        </td>
+                      </tr>
+                    ) : (
+                      interestRates.map((rate) => (
+                        <tr key={rate.id}>
+                          {editingRateId === rate.id ? (
+                            <>
+                              <td>
+                                <input
+                                  type="number"
+                                  className="form-control form-control-sm"
+                                  value={editingRate.minimum}
+                                  onChange={(e) =>
+                                    setEditingRate({ ...editingRate, minimum: e.target.value })
+                                  }
+                                  step="0.01"
+                                  min="0"
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="number"
+                                  className="form-control form-control-sm"
+                                  value={editingRate.maximum}
+                                  onChange={(e) =>
+                                    setEditingRate({ ...editingRate, maximum: e.target.value })
+                                  }
+                                  step="0.01"
+                                  min="0"
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="number"
+                                  className="form-control form-control-sm"
+                                  value={editingRate.interests}
+                                  onChange={(e) =>
+                                    setEditingRate({ ...editingRate, interests: e.target.value })
+                                  }
+                                  step="0.1"
+                                  min="0"
+                                />
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-success"
+                                  onClick={handleUpdateInterestRate}
+                                  disabled={updatingRateId !== null}
+                                >
+                                  Sauvegarder
+                                </button>
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-secondary"
+                                  onClick={() => setEditingRateId(null)}
+                                  disabled={updatingRateId !== null}
+                                >
+                                  Annuler
+                                </button>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td 
+                                style={{ cursor: "pointer" }}
+                                onClick={() => handleStartEdit(rate)}
+                                disabled={editingRateId !== null || updatingRateId !== null}
+                              >
+                                {rate.minimum.toLocaleString('fr-FR')}
+                              </td>
+                              <td 
+                                style={{ cursor: "pointer" }}
+                                onClick={() => handleStartEdit(rate)}
+                                disabled={editingRateId !== null || updatingRateId !== null}
+                              >
+                                {rate.maximum.toLocaleString('fr-FR')}
+                              </td>
+                              <td 
+                                style={{ cursor: "pointer" }}
+                                onClick={() => handleStartEdit(rate)}
+                                disabled={editingRateId !== null || updatingRateId !== null}
+                              >
+                                {rate.interests.toLocaleString('fr-FR')} €
+                              </td>
+                              <td></td>
+                              <td>
+                                <Trash3Fill
+                                  color="red"
+                                  style={{ cursor: "pointer" }}
+                                  onClick={() => handleDeleteInterestRate(rate.id)}
+                                  title="Supprimer cette plage"
+                                />
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))
+                    )}
+                    </tbody>
+                  </table>
+              </div>
+            </div>
+          </div>
         </div>
-        {activeTab !== "tva" &&
+        {activeTab !== "tva" && activeTab !== "interests" &&
         <div className="col-12 d-flex justify-content-end gap-2">
           <button type="submit" className="btn btn-success" disabled={saving}>
             {saving ? "Enregistrement..." : (
@@ -475,18 +813,25 @@ function AdminParameters() {
 
       <Modal 
         ref={modalRef}
-        title={DELETE ? "Supprimer un taux de TVA" : ""}
+        title={DELETE ? (deleteType === "vat" ? "Supprimer un taux de TVA" : "Supprimer une plage d'intérêt") : ""}
         footer={DELETE ? (
           <div className="d-flex justify-content-between w-100">
             <button className="btn btn-lg btn-danger" onClick={handleCloseModal}>Annuler</button>
-            <button className="btn btn-lg btn-success" onClick={deleteVat} disabled={deletingVatId !== null}>
+            <button 
+              className="btn btn-lg btn-success" 
+              onClick={deleteType === "vat" ? deleteVat : deleteInterestRate}
+              disabled={deleteType === "vat" ? deletingVatId !== null : deletingRateId !== null}
+            >
               Supprimer
             </button>
           </div>
         ) : null}
       >
-        {DELETE && vatToDelete ? (
+        {DELETE && deleteType === "vat" && vatToDelete ? (
           <h5>Êtes-vous sûr de vouloir supprimer le taux TVA "{vatToDelete.taux}%" ?</h5>
+        ) : null}
+        {DELETE && deleteType === "rate" && rateToDelete ? (
+          <h5>Êtes-vous sûr de vouloir supprimer cette plage d'intérêt ?</h5>
         ) : null}
       </Modal>
 

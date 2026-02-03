@@ -16,7 +16,8 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from models import Devis, DevisArticles
+from models import Devis, DevisArticles, InterestRateRange
+from services.calculations import compute_location_totals
 
 
 class TestArticleLineCalculations:
@@ -239,31 +240,50 @@ class TestLocationCalculations:
     """Test location scenario pricing calculations."""
 
     def test_location_without_apport(self, db_session, test_parameters):
-        """Test: location_total_ttc = articles_ttc + subscription + interests"""
+        """Test: location with subscription costs and interest rates from database."""
         articles_ttc = 1000.0
         subscription = test_parameters.location_subscription_cost  # 50.0
-        interests = test_parameters.location_interests_cost  # 100.0
+        apport = 0.0
         location_time = test_parameters.location_time  # 36
 
-        location_total_ttc = round(articles_ttc + subscription + interests, 2)
-        monthly_ttc = round(location_total_ttc / location_time, 2)
+        # Call actual compute_location_totals which queries InterestRateRange
+        # 1000.0 + 50.0 - 0.0 = 1050.0, falls in 5000-10000 range -> 100 EUR interest
+        total_ht, total_ttc, monthly_ht, monthly_ttc = compute_location_totals(
+            total_ttc=articles_ttc,
+            first_contribution=apport,
+            location_subscription_cost=subscription,
+            location_interests_cost=0.0,  # Not used anymore (dynamic from DB)
+            location_time=location_time,
+        )
 
-        assert location_total_ttc == 1150.0
-        assert monthly_ttc == 31.94  # 1150 / 36 = 31.944... rounded to 31.94
+        # 1050.0 + 50 (interest from 0-5000 range) = 1100.0 TTC
+        # 1100.0 / 1.20 = 916.67 HT
+        # monthly: ceil(1100 / 36) = 31
+        assert total_ttc == 1100.0
+        assert monthly_ttc == 31.0  # Rounded up with math.ceil
 
     def test_location_with_apport(self, db_session, test_parameters):
-        """Test: location_total_ttc = articles_ttc + subscription + interests - apport"""
+        """Test: location with apport deducted and interest rates from database."""
         articles_ttc = 1000.0
         subscription = test_parameters.location_subscription_cost  # 50.0
-        interests = test_parameters.location_interests_cost  # 100.0
         apport = 200.0
         location_time = test_parameters.location_time  # 36
 
-        location_total_ttc = round(articles_ttc + subscription + interests - apport, 2)
-        monthly_ttc = round(location_total_ttc / location_time, 2)
+        # Call actual compute_location_totals
+        # 1000.0 + 50.0 - 200.0 = 850.0, falls in 5000-10000 range -> 100 EUR interest
+        total_ht, total_ttc, monthly_ht, monthly_ttc = compute_location_totals(
+            total_ttc=articles_ttc,
+            first_contribution=apport,
+            location_subscription_cost=subscription,
+            location_interests_cost=0.0,  # Not used anymore
+            location_time=location_time,
+        )
 
-        assert location_total_ttc == 950.0
-        assert monthly_ttc == 26.39  # 950 / 36 = 26.388... rounded to 26.39
+        # 850.0 + 50 (interest from 0-5000 range) = 900.0 TTC
+        # 900.0 / 1.20 = 750.0 HT
+        # monthly: ceil(900 / 36) = 25
+        assert total_ttc == 900.0
+        assert monthly_ttc == 25.0  # Rounded up with math.ceil
 
     def test_location_ht_from_ttc(self, db_session):
         """Test: location_total_ht = location_total_ttc / 1.20 (assuming 20% VAT)"""

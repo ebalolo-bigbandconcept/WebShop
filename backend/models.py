@@ -117,6 +117,19 @@ class TauxTVA(db.Model):
     taux = db.Column(db.Float(), nullable=False, default=0.20)
 
 
+class InterestRateRange(db.Model):
+    """Model to store interest rate ranges for different loan amounts"""
+
+    __tablename__ = "interest_rate_ranges"
+    id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
+    minimum = db.Column(db.Float(), nullable=False)
+    maximum = db.Column(db.Float(), nullable=False)
+    interests = db.Column(db.Float(), nullable=False)
+
+    def __repr__(self):
+        return f"<InterestRateRange {self.minimum}-{self.maximum}: {self.interests}%>"
+
+
 class Parameters(db.Model):
     __tablename__ = "parameters"
     id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
@@ -214,4 +227,10 @@ class DevisSchema(ma.SQLAlchemyAutoSchema):
 class ParametersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Parameters
+        load_instance = True
+
+
+class InterestRateRangeSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = InterestRateRange
         load_instance = True

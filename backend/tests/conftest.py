@@ -20,6 +20,7 @@ from models import (
     Clients,
     Devis,
     DevisArticles,
+    InterestRateRange,
     Parameters,
     TauxTVA,
     User,
@@ -440,7 +441,7 @@ def admin_auth_headers(client, admin_user):
 
 
 def _init_test_defaults():
-    """Initialize default test data (VAT rates, parameters)."""
+    """Initialize default test data (VAT rates, parameters, interest rates)."""
     # Create default VAT rates if they don't exist
     if not TauxTVA.query.filter_by(taux=0.20).first():
         db.session.add(TauxTVA(taux=0.20))
@@ -457,5 +458,15 @@ def _init_test_defaults():
             location_interests_cost=100.0,
         )
         db.session.add(params)
+
+    # Create default interest rate ranges if they don't exist
+    if not InterestRateRange.query.first():
+        ranges = [
+            InterestRateRange(minimum=0, maximum=5000, interests=50.0),
+            InterestRateRange(minimum=5000, maximum=10000, interests=100.0),
+            InterestRateRange(minimum=10000, maximum=float('inf'), interests=150.0),
+        ]
+        for rate_range in ranges:
+            db.session.add(rate_range)
 
     db.session.commit()

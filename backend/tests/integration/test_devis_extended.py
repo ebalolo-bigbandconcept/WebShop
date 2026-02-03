@@ -188,7 +188,6 @@ class TestDevisLocationCalculations:
                 "location_time": 24,
                 "location_apport": 500.0,
                 "location_subscription_cost": 200.0,
-                "location_interests_cost": 100.0,
                 "articles": [
                     {
                         "article_id": test_article.id,
