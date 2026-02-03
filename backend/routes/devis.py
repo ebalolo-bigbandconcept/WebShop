@@ -1,5 +1,6 @@
 import io
 import logging
+import math
 import os
 from datetime import datetime
 
@@ -160,16 +161,16 @@ def _compute_location_totals(
     total_ht_location = total_ttc_location / 1.20  # Reverse VAT calculation
 
     location_time_int = int(location_time or 12)
-    monthly_ht = (
-        round(total_ht_location / location_time_int, 2)
-        if location_time_int > 0
-        else 0.0
-    )
-    monthly_ttc = (
-        round(total_ttc_location / location_time_int, 2)
-        if location_time_int > 0
-        else 0.0
-    )
+    
+    # Calculate monthly TTC and round UP to nearest whole number
+    if location_time_int > 0:
+        monthly_ttc_raw = total_ttc_location / location_time_int
+        monthly_ttc = math.ceil(monthly_ttc_raw)  # Round up to unit above
+        # Recalculate backwards: monthly HT from rounded monthly TTC
+        monthly_ht = round(monthly_ttc / 1.20, 2)
+    else:
+        monthly_ttc = 0.0
+        monthly_ht = 0.0
 
     return (
         round(total_ht_location, 2),
@@ -855,12 +856,19 @@ def get_devis_pdf(devis_id):
         # Calculate TTC from HT (multiply by 1.20)
         total_ttc_value = total_ht_value * 1.20
 
-        monthly_ht = (total_ht_value / location_time) if location_time else 0.0
-        monthly_ttc = (total_ttc_value / location_time) if location_time else 0.0
+        # Calculate monthly TTC and round UP to nearest whole number
+        if location_time:
+            monthly_ttc_raw = total_ttc_value / location_time
+            monthly_ttc = math.ceil(monthly_ttc_raw)  # Round up to unit above
+            # Recalculate backwards: monthly HT from rounded monthly TTC
+            monthly_ht = round(monthly_ttc / 1.20, 2)
+        else:
+            monthly_ttc = 0.0
+            monthly_ht = 0.0
 
         return {
-            "monthly_ht": round(monthly_ht, 2),
-            "monthly_ttc": round(monthly_ttc, 2),
+            "monthly_ht": monthly_ht,
+            "monthly_ttc": monthly_ttc,
             "total_ht": round(total_ht_value, 2),
             "total_ttc": round(total_ttc_value, 2),
             "total_tva": round(total_ttc_value - total_ht_value, 2),
