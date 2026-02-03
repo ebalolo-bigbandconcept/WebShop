@@ -120,7 +120,9 @@ def compute_article_lines(articles_data, articles_map, is_location=False):
     return lines, round(total_ht, 2), round(total_tva, 2), round(total_ttc, 2)
 
 
-def compute_monthly_from_total_ttc(total_ttc_value, location_time, vat_rate=LOCATION_VAT_RATE):
+def compute_monthly_from_total_ttc(
+    total_ttc_value, location_time, vat_rate=LOCATION_VAT_RATE
+):
     location_time_int = int(location_time or 0)
     if location_time_int <= 0:
         return 0.0, 0.0

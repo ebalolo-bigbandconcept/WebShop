@@ -576,7 +576,7 @@ def get_devis_pdf(devis_id):
                     taux = float(item["taux_tva"]["taux"])
                 else:
                     taux = float(item["article"]["taux_tva"]["taux"])
-                
+
                 # For location scenarios: always enforce VAT 20% for articles
                 if use_location_pricing:
                     taux = 0.20
