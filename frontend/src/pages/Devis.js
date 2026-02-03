@@ -7,6 +7,12 @@ import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
 import QuillEditor from "../components/QuillEditor";
 import RichTextDisplay from "../components/RichTextDisplay";
+import {
+  buildArticleLine,
+  getDefaultVatRate,
+  isLocationScenario,
+  recalcArticleLine,
+} from "../utils/devisCalculations";
 
 function Devis() {
   const { id_client, id_devis } = useParams();
@@ -322,34 +328,10 @@ function Devis() {
 
     // Set article in devis if inputs are valid
     if (isQuantityValid && isArticleSelected) {
-      // Determine VAT rate based on scenario and client renovation status
-      let taux = 0.20; // Default to 20%
-      
-      // For location scenarios: always VAT 20% regardless of renovation status
-      // For direct payment (no scenario or "direct" scenario) with renovation client: articles default to 10% VAT
-      if ((!selected_scenario || selected_scenario === "direct") && client?.renovation) {
-        taux = 0.10;
-      } else {
-        // All other cases: VAT 20% (non-renovation direct, or any location scenario)
-        taux = 0.20;
-      }
-      
-      // Calculate amounts for immediate display
-      const unit_price = parseFloat(article_selected.prix_vente_HT) || 0;
-      const qty = parseFloat(article_quantite) || 0;
-      
-      const montant_HT = (unit_price * qty).toFixed(2);
-      const montant_TVA = (unit_price * taux * qty).toFixed(2);
-      const montant_TTC = (unit_price * (1 + taux) * qty).toFixed(2);
-      
+      const taux = getDefaultVatRate(client?.renovation, selected_scenario);
       const newArticle = {
-        ...article_selected,
-        quantite: article_quantite,
-        taux_tva: { ...article_selected.taux_tva, taux },
-        montant_HT: montant_HT,
-        montant_TVA: montant_TVA,
-        montant_TTC: montant_TTC,
-        commentaire: '',
+        ...buildArticleLine(article_selected, article_quantite, taux),
+        commentaire: "",
       };
 
       // Add article to list
@@ -379,7 +361,7 @@ function Devis() {
         remise: devis_remise,
         statut: devis_status,
         client_id: id_client,
-        is_location: selected_scenario === "location_with_apport" || selected_scenario === "location_without_apport",
+        is_location: isLocationScenario(selected_scenario),
         selected_scenario: selected_scenario,
         first_contribution_amount: first_contribution_amount,
         location_subscription_cost: location_subscription_cost,
@@ -501,7 +483,7 @@ function Devis() {
       remise: devis_remise,
       statut: devis_status,
       client_id: id_client,
-      is_location: selected_scenario === "location_with_apport" || selected_scenario === "location_without_apport",
+      is_location: isLocationScenario(selected_scenario),
       selected_scenario: selected_scenario,
       first_contribution_amount: first_contribution_amount,
       location_subscription_cost: location_subscription_cost,
@@ -755,40 +737,14 @@ function Devis() {
   useEffect(() => {
     if (articles_in_devis.length === 0 || !client) return;
     
-    const isLocation = selected_scenario === "location_with_apport" || selected_scenario === "location_without_apport";
-    
-    const updatedArticles = articles_in_devis.map(article => {
-      let taux = 0.20; // Default to 20%
-      
-      // For location scenarios: always VAT 20% regardless of renovation
-      if (isLocation) {
-        taux = 0.20;
-      } else if ((!selected_scenario || selected_scenario === "direct") && client?.renovation) {
-        // For direct payment with renovation client: VAT 10%
-        taux = 0.10;
-      } else {
-        // For direct payment without renovation: VAT 20%
-        taux = 0.20;
-      }
-      
+    const updatedArticles = articles_in_devis.map((article) => {
+      const taux = getDefaultVatRate(client?.renovation, selected_scenario);
+
       // Only update if VAT changed
       const currentTaux = parseFloat(article.taux_tva?.taux) || 0;
       if (Math.abs(currentTaux - taux) < 0.001) return article;
-      
-      // Recalculate amounts
-      const unit_price = parseFloat(article.prix_vente_HT) || 0;
-      const qty = parseFloat(article.quantite) || 0;
-      const montant_HT = (unit_price * qty).toFixed(2);
-      const montant_TVA = (unit_price * taux * qty).toFixed(2);
-      const montant_TTC = (unit_price * (1 + taux) * qty).toFixed(2);
-      
-      return {
-        ...article,
-        taux_tva: { ...article.taux_tva, taux },
-        montant_HT,
-        montant_TVA,
-        montant_TTC,
-      };
+
+      return recalcArticleLine(article, taux);
     });
     
     // Check if any articles were actually updated

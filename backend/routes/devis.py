@@ -1,6 +1,5 @@
 import io
 import logging
-import math
 import os
 from datetime import datetime
 
@@ -11,7 +10,6 @@ from reportlab.pdfgen import canvas
 from weasyprint import HTML
 
 from models import (
-    Articles,
     Devis,
     DevisArticles,
     DevisSchema,
@@ -20,164 +18,18 @@ from models import (
     TauxTVA,
     db,
 )
+from services.calculations import (
+    LOCATION_VAT_RATE,
+    build_article_map,
+    compute_article_lines,
+    compute_location_display_totals,
+    compute_location_totals,
+    resolve_article_vat,
+)
 from utils import require_login
 
 # Create a Blueprint for authentication-related routes
 devis_bp = Blueprint("devis_bp", __name__, url_prefix="/api/devis")
-
-
-def _build_article_map(articles_payload):
-    article_ids = [
-        article.get("article_id")
-        for article in articles_payload
-        if article.get("article_id")
-    ]
-    if not article_ids:
-        return {}
-    articles = Articles.query.filter(Articles.id.in_(article_ids)).all()
-    return {article.id: article for article in articles}
-
-
-def _resolve_tva_id(article_payload, articles_map):
-    taux_tva_id = article_payload.get("taux_tva_id")
-    if taux_tva_id:
-        return taux_tva_id
-
-    taux_value = article_payload.get("taux_tva")
-    if taux_value is not None:
-        # Handle case where taux_tva is a dict with "taux" key
-        if isinstance(taux_value, dict):
-            taux_value = taux_value.get("taux")
-        
-        if taux_value is not None:
-            taux_value = float(taux_value)
-            existing_tva = TauxTVA.query.filter_by(taux=taux_value).first()
-            if existing_tva:
-                return existing_tva.id
-            new_tva = TauxTVA(taux=taux_value)
-            db.session.add(new_tva)
-            db.session.flush()
-            return new_tva.id
-
-    article = articles_map.get(article_payload.get("article_id"))
-    return article.taux_tva_id if article else None
-
-
-def _compute_unit_price(article_obj, params, is_location):
-    if not article_obj:
-        return 0.0
-    if is_location:
-        rate = (params.margin_rate_location if params else 0.0) or 0.0
-        return float(article_obj.prix_achat_HT or 0.0) * rate
-    return float(article_obj.prix_vente_HT or 0.0)
-
-
-def _compute_article_lines(articles_data, articles_map, is_location=False):
-    """
-    Compute line amounts for each article: montant_HT, montant_TVA, montant_TTC
-    Returns: list of dicts with computed values, and totals
-    """
-    lines = []
-    total_ht = 0.0
-    total_tva = 0.0
-    total_ttc = 0.0
-
-    for article_payload in articles_data:
-        article_obj = articles_map.get(article_payload.get("article_id"))
-        if not article_obj:
-            continue
-
-        # Get unit price (normal pricing, not location)
-        unit_price = float(article_obj.prix_vente_HT or 0.0)
-        qty = float(article_payload.get("quantite") or 1)
-
-        # Get VAT rate
-        tva_id = _resolve_tva_id(article_payload, articles_map)
-        taux_val = 0.0
-        
-        if is_location:
-            # For location devis: always enforce VAT 20% for articles
-            taux_val = 0.20
-        else:
-            # For direct payment devis: use the provided VAT rate
-            if tva_id:
-                tva_obj = TauxTVA.query.get(tva_id)
-                taux_val = float(tva_obj.taux) if tva_obj else 0.0
-            elif article_obj and article_obj.taux_tva:
-                taux_val = float(article_obj.taux_tva.taux)
-
-        # Compute line amounts
-        line_ht = round(unit_price * qty, 2)
-        line_tva = round(line_ht * taux_val, 2)
-        line_ttc = round(line_ht + line_tva, 2)
-
-        lines.append(
-            {
-                "article_id": article_obj.id,
-                "nom": article_obj.nom,
-                "reference": article_obj.reference,
-                "quantite": qty,
-                "unit_price_ht": unit_price,
-                "taux_tva": taux_val,
-                "montant_ht": line_ht,
-                "montant_tva": line_tva,
-                "montant_ttc": line_ttc,
-                "commentaire": article_payload.get("commentaire") or "",
-            }
-        )
-
-        total_ht += line_ht
-        total_tva += line_tva
-        total_ttc += line_ttc
-
-    return lines, round(total_ht, 2), round(total_tva, 2), round(total_ttc, 2)
-
-
-def _compute_location_totals(
-    total_ttc,
-    first_contribution,
-    location_subscription_cost,
-    location_interests_cost,
-    location_time,
-):
-    """
-    Compute location payment plan totals
-    Assumes 20% VAT for location costs (subscription + interests)
-    """
-    if location_time <= 0:
-        return 0.0, 0.0, 0.0, 0.0
-
-    # Location costs are typically provided as TTC, but we need to handle both HT and TTC
-    # Assume they come as TTC values
-    subscription_ttc = float(location_subscription_cost or 0.0)
-    interests_ttc = float(location_interests_cost or 0.0)
-
-    # For location scenario: total = (articles_ttc + subscription + interests - apport)
-    # Split into HT and TTC assuming 20% VAT on everything
-    articles_ttc = float(total_ttc or 0.0)
-    apport = float(first_contribution or 0.0)
-
-    total_ttc_location = articles_ttc + subscription_ttc + interests_ttc - apport
-    total_ht_location = total_ttc_location / 1.20  # Reverse VAT calculation
-
-    location_time_int = int(location_time or 12)
-    
-    # Calculate monthly TTC and round UP to nearest whole number
-    if location_time_int > 0:
-        monthly_ttc_raw = total_ttc_location / location_time_int
-        monthly_ttc = math.ceil(monthly_ttc_raw)  # Round up to unit above
-        # Recalculate backwards: monthly HT from rounded monthly TTC
-        monthly_ht = round(monthly_ttc / 1.20, 2)
-    else:
-        monthly_ttc = 0.0
-        monthly_ht = 0.0
-
-    return (
-        round(total_ht_location, 2),
-        round(total_ttc_location, 2),
-        monthly_ht,
-        monthly_ttc,
-    )
 
 
 # Public endpoint to list all VAT rates
@@ -321,8 +173,8 @@ def create_devis():
     location_time = int(body.get("location_time", 12) or 12)
 
     # Compute article line amounts server-side
-    articles_map = _build_article_map(articles_data)
-    lines, total_ht, total_tva, total_ttc = _compute_article_lines(
+    articles_map = build_article_map(articles_data)
+    lines, total_ht, total_tva, total_ttc = compute_article_lines(
         articles_data, articles_map, is_location
     )
 
@@ -337,7 +189,7 @@ def create_devis():
             location_total_ttc,
             location_monthly_ht,
             location_monthly_ttc,
-        ) = _compute_location_totals(
+        ) = compute_location_totals(
             total_ttc,
             first_contribution_amount,
             location_subscription_cost,
@@ -372,27 +224,9 @@ def create_devis():
         if not article_obj:
             continue
 
-        tva_id = _resolve_tva_id(article_payload, articles_map)
-
-        # Get VAT rate
-        taux_val = 0.0
-        if is_location:
-            # For location devis: always enforce VAT 20% for articles
-            taux_val = 0.20
-            # Get or create VAT 20% record
-            tva_20 = TauxTVA.query.filter_by(taux=0.20).first()
-            if not tva_20:
-                tva_20 = TauxTVA(taux=0.20)
-                db.session.add(tva_20)
-                db.session.flush()
-            tva_id = tva_20.id
-        else:
-            # For direct payment devis: use the provided VAT rate
-            if tva_id:
-                tva_obj = TauxTVA.query.get(tva_id)
-                taux_val = float(tva_obj.taux) if tva_obj else 0.0
-            elif article_obj and article_obj.taux_tva:
-                taux_val = float(article_obj.taux_tva.taux)
+        taux_val, tva_id = resolve_article_vat(
+            article_payload, article_obj, articles_map, is_location
+        )
 
         # Calculate line amounts
         unit_price = float(article_obj.prix_vente_HT or 0.0)
@@ -479,8 +313,8 @@ def update_devis(devis_id):
     location_time = int(body.get("location_time", 12) or 12)
 
     # Compute article line amounts server-side
-    articles_map = _build_article_map(articles_data)
-    lines, total_ht, total_tva, total_ttc = _compute_article_lines(
+    articles_map = build_article_map(articles_data)
+    lines, total_ht, total_tva, total_ttc = compute_article_lines(
         articles_data, articles_map, is_location
     )
 
@@ -495,7 +329,7 @@ def update_devis(devis_id):
             location_total_ttc,
             location_monthly_ht,
             location_monthly_ttc,
-        ) = _compute_location_totals(
+        ) = compute_location_totals(
             total_ttc,
             first_contribution_amount,
             location_subscription_cost,
@@ -533,27 +367,9 @@ def update_devis(devis_id):
             if not article_obj:
                 continue
 
-            tva_id = _resolve_tva_id(article_payload, articles_map)
-
-            # Get VAT rate
-            taux_val = 0.0
-            if is_location:
-                # For location devis: always enforce VAT 20% for articles
-                taux_val = 0.20
-                # Get or create VAT 20% record
-                tva_20 = TauxTVA.query.filter_by(taux=0.20).first()
-                if not tva_20:
-                    tva_20 = TauxTVA(taux=0.20)
-                    db.session.add(tva_20)
-                    db.session.flush()
-                tva_id = tva_20.id
-            else:
-                # For direct payment devis: use the provided VAT rate
-                if tva_id:
-                    tva_obj = TauxTVA.query.get(tva_id)
-                    taux_val = float(tva_obj.taux) if tva_obj else 0.0
-                elif article_obj and article_obj.taux_tva:
-                    taux_val = float(article_obj.taux_tva.taux)
+            taux_val, tva_id = resolve_article_vat(
+                article_payload, article_obj, articles_map, is_location
+            )
 
             # Get unit price and line amounts from pre-computed lines
             unit_price = float(article_obj.prix_vente_HT or 0.0)
@@ -837,44 +653,6 @@ def get_devis_pdf(devis_id):
             "aprm": params.company_aprm if params else "",
         }
 
-    def _compute_location_totals(apport_value):
-        apport = float(apport_value or 0.0)
-
-        # Calculate articles total TTC from vat_totals_map (this includes location pricing adjustments)
-        articles_ttc = sum(bucket["total_ttc"] for bucket in vat_totals_map.values())
-
-        # Subscription and maintenance are already TTC
-        subscription_ttc_value = float(subscription_ttc or 0.0)
-        maintenance_ttc_value = float(maintenance_ttc or 0.0)
-
-        # Total HT = articles TTC + subscription + maintenance - apport
-        total_ht_value = (
-            articles_ttc + subscription_ttc_value + maintenance_ttc_value - apport
-        )
-        total_ht_value = max(total_ht_value, 0.0)
-
-        # Calculate TTC from HT (multiply by 1.20)
-        total_ttc_value = total_ht_value * 1.20
-
-        # Calculate monthly TTC and round UP to nearest whole number
-        if location_time:
-            monthly_ttc_raw = total_ttc_value / location_time
-            monthly_ttc = math.ceil(monthly_ttc_raw)  # Round up to unit above
-            # Recalculate backwards: monthly HT from rounded monthly TTC
-            monthly_ht = round(monthly_ttc / 1.20, 2)
-        else:
-            monthly_ttc = 0.0
-            monthly_ht = 0.0
-
-        return {
-            "monthly_ht": monthly_ht,
-            "monthly_ttc": monthly_ttc,
-            "total_ht": round(total_ht_value, 2),
-            "total_ttc": round(total_ttc_value, 2),
-            "total_tva": round(total_ttc_value - total_ht_value, 2),
-            "apport": round(apport, 2),
-        }
-
     # Build a minimal map for 20% and 10% showing only total TVA
     # For location scenarios, preserve article VAT breakdown and add subscription/maintenance VAT
     vat_tva_totals = {}
@@ -882,6 +660,10 @@ def get_devis_pdf(devis_id):
 
     logging.info(f"Before scenario check - vat_totals_map: {vat_totals_map}")
     logging.info(f"Selected scenario: {selected_scenario}")
+
+    articles_ttc = sum(bucket["total_ttc"] for bucket in vat_totals_map.values())
+    subscription_ttc_value = float(subscription_ttc or 0.0)
+    maintenance_ttc_value = float(maintenance_ttc or 0.0)
 
     # For location scenarios, recalculate article prices with location pricing
     articles_to_display = devis_data.get("articles", [])
@@ -911,9 +693,21 @@ def get_devis_pdf(devis_id):
 
     if selected_scenario in {"location_without_apport", "location_with_apport"}:
         # Calculate location totals first
-        location_without = _compute_location_totals(0.0)
-        location_with = _compute_location_totals(
-            devis_data.get("first_contribution_amount")
+        location_without = compute_location_display_totals(
+            articles_ttc,
+            subscription_ttc_value,
+            maintenance_ttc_value,
+            0.0,
+            location_time,
+            LOCATION_VAT_RATE,
+        )
+        location_with = compute_location_display_totals(
+            articles_ttc,
+            subscription_ttc_value,
+            maintenance_ttc_value,
+            devis_data.get("first_contribution_amount"),
+            location_time,
+            LOCATION_VAT_RATE,
         )
 
         # Build VAT recap based on articles only
@@ -936,9 +730,21 @@ def get_devis_pdf(devis_id):
 
         payment_options = {
             "direct": {"total_ttc": round(direct_ttc_after_remise, 2)},
-            "location_without_apport": _compute_location_totals(0.0),
-            "location_with_apport": _compute_location_totals(
-                devis_data.get("first_contribution_amount")
+            "location_without_apport": compute_location_display_totals(
+                articles_ttc,
+                subscription_ttc_value,
+                maintenance_ttc_value,
+                0.0,
+                location_time,
+                LOCATION_VAT_RATE,
+            ),
+            "location_with_apport": compute_location_display_totals(
+                articles_ttc,
+                subscription_ttc_value,
+                maintenance_ttc_value,
+                devis_data.get("first_contribution_amount"),
+                location_time,
+                LOCATION_VAT_RATE,
             ),
         }
 
