@@ -9,20 +9,34 @@ import "quill/dist/quill.snow.css";
  */
 const QuillEditor = ({ containerRef, value, onChange, isActive, minHeight = "150px" }) => {
   const quillRef = useRef(null);
+  const parentRef = useRef(null);
   const initialContentLoaded = useRef(false);
 
+  const removeToolbar = (parent) => {
+    if (!parent) return;
+    parent.querySelectorAll(".ql-toolbar").forEach((toolbar) => toolbar.remove());
+  };
+
   useEffect(() => {
-    if (!isActive) return;
     if (!containerRef.current) return;
-    if (quillRef.current) return;
 
     const container = containerRef.current;
     const parent = container.parentElement;
+    parentRef.current = parent || parentRef.current;
 
-    const existingToolbar = parent?.querySelector(".ql-toolbar");
-    if (existingToolbar) {
-      existingToolbar.remove();
+    if (!isActive) {
+      if (quillRef.current) {
+        quillRef.current = null;
+      }
+      removeToolbar(parentRef.current || parent);
+      container.innerHTML = "";
+      initialContentLoaded.current = false;
+      return;
     }
+
+    if (quillRef.current) return;
+
+    removeToolbar(parent);
 
     container.innerHTML = "";
 
@@ -51,7 +65,7 @@ const QuillEditor = ({ containerRef, value, onChange, isActive, minHeight = "150
     } else {
       initialContentLoaded.current = true;
     }
-  }, [isActive, containerRef, onChange]);
+  }, [isActive, containerRef, onChange, value]);
 
   useEffect(() => {
     if (!quillRef.current) return;
@@ -68,6 +82,7 @@ const QuillEditor = ({ containerRef, value, onChange, isActive, minHeight = "150
       if (quillRef.current) {
         quillRef.current = null;
       }
+      removeToolbar(parentRef.current);
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
