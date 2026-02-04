@@ -54,6 +54,7 @@ def add_client():
     code_postal = request.json["code_postal"]
     telephone = request.json["telephone"]
     email = request.json["email"]
+    renovation = request.json.get("renovation", False)
     force = request.json["force"]
 
     error = validate_client_fields(
@@ -81,7 +82,7 @@ def add_client():
         telephone=telephone,
         email=email,
         caduque=False,
-        renovation=False,
+        renovation=renovation,
     )
     db.session.add(new_client)
     db.session.commit()

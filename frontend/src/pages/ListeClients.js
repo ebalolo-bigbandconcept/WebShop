@@ -17,6 +17,7 @@ function ListeClients() {
   const [ville, setVille] = useState("");
   const [tel, setTel] = useState("");
   const [email, setEmail] = useState("");
+  const [renovation, setRenovation] = useState(false);
 
   const [form_submited, setFormSubmited] = useState(false);
   const [first_name_error, setFirstNameError] = useState("");
@@ -184,6 +185,7 @@ function ListeClients() {
           code_postal: code_postal,
           email: email,
           telephone: tel,
+          renovation: renovation,
           force: forceValue,
         })
         .then((resp) => {
@@ -240,6 +242,7 @@ function ListeClients() {
     setVille("");
     setCodePostal("");
     setTel("");
+    setRenovation(false);
     setFormSubmited(false);
     setFirstNameError("");
     setLastNameError("");
@@ -390,6 +393,16 @@ function ListeClients() {
           maxLength={14}
         />
         <div className="invalid-feedback">{tel_error}</div>
+      </div>
+      <div className="form-outline col-6 mt-4">
+        <label className="form-check-label me-2">Rénovation :</label>
+        <input
+          type="checkbox"
+          checked={!!renovation}
+          onChange={(e) => { setRenovation(e.target.checked); }}
+          className="form-check-input"
+          id="renovation"
+        />
       </div>
     </form>
   );
