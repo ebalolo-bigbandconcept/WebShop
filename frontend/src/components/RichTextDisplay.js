@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 /**
  * RichTextDisplay Component
  * A reusable component for displaying rich HTML content with Quill styling.
@@ -18,6 +19,12 @@ const RichTextDisplay = ({ content, fontSize = "1rem", lineHeight = "1.2" }) => 
     );
   }
 
+  const sanitizedContent = DOMPurify.sanitize(content, { 
+    ALLOWED_TAGS: ['p', 'h1', 'h2', 'h3', 'strong', 'b', 'em', 'i', 'u', 's', 'ol', 'ul', 'li', 'a', 'br'],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    KEEP_CONTENT: true
+  });
+
   return (
     <div
       className="quill-content"
@@ -25,7 +32,7 @@ const RichTextDisplay = ({ content, fontSize = "1rem", lineHeight = "1.2" }) => 
         fontSize,
         lineHeight,
       }}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
     />
   );
 };
