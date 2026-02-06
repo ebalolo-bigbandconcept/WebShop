@@ -42,6 +42,8 @@ services:
       - "3000:80"
     volumes:
       - ./proxy/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    profiles:
+      - proxy-only
 
   redis:
     image: redis:7-alpine
