@@ -75,6 +75,21 @@
     padding: 6px 8px;
     text-align: center;
   }
+  /* Article table column widths */
+  th:first-child, td:first-child {
+    width: auto;
+    text-align: left;
+  }
+  th:nth-child(2), td:nth-child(2) {
+    width: 10%;
+    white-space: nowrap;
+  }
+  th:nth-child(3), td:nth-child(3),
+  th:nth-child(4), td:nth-child(4),
+  th:nth-child(5), td:nth-child(5) {
+    width: 12%;
+    white-space: nowrap;
+  }
   th {
     background-color: #4f688b;
     color: white;
@@ -318,6 +333,11 @@
     <tr>
       <th>Désignation</th>
       <th>Quantité</th>
+      {% if selected_scenario == "direct" or (not selected_scenario and not devis.is_location) %}
+      <th>Montant HT</th>
+      <th>Montant TVA</th>
+      <th>Montant TTC</th>
+      {% endif %}
     </tr>
   </thead>
   <tbody>
@@ -335,6 +355,11 @@
         {% endif %}
       </td>
       <td>{{ item.quantite or 0 }}</td>
+      {% if selected_scenario == "direct" or (not selected_scenario and not devis.is_location) %}
+      <td class="right">{{ "{:.2f}".format(item.montant_HT or 0) }}€</td>
+      <td class="right">{{ "{:.2f}".format(item.montant_TVA or 0) }}€</td>
+      <td class="right">{{ "{:.2f}".format(item.montant_TTC or 0) }}€</td>
+      {% endif %}
     </tr>
     {% endfor %}
   </tbody>
