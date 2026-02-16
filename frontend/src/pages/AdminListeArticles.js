@@ -338,7 +338,7 @@ function ListeArticles() {
         <div className="invalid-feedback">{article_nom_error}</div>
       </div>
       <div className="col-12 mt-4">
-        <label className="form-label">Référence</label>
+        <label className="form-label">Désignation</label>
         <div>
           <QuillEditor
             containerRef={referenceEditorRef}
@@ -419,7 +419,7 @@ function ListeArticles() {
 
       <div className="row mb-3 align-items-center">
         <div className="col-md-9">
-          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, référence..."
+          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, désignation..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
         </div>
         <div className="col-md-3">
@@ -447,7 +447,7 @@ function ListeArticles() {
             <tr>
               <th scope="col">#</th>
               <th scope="col">Article</th>
-              <th scope="col">Référence</th>
+              <th scope="col">Désignation</th>
               <th scope="col">Prix d'achat HT</th>
               <th scope="col">Prix de vente HT</th>
               <th scope="col">TVA</th>

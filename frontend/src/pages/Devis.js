@@ -875,7 +875,7 @@ function Devis() {
         <thead>
           <tr>
             <th scope="col">Article</th>
-            <th scope="col">Référence</th>
+            <th scope="col">Désignation</th>
             <th scope="col">Montant u. HT</th>
           </tr>
         </thead>
