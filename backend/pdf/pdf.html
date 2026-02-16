@@ -301,7 +301,8 @@
   <img src="logo.jpg" alt="Artech Sécurité Logo" />
   <div class="header-right">
     <div class="devis-title">{{ devis_title }} N° {{ devis.id }}</div>
-    <div class="date">A Vitry-Le-François, Le {{ devis.date }}</div>
+    {% set devis_date_str = devis.date|string %}
+    <div class="date">A Vitry-Le-François, Le {{ devis_date_str[8:10] }}-{{ devis_date_str[5:7] }}-{{ devis_date_str[0:4] }}</div>
   </div>
 </header>
 
