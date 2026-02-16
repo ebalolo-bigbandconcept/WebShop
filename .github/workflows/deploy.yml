@@ -49,6 +49,12 @@ jobs:
             
             # Pull latest code
             git pull origin main
+
+            # Detect migration changes in this deploy
+            MIGRATIONS_CHANGED=""
+            if git rev-parse --verify ORIG_HEAD >/dev/null 2>&1; then
+              MIGRATIONS_CHANGED=$(git diff --name-only ORIG_HEAD HEAD -- backend/migrations/versions/ || true)
+            fi
             
             # Update .env with secrets
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" > .env
@@ -56,11 +62,13 @@ jobs:
             echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
             # Add other production secrets...
             
-            # Run database migrations
-            docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
-            
             # Deploy with zero-downtime
             docker compose -f docker-compose.prod.yml up -d --build --force-recreate
+
+            # Run database migrations if needed (after the new image is up)
+            if [ -n "$MIGRATIONS_CHANGED" ]; then
+              docker compose -f docker-compose.prod.yml exec -T backend flask db upgrade
+            fi
             
             # Verify deployment
             sleep 10
