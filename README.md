@@ -107,7 +107,7 @@ DOCUSIGN_SERVER_IP=123.456.789.10
 sudo docker compose build
 
 # Démarrer les conteneurs
-sudo docker compose up -d
+sudo docker compose --profile proxy-only up -d
 
 # Initialiser la base de données (première fois seulement)
 sudo docker compose exec backend flask db init
