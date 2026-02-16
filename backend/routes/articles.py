@@ -79,10 +79,16 @@ def add_article():
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    nom = request.json["nom"]
-    reference = request.json["reference"]
-    prix_achat_HT = request.json["prix_achat_HT"]
-    taux_tva = request.json["taux_tva"]
+    payload = request.get_json(force=True) or {}
+    nom = payload["nom"]
+    designation = payload.get("designation")
+    if designation is None:
+        designation = payload.get("reference", "")
+        reference = payload.get("reference_plain", "")
+    else:
+        reference = payload.get("reference", "")
+    prix_achat_HT = payload["prix_achat_HT"]
+    taux_tva = payload["taux_tva"]
 
     if taux_tva is None:
         return jsonify({"error": "Le taux de TVA est requis."}), 400
@@ -104,13 +110,14 @@ def add_article():
     prix_vente_HT = float(prix_achat_HT) * margin_rate
 
     error = validate_article_fields(
-        nom, reference, prix_achat_HT, prix_vente_HT, taux_tva_id
+        nom, designation, reference, prix_achat_HT, prix_vente_HT, taux_tva_id
     )
     if error:
         return jsonify({"error": error}), 400
 
     new_article = Articles(
         nom=nom,
+        designation=designation,
         reference=reference,
         prix_achat_HT=prix_achat_HT,
         prix_vente_HT=prix_vente_HT,
@@ -137,10 +144,16 @@ def modify_article(article_id):
     if not article:
         return jsonify({"error": "Article non trouvé"}), 404
 
-    new_nom = request.json["nom"]
-    new_reference = request.json["reference"]
-    new_prix_achat_HT = request.json["prix_achat_HT"]
-    new_taux_tva = request.json["taux_tva"]
+    payload = request.get_json(force=True) or {}
+    new_nom = payload["nom"]
+    new_designation = payload.get("designation")
+    if new_designation is None:
+        new_designation = payload.get("reference", "")
+        new_reference = payload.get("reference_plain", "")
+    else:
+        new_reference = payload.get("reference", "")
+    new_prix_achat_HT = payload["prix_achat_HT"]
+    new_taux_tva = payload["taux_tva"]
 
     if new_taux_tva is None:
         return jsonify({"error": "Le taux de TVA est requis."}), 400
@@ -160,12 +173,18 @@ def modify_article(article_id):
     new_prix_vente_HT = float(new_prix_achat_HT) * margin_rate
 
     error = validate_article_fields(
-        new_nom, new_reference, new_prix_achat_HT, new_prix_vente_HT, new_taux_tva_id
+        new_nom,
+        new_designation,
+        new_reference,
+        new_prix_achat_HT,
+        new_prix_vente_HT,
+        new_taux_tva_id,
     )
     if error:
         return jsonify({"error": error}), 400
 
     article.nom = new_nom
+    article.designation = new_designation
     article.reference = new_reference
     article.prix_achat_HT = new_prix_achat_HT
     article.prix_vente_HT = new_prix_vente_HT
@@ -229,6 +248,7 @@ def export_articles_pdf():
                 {
                     "id": article.id,
                     "nom": article.nom,
+                    "designation": article.designation,
                     "reference": article.reference,
                     "prix_achat_HT": article.prix_achat_HT,
                     "prix_vente_HT": article.prix_vente_HT,

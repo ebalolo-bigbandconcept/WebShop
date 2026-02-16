@@ -369,7 +369,8 @@ class TestArticleFieldValidation:
         """Test: accepts valid article fields"""
         result = validate_article_fields(
             nom="Caméra Test",
-            reference="CAM-001",
+            designation="CAM-001",
+            reference="REF-001",
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
@@ -380,7 +381,8 @@ class TestArticleFieldValidation:
         """Test: rejects nom < 1 character"""
         result = validate_article_fields(
             nom="",
-            reference="CAM-001",
+            designation="CAM-001",
+            reference="REF-001",
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
@@ -391,7 +393,8 @@ class TestArticleFieldValidation:
         """Test: rejects nom > 200 characters"""
         result = validate_article_fields(
             nom="a" * 201,
-            reference="CAM-001",
+            designation="CAM-001",
+            reference="REF-001",
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
@@ -402,7 +405,8 @@ class TestArticleFieldValidation:
         """Test: rejects negative prix_achat_HT"""
         result = validate_article_fields(
             nom="Caméra Test",
-            reference="CAM-001",
+            designation="CAM-001",
+            reference="REF-001",
             prix_achat_HT=-100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
@@ -414,7 +418,8 @@ class TestArticleFieldValidation:
         """Test: rejects negative prix_vente_HT"""
         result = validate_article_fields(
             nom="Caméra Test",
-            reference="CAM-001",
+            designation="CAM-001",
+            reference="REF-001",
             prix_achat_HT=100.0,
             prix_vente_HT=-150.0,
             taux_tva_id=taux_tva_20.id,
@@ -426,7 +431,8 @@ class TestArticleFieldValidation:
         """Test: rejects non-existent taux_tva_id"""
         result = validate_article_fields(
             nom="Caméra Test",
-            reference="CAM-001",
+            designation="CAM-001",
+            reference="REF-001",
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=99999,  # Non-existent
@@ -438,7 +444,8 @@ class TestArticleFieldValidation:
         """Test: allows zero prices (edge case)"""
         result = validate_article_fields(
             nom="Free Item",
-            reference="FREE-001",
+            designation="FREE-001",
+            reference="REF-FREE-001",
             prix_achat_HT=0.0,
             prix_vente_HT=0.0,
             taux_tva_id=taux_tva_20.id,

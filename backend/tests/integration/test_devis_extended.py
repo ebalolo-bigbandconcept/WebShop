@@ -89,7 +89,8 @@ class TestDevisRetrievalExtended:
                 {
                     "article_id": 1,
                     "nom": "Test Article",
-                    "reference": "REF-001",
+                    "designation": "REF-001",
+                    "reference": "REF-PLAIN-001",
                     "quantite": 1,
                     "taux_tva": 0.2,
                     "montant_ht": 100.0,

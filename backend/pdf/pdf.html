@@ -348,8 +348,8 @@
     <tr>
       <td class="left-align">
         <strong>{{ designation }}</strong>
-        {% if item.article.reference %}
-        <div class="article-reference">{{ item.article.reference | safe }}</div>
+        {% if item.article.designation %}
+        <div class="article-reference">{{ item.article.designation | safe }}</div>
         {% endif %}
         {% if item.commentaire %}
         <div class="line-comment">{{ item.commentaire | safe }}</div>

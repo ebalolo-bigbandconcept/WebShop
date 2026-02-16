@@ -104,13 +104,19 @@ def get_devis_info(devis_id):
         # Reconstruct articles from snapshot
         articles_data = []
         for line in snapshot.get("lines", []):
+            has_designation = "designation" in line
+            designation_value = (
+                line.get("designation") if has_designation else line.get("reference")
+            )
+            reference_value = line.get("reference") if has_designation else ""
             articles_data.append(
                 {
                     "id": line.get("article_id"),
                     "article": {
                         "id": line.get("article_id"),
                         "nom": line.get("nom"),
-                        "reference": line.get("reference"),
+                        "designation": designation_value,
+                        "reference": reference_value,
                     },
                     "quantite": line.get("quantite"),
                     "taux_tva": {"taux": line.get("taux_tva")},
@@ -400,6 +406,7 @@ def update_devis(devis_id):
                     {
                         "article_id": article_obj.id,
                         "nom": article_obj.nom,
+                        "designation": article_obj.designation,
                         "reference": article_obj.reference,
                         "quantite": qty,
                         "taux_tva": taux_val,

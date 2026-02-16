@@ -372,6 +372,7 @@ class TestPDFEdgeCases:
         # Create another article with 10% VAT
         article_10 = Articles(
             nom="Produit 10%",
+            designation="REF-10PCT",
             reference="REF-10PCT",
             prix_achat_HT=50.0,
             prix_vente_HT=100.0,

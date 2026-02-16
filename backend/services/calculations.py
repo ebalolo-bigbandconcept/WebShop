@@ -102,6 +102,7 @@ def compute_article_lines(articles_data, articles_map, is_location=False):
             {
                 "article_id": article_obj.id,
                 "nom": article_obj.nom,
+                "designation": article_obj.designation,
                 "reference": article_obj.reference,
                 "quantite": qty,
                 "unit_price_ht": unit_price,

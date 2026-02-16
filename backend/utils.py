@@ -59,14 +59,16 @@ def validate_client_fields(
 
 def validate_article_fields(
     nom: str,
-    reference: str,
+    designation: str,
+    reference: Optional[str],
     prix_achat_HT: float,
     prix_vente_HT: float,
     taux_tva_id: int,
 ) -> Optional[str]:
     if len(nom) < 1 or len(nom) > 200:
         return "Le nom de l'article doit contenir entre 1 et 200 caractères."
-    # Reference becomes optional; allow empty string
+    if reference is not None and len(reference) > 200:
+        return "La référence doit contenir au maximum 200 caractères."
     if float(prix_achat_HT) < 0:
         return "Le prix d'achat HT ne peut pas être négatif."
     if float(prix_vente_HT) < 0:

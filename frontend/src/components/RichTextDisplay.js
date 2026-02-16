@@ -3,7 +3,12 @@ import DOMPurify from "dompurify";
  * RichTextDisplay Component
  * A reusable component for displaying rich HTML content with Quill styling.
  */
-const RichTextDisplay = ({ content, fontSize = "1rem", lineHeight = "1.2" }) => {
+const RichTextDisplay = ({
+  content,
+  fontSize = "1rem",
+  lineHeight = "1.2",
+  emptyText = "Aucun commentaire",
+}) => {
   if (!content || content.trim() === "" || content === "<p><br></p>") {
     return (
       <div
@@ -14,7 +19,7 @@ const RichTextDisplay = ({ content, fontSize = "1rem", lineHeight = "1.2" }) => 
           fontStyle: "italic",
         }}
       >
-        Aucun commentaire
+        {emptyText}
       </div>
     );
   }

@@ -394,6 +394,7 @@ def create_devis_signed_snapshot(devis):
                 {
                     "article_id": article_obj.id if article_obj else article.article_id,
                     "nom": getattr(article_obj, "nom", ""),
+                    "designation": getattr(article_obj, "designation", ""),
                     "reference": getattr(article_obj, "reference", ""),
                     "quantite": qty,
                     "taux_tva": taux_val,

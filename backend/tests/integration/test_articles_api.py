@@ -64,7 +64,8 @@ class TestArticlesCreate:
             "/api/articles/create",
             json={
                 "nom": "Test Article",
-                "reference": "TEST-001",
+                "designation": "TEST-001",
+                "reference": "REF-001",
                 "prix_achat_HT": 100.0,
                 "taux_tva": 20.0,
             },
@@ -80,7 +81,8 @@ class TestArticlesCreate:
             "/api/articles/create",
             json={
                 "nom": "New Article",
-                "reference": "NEW-001",
+                "designation": "NEW-001",
+                "reference": "REF-NEW-001",
                 "prix_achat_HT": 100.0,
                 "taux_tva": 20.0,
             },
@@ -97,7 +99,8 @@ class TestArticlesCreate:
             "/api/articles/create",
             json={
                 "nom": "Article sans TVA",
-                "reference": "NO-TVA-001",
+                "designation": "NO-TVA-001",
+                "reference": "REF-NO-TVA-001",
                 "prix_achat_HT": 100.0,
                 "taux_tva": None,
             },
@@ -118,7 +121,8 @@ class TestArticlesUpdate:
             f"/api/articles/update/{test_article.id}",
             json={
                 "nom": "Updated Article",
-                "reference": "UPD-001",
+                "designation": "UPD-001",
+                "reference": "REF-UPD-001",
                 "prix_achat_HT": 150.0,
                 "taux_tva": 20.0,
             },
@@ -134,7 +138,8 @@ class TestArticlesUpdate:
             f"/api/articles/update/{test_article.id}",
             json={
                 "nom": "Updated Article Name",
-                "reference": "UPD-REF",
+                "designation": "UPD-REF",
+                "reference": "REF-UPD-REF",
                 "prix_achat_HT": 200.0,
                 "taux_tva": 20.0,
             },
@@ -152,7 +157,8 @@ class TestArticlesUpdate:
             "/api/articles/update/99999",
             json={
                 "nom": "Test",
-                "reference": "TEST",
+                "designation": "TEST",
+                "reference": "REF-TEST",
                 "prix_achat_HT": 100.0,
                 "taux_tva": 20.0,
             },
@@ -167,7 +173,8 @@ class TestArticlesUpdate:
             f"/api/articles/update/{test_article.id}",
             json={
                 "nom": "Article sans TVA",
-                "reference": "NO-TVA",
+                "designation": "NO-TVA",
+                "reference": "REF-NO-TVA",
                 "prix_achat_HT": 100.0,
                 "taux_tva": None,
             },
@@ -200,7 +207,8 @@ class TestArticlesDelete:
         # Create an article to delete
         article = Articles(
             nom="Article to Delete",
-            reference="DEL-001",
+            designation="DEL-001",
+            reference="REF-DEL-001",
             prix_achat_HT=100.0,
             prix_vente_HT=120.0,
             taux_tva_id=tva.id,

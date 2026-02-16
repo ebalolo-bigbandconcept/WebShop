@@ -223,7 +223,8 @@ def test_article(db_session, taux_tva_20):
     """
     article = Articles(
         nom="Caméra Test",
-        reference="CAM-001",
+        designation="CAM-001",
+        reference="REF-001",
         prix_achat_HT=100.0,
         prix_vente_HT=150.0,
         taux_tva_id=taux_tva_20.id,
@@ -246,7 +247,8 @@ def test_article_2(db_session, taux_tva_10):
     """
     article = Articles(
         nom="Installation",
-        reference="INST-001",
+        designation="INST-001",
+        reference="REF-002",
         prix_achat_HT=50.0,
         prix_vente_HT=75.0,
         taux_tva_id=taux_tva_10.id,
@@ -373,6 +375,7 @@ def signed_devis(db_session, test_devis):
         snapshot_data["articles"].append(
             {
                 "nom": article.article.nom,
+                "designation": article.article.designation,
                 "reference": article.article.reference,
                 "quantite": article.quantite,
                 "prix_unitaire_ht": float(article.article.prix_vente_HT),

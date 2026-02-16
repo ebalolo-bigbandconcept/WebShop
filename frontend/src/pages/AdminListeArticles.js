@@ -13,6 +13,7 @@ function ListeArticles() {
 
   const [form_submited, setFormSubmited] = useState(false);
   const [article_nom, setArticleNom] = useState(null);
+  const [article_designation, setArticleDesignation] = useState("");
   const [article_reference, setArticleReference] = useState("");
   const [article_prix_achat_HT, setArticlePrixAchatHT] = useState(null);
   const [article_taux_tva, setArticleTauxTVA] = useState(0.20);
@@ -31,7 +32,7 @@ function ListeArticles() {
   const [CREATE, setCREATE] = useState(false);
 
   const modalRef = useRef(null);
-  const referenceEditorRef = useRef(null);
+  const designationEditorRef = useRef(null);
 
   // Filter and Pagination state
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -52,6 +53,10 @@ function ListeArticles() {
   
   const articleReferenceVerif = async (value) => {
     // Reference is optional
+    if (value && value.length > 200) {
+      setArticleReferenceError("La référence doit contenir au maximum 200 caractères");
+      return false;
+    }
     setArticleReferenceError("");
     return true;
   }
@@ -96,6 +101,7 @@ function ListeArticles() {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/articles/create`, {
           nom: article_nom,
+          designation: article_designation,
           reference: article_reference,
           prix_achat_HT: article_prix_achat_HT,
           taux_tva: article_taux_tva,
@@ -126,7 +132,8 @@ function ListeArticles() {
       .then((resp) => {
         setArticleId(resp.data.id);
         setArticleNom(resp.data.nom);
-        setArticleReference(resp.data.reference);
+        setArticleDesignation(resp.data.designation || "");
+        setArticleReference(resp.data.reference || "");
         setArticlePrixAchatHT(String(resp.data.prix_achat_HT).replace('.', ','));
         setArticleTauxTVA(resp.data.taux_tva.taux);
         showModal();
@@ -152,6 +159,7 @@ function ListeArticles() {
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/articles/update/${article_id}`, {
           nom: article_nom,
+          designation: article_designation,
           reference: article_reference,
           prix_achat_HT: article_prix_achat_HT,
           taux_tva: article_taux_tva,
@@ -252,6 +260,7 @@ function ListeArticles() {
     modalRef.current && modalRef.current.close();
     setFormSubmited(false);
     setArticleNom("");
+    setArticleDesignation("");
     setArticleReference("");
     setArticlePrixAchatHT("");
     setArticleTauxTVA(0.20);
@@ -289,8 +298,9 @@ function ListeArticles() {
 
     if (searchTerm) {
         currentArticles = currentArticles.filter(art => 
-            art.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            art.reference.toLowerCase().includes(searchTerm.toLowerCase())
+        (art.nom || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (art.designation || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (art.reference || "").toLowerCase().includes(searchTerm.toLowerCase())
         );
     }
 
@@ -341,13 +351,27 @@ function ListeArticles() {
         <label className="form-label">Désignation</label>
         <div>
           <QuillEditor
-            containerRef={referenceEditorRef}
-            value={article_reference}
-            onChange={setArticleReference}
+            containerRef={designationEditorRef}
+            value={article_designation}
+            onChange={setArticleDesignation}
             isActive={CREATE || MODIFY}
             minHeight="200px"
           />
         </div>
+      </div>
+      <div className="col-12 mt-4">
+        <label className="form-label">Référence</label>
+        <input
+          type="text"
+          value={article_reference}
+          onChange={(e) => {
+            setArticleReference(e.target.value);
+            articleReferenceVerif(e.target.value);
+          }}
+          className={`form-control form-control-lg ${article_reference_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
+          placeholder="Référence (max 200 caractères)"
+          maxLength={200}
+        />
         <div className="invalid-feedback">{article_reference_error}</div>
       </div>
       <div className="form-outline col-6 mt-4">
@@ -419,7 +443,7 @@ function ListeArticles() {
 
       <div className="row mb-3 align-items-center">
         <div className="col-md-9">
-          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, désignation..."
+          <input type="text" className="form-control form-control-lg" placeholder="Rechercher par nom, désignation, référence..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
         </div>
         <div className="col-md-3">
@@ -448,6 +472,7 @@ function ListeArticles() {
               <th scope="col">#</th>
               <th scope="col">Article</th>
               <th scope="col">Désignation</th>
+              <th scope="col">Référence</th>
               <th scope="col">Prix d'achat HT</th>
               <th scope="col">Prix de vente HT</th>
               <th scope="col">TVA</th>
@@ -460,7 +485,8 @@ function ListeArticles() {
                 <tr key={article.id} onClick={() => {handleModifyArticle(article.id)}}>
                   <td>{article.id}</td>
                   <td>{article.nom}</td>
-                  <td><RichTextDisplay content={article.reference} lineHeight="1.2" /></td>
+                  <td><RichTextDisplay content={article.designation} lineHeight="1.2" emptyText="Aucune désignation" /></td>
+                  <td>{article.reference}</td>
                   <td>{article.prix_achat_HT} €</td>
                   <td>{article.prix_vente_HT} €</td>
                   <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>

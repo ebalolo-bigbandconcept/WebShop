@@ -709,8 +709,9 @@ function Devis() {
 
       if (articleSearchTerm) {
         currentArticles = currentArticles.filter(art =>
-          art.nom.toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
-          art.description.toLowerCase().includes(articleSearchTerm.toLowerCase())
+          (art.nom || "").toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
+          (art.designation || "").toLowerCase().includes(articleSearchTerm.toLowerCase()) ||
+          (art.reference || "").toLowerCase().includes(articleSearchTerm.toLowerCase())
         );
       }
 
@@ -850,7 +851,7 @@ function Devis() {
           <input
             type="text"
             className="form-control form-control-lg"
-            placeholder="Rechercher par nom, description..."
+            placeholder="Rechercher par nom, désignation, référence..."
             value={articleSearchTerm}
             onChange={(e) => setArticleSearchTerm(e.target.value)}
           />
@@ -876,6 +877,7 @@ function Devis() {
           <tr>
             <th scope="col">Article</th>
             <th scope="col">Désignation</th>
+            <th scope="col">Référence</th>
             <th scope="col">Montant u. HT</th>
           </tr>
         </thead>
@@ -888,13 +890,14 @@ function Devis() {
                 onClick={() => { setArticleSelected(article); }}
               >
                 <td>{article.nom}</td>
-                <td><div dangerouslySetInnerHTML={{ __html: article.reference || "" }} style={{ lineHeight: '1.2' }} className="quill-content" /></td>
+                <td><div dangerouslySetInnerHTML={{ __html: article.designation || "" }} style={{ lineHeight: '1.2' }} className="quill-content" /></td>
+                <td>{article.reference || ""}</td>
                 <td>{article.prix_vente_HT?.toFixed(2) || '0.00'} €</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={3}>Aucun articles trouvé</td>
+              <td colSpan={4}>Aucun articles trouvé</td>
             </tr>
           )}
         </tbody>
