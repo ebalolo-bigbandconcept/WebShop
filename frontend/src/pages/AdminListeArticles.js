@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
-import { Trash3Fill, PlusLg, Download } from "react-bootstrap-icons";
+import { Trash3Fill, PlusLg, Download, Upload } from "react-bootstrap-icons";
 import QuillEditor from "../components/QuillEditor";
 import RichTextDisplay from "../components/RichTextDisplay";
 
@@ -26,6 +26,9 @@ function ListeArticles() {
 
   const { showToast } = useToast();
 
+  const [importing, setImporting] = useState(false);
+  const [importSummary, setImportSummary] = useState(null);
+
   // Modal state
   const [MODIFY, setMODIFY] = useState(false);
   const [DELETE, setDELETE] = useState(false);
@@ -33,6 +36,7 @@ function ListeArticles() {
 
   const modalRef = useRef(null);
   const designationEditorRef = useRef(null);
+  const importInputRef = useRef(null);
 
   // Filter and Pagination state
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -214,6 +218,49 @@ function ListeArticles() {
     }
   }
 
+  const handleImportClick = () => {
+    importInputRef.current && importInputRef.current.click();
+  };
+
+  const handleImportFileChange = async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      showToast({ message: "Veuillez selectionner un fichier .xlsx", variant: "warning" });
+      event.target.value = "";
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setImporting(true);
+    setImportSummary(null);
+    try {
+      const response = await httpClient.post(
+        `${process.env.REACT_APP_BACKEND_URL}/articles/import-xlsx`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      const summary = response.data || {};
+      setImportSummary(summary);
+      showToast({
+        message: `Import termine: ${summary.imported || 0} importes, ${(summary.skipped || []).length} ignores, ${(summary.errors || []).length} erreurs`,
+        variant: "success",
+      });
+      getAllArticles();
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || "Erreur lors de l'import";
+      showToast({ message: errorMessage, variant: "danger" });
+    } finally {
+      setImporting(false);
+      event.target.value = "";
+    }
+  };
+
   const deleteArticle = async () => {
     httpClient
       .delete(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${article_id}`)
@@ -322,6 +369,16 @@ function ListeArticles() {
   useEffect(() => {
     setCurrentPage(1);
   }, [itemsPerPage]);
+
+  useEffect(() => {
+    if (!importSummary) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      setImportSummary(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [importSummary]);
 
   const modalTitle = CREATE
     ? "Ajouter un nouvel article."
@@ -460,11 +517,55 @@ function ListeArticles() {
         </div>
       </div>
       <div className="d-flex justify-content-end w-100 gap-2">
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".xlsx"
+          onChange={handleImportFileChange}
+          style={{ display: "none" }}
+        />
+        <button className="btn btn-lg btn-secondary mt-4" onClick={handleImportClick} disabled={importing}>
+          <Upload className="me-1" /> {importing ? "Import en cours..." : "Importer Excel"}
+        </button>
         <button className="btn btn-lg btn-info mt-4" onClick={exportArticlesPDF}><Download className="me-1" /> Exporter</button>
         <button className="btn btn-lg btn-success mt-4" onClick={handleCreateArticle}>
           <PlusLg className="me-1" /> Ajouter un nouvel article
         </button>
       </div>
+      {importSummary && (
+        <div className="alert alert-secondary mt-3" role="status">
+          <div className="fw-bold">Import Excel</div>
+          <div>
+            Importés: {importSummary.imported || 0} | Ignorés: {(importSummary.skipped || []).length} | Erreurs: {(importSummary.errors || []).length}
+          </div>
+          {(importSummary.errors || []).length > 0 && (
+            <div className="mt-2">
+              <div className="fw-bold">Erreurs (aperçu)</div>
+              <ul className="mb-0">
+                {importSummary.errors.slice(0, 5).map((err, idx) => (
+                  <li key={`err-${idx}`}>Ligne {err.row}: {err.error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {(importSummary.skipped || []).length > 0 && (
+            <div className="mt-2">
+              <div className="fw-bold">Ignores (aperçu)</div>
+              <ul className="mb-0">
+                {Object.entries(
+                  (importSummary.skipped || []).reduce((acc, item) => {
+                    const reason = item.reason || "Raison inconnue";
+                    acc[reason] = (acc[reason] || 0) + 1;
+                    return acc;
+                  }, {})
+                ).map(([reason, count]) => (
+                  <li key={reason}>{reason}: {count}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
       <div className="table-responsive-md">
         <table className="table table-hover table-striped mt-4">
           <thead>

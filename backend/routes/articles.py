@@ -1,8 +1,12 @@
+import io
 import logging
 import os
+import re
+import unicodedata
 from datetime import datetime
 
 from flask import Blueprint, jsonify, make_response, render_template, request, session
+from openpyxl import load_workbook
 from weasyprint import HTML
 
 from models import Articles, ArticlesSchema, Parameters, TauxTVA, db
@@ -281,3 +285,181 @@ def export_articles_pdf():
     except Exception as e:
         logging.error(f"Error generating articles PDF: {e}")
         return jsonify({"error": "Erreur lors de la génération du PDF"}), 500
+
+
+@articles_bp.route("/import-xlsx", methods=["POST"])
+def import_articles_xlsx():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    upload = request.files.get("file")
+    if not upload or upload.filename == "":
+        return jsonify({"error": "Fichier Excel manquant."}), 400
+
+    filename = upload.filename.lower()
+    if not filename.endswith(".xlsx"):
+        return jsonify({"error": "Format de fichier invalide. Utilisez un .xlsx."}), 400
+
+    try:
+        workbook = load_workbook(io.BytesIO(upload.read()), data_only=True)
+    except Exception:
+        return jsonify({"error": "Fichier Excel illisible."}), 400
+
+    worksheet = workbook.active
+    rows = list(worksheet.iter_rows(values_only=True))
+    if not rows:
+        return jsonify({"error": "Fichier Excel vide."}), 400
+
+    def normalize_header(value):
+        if value is None:
+            return ""
+        text = str(value).strip().lower()
+        text = unicodedata.normalize("NFKD", text)
+        text = "".join(ch for ch in text if not unicodedata.combining(ch))
+        text = re.sub(r"[^a-z0-9]+", " ", text)
+        return " ".join(text.split())
+
+    def parse_price(value):
+        if value is None:
+            raise ValueError("Prix d'achat HT manquant")
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            cleaned = value.strip().replace(" ", "").replace("\u00a0", "").replace(",", ".")
+            if cleaned == "":
+                raise ValueError("Prix d'achat HT manquant")
+            return float(cleaned)
+        raise ValueError("Prix d'achat HT invalide")
+
+    if len(rows) < 5:
+        return jsonify({"error": "Fichier Excel incomplet."}), 400
+
+    header_row = rows[4]
+    header_map = {}
+    expected = {
+        "reference": "reference",
+        "nom de l article": "nom",
+        "prix achat ht": "prix_achat_HT",
+    }
+
+    for idx, cell in enumerate(header_row):
+        normalized = normalize_header(cell)
+        if normalized in expected and expected[normalized] not in header_map:
+            header_map[expected[normalized]] = idx
+
+    missing = [label for label in ("reference", "nom", "prix_achat_HT") if label not in header_map]
+    if missing:
+        return jsonify({
+            "error": "Colonnes manquantes dans le fichier Excel.",
+            "missing_columns": missing,
+        }), 400
+
+    tva_obj = TauxTVA.query.filter_by(taux=0.20).first()
+    if not tva_obj:
+        tva_obj = TauxTVA.query.order_by(TauxTVA.id.asc()).first()
+    if not tva_obj:
+        return jsonify({"error": "Aucun taux de TVA disponible."}), 400
+
+    params = Parameters.query.first()
+    margin_rate = params.margin_rate if params else 0.0
+
+    parsed_rows = []
+    row_errors = []
+
+    for row_index, row in enumerate(rows[5:], start=6):
+        if row is None or all(cell in (None, "") for cell in row):
+            continue
+
+        reference_raw = row[header_map["reference"]] if header_map.get("reference") is not None else None
+        nom_raw = row[header_map["nom"]] if header_map.get("nom") is not None else None
+        prix_raw = row[header_map["prix_achat_HT"]] if header_map.get("prix_achat_HT") is not None else None
+
+        reference = str(reference_raw).strip() if reference_raw is not None else ""
+        nom = str(nom_raw).strip() if nom_raw is not None else ""
+
+        if not reference:
+            row_errors.append({"row": row_index, "error": "Référence manquante"})
+            continue
+        if not nom:
+            row_errors.append({"row": row_index, "error": "Nom de l'article manquant"})
+            continue
+        try:
+            prix_achat_ht = parse_price(prix_raw)
+        except (TypeError, ValueError) as exc:
+            row_errors.append({"row": row_index, "error": str(exc)})
+            continue
+
+        parsed_rows.append({
+            "row": row_index,
+            "reference": reference,
+            "nom": nom,
+            "prix_achat_HT": prix_achat_ht,
+        })
+
+    existing_refs = set()
+    incoming_refs = {item["reference"] for item in parsed_rows if item["reference"]}
+    if incoming_refs:
+        existing_refs = {
+            item.reference
+            for item in Articles.query.filter(Articles.reference.in_(incoming_refs)).all()
+            if item.reference
+        }
+
+    skipped = []
+    imported = 0
+    seen_refs = set()
+
+    for item in parsed_rows:
+        reference = item["reference"]
+        if reference in seen_refs:
+            skipped.append({"row": item["row"], "reference": reference, "reason": "Doublon dans le fichier"})
+            continue
+        seen_refs.add(reference)
+
+        if reference in existing_refs:
+            skipped.append({"row": item["row"], "reference": reference, "reason": "Référence déjà existante"})
+            continue
+
+        prix_vente_ht = float(item["prix_achat_HT"]) * margin_rate
+        designation = ""
+
+        error = validate_article_fields(
+            item["nom"],
+            designation,
+            reference,
+            item["prix_achat_HT"],
+            prix_vente_ht,
+            tva_obj.id,
+        )
+        if error:
+            row_errors.append({"row": item["row"], "error": error})
+            continue
+
+        new_article = Articles(
+            nom=item["nom"],
+            designation=designation,
+            reference=reference,
+            prix_achat_HT=item["prix_achat_HT"],
+            prix_vente_HT=prix_vente_ht,
+            taux_tva_id=tva_obj.id,
+        )
+        db.session.add(new_article)
+        imported += 1
+
+    if imported:
+        db.session.commit()
+
+    logging.info(
+        "Import articles Excel: %s importes, %s ignores, %s erreurs (utilisateur %s)",
+        imported,
+        len(skipped),
+        len(row_errors),
+        user_id,
+    )
+
+    return jsonify({
+        "imported": imported,
+        "skipped": skipped,
+        "errors": row_errors,
+    })
