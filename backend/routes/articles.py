@@ -326,7 +326,9 @@ def import_articles_xlsx():
         if isinstance(value, (int, float)):
             return float(value)
         if isinstance(value, str):
-            cleaned = value.strip().replace(" ", "").replace("\u00a0", "").replace(",", ".")
+            cleaned = (
+                value.strip().replace(" ", "").replace("\u00a0", "").replace(",", ".")
+            )
             if cleaned == "":
                 raise ValueError("Prix d'achat HT manquant")
             return float(cleaned)
@@ -348,12 +350,21 @@ def import_articles_xlsx():
         if normalized in expected and expected[normalized] not in header_map:
             header_map[expected[normalized]] = idx
 
-    missing = [label for label in ("reference", "nom", "prix_achat_HT") if label not in header_map]
+    missing = [
+        label
+        for label in ("reference", "nom", "prix_achat_HT")
+        if label not in header_map
+    ]
     if missing:
-        return jsonify({
-            "error": "Colonnes manquantes dans le fichier Excel.",
-            "missing_columns": missing,
-        }), 400
+        return (
+            jsonify(
+                {
+                    "error": "Colonnes manquantes dans le fichier Excel.",
+                    "missing_columns": missing,
+                }
+            ),
+            400,
+        )
 
     tva_obj = TauxTVA.query.filter_by(taux=0.20).first()
     if not tva_obj:
@@ -371,9 +382,17 @@ def import_articles_xlsx():
         if row is None or all(cell in (None, "") for cell in row):
             continue
 
-        reference_raw = row[header_map["reference"]] if header_map.get("reference") is not None else None
+        reference_raw = (
+            row[header_map["reference"]]
+            if header_map.get("reference") is not None
+            else None
+        )
         nom_raw = row[header_map["nom"]] if header_map.get("nom") is not None else None
-        prix_raw = row[header_map["prix_achat_HT"]] if header_map.get("prix_achat_HT") is not None else None
+        prix_raw = (
+            row[header_map["prix_achat_HT"]]
+            if header_map.get("prix_achat_HT") is not None
+            else None
+        )
 
         reference = str(reference_raw).strip() if reference_raw is not None else ""
         nom = str(nom_raw).strip() if nom_raw is not None else ""
@@ -390,19 +409,23 @@ def import_articles_xlsx():
             row_errors.append({"row": row_index, "error": str(exc)})
             continue
 
-        parsed_rows.append({
-            "row": row_index,
-            "reference": reference,
-            "nom": nom,
-            "prix_achat_HT": prix_achat_ht,
-        })
+        parsed_rows.append(
+            {
+                "row": row_index,
+                "reference": reference,
+                "nom": nom,
+                "prix_achat_HT": prix_achat_ht,
+            }
+        )
 
     existing_refs = set()
     incoming_refs = {item["reference"] for item in parsed_rows if item["reference"]}
     if incoming_refs:
         existing_refs = {
             item.reference
-            for item in Articles.query.filter(Articles.reference.in_(incoming_refs)).all()
+            for item in Articles.query.filter(
+                Articles.reference.in_(incoming_refs)
+            ).all()
             if item.reference
         }
 
@@ -413,12 +436,24 @@ def import_articles_xlsx():
     for item in parsed_rows:
         reference = item["reference"]
         if reference in seen_refs:
-            skipped.append({"row": item["row"], "reference": reference, "reason": "Doublon dans le fichier"})
+            skipped.append(
+                {
+                    "row": item["row"],
+                    "reference": reference,
+                    "reason": "Doublon dans le fichier",
+                }
+            )
             continue
         seen_refs.add(reference)
 
         if reference in existing_refs:
-            skipped.append({"row": item["row"], "reference": reference, "reason": "Référence déjà existante"})
+            skipped.append(
+                {
+                    "row": item["row"],
+                    "reference": reference,
+                    "reason": "Référence déjà existante",
+                }
+            )
             continue
 
         prix_vente_ht = float(item["prix_achat_HT"]) * margin_rate
@@ -458,8 +493,10 @@ def import_articles_xlsx():
         user_id,
     )
 
-    return jsonify({
-        "imported": imported,
-        "skipped": skipped,
-        "errors": row_errors,
-    })
+    return jsonify(
+        {
+            "imported": imported,
+            "skipped": skipped,
+            "errors": row_errors,
+        }
+    )
