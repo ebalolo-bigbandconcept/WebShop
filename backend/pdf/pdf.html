@@ -6,12 +6,13 @@
 <style>
   @page {
     size: A4;
-    margin: 1cm;
+    margin: 1cm 1cm 2cm 1cm;
   }
   body {
     font-family: Arial, sans-serif;
     font-size: 12px;
     color: #222;
+    padding-bottom: 40px;
   }
 
   /* Container for header */
@@ -20,6 +21,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
+    page-break-inside: avoid;
   }
   .header img {
     height: 60px;
@@ -40,6 +42,7 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 15px;
+    page-break-inside: avoid;
   }
   .info-box {
     width: 48%;
@@ -53,6 +56,7 @@
     margin-bottom: 15px;
     font-size: 11px;
     line-height: 1.3;
+    page-break-inside: avoid;
   }
   .contact-legal a {
     color: #0072c6;
@@ -63,12 +67,19 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     font-size: 12px;
   }
   table th:last-child, table td:last-child {
     width: 1%;
     white-space: nowrap;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   th, td {
     border: 1px solid #000;
@@ -166,6 +177,9 @@
     float: right;
     border: none;
     border-collapse: collapse;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 20px;
   }
   .totals td {
     border: 1px solid #000;
@@ -189,6 +203,8 @@
   /* VAT recap table (no bold last row) */
   .vat-recap {
     border-collapse: collapse;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   .vat-recap td, .vat-recap th {
     border: 1px solid #000;
@@ -207,6 +223,8 @@
     line-height: 1.4;
     text-decoration: underline;
     text-align: justify;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
   .vat-note em {
     font-style: italic;
@@ -219,6 +237,7 @@
     border-collapse: collapse;
     margin-bottom: 15px;
     margin-top: 20px;
+    page-break-inside: avoid;
   }
   .payment-options td, .payment-options th {
     border: 1px solid #000;
@@ -243,6 +262,7 @@
     margin-top: 20px;
     width: 30%;
     clear: both;
+    page-break-inside: avoid;
   }
   .location-box table {
     width: 100%;
@@ -263,35 +283,34 @@
     text-align: right;
   }
 
-  /* Footer with page number */
+  /* Footer */
   footer {
-    position: fixed;
-    bottom: 10px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
+    margin-top: 20px;
+    padding: 10px 0;
     font-size: 11px;
     color: #555;
+    text-align: center;
+    border-top: 1px solid #ddd;
+    page-break-inside: avoid;
   }
   .footer-center {
-    flex: 1;
     text-align: center;
   }
-  .footer-right {
-    text-align: right;
-    white-space: nowrap;
+
+  /* General conditions section */
+  .general-conditions {
+    margin-top: 30px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    clear: both;
   }
-  .page-number:before {
-    content: "Page ";
+  .general-conditions p {
+    margin: 5px 0;
   }
-  .page-number:after {
-    content: counter(page);
-  }
-  @page {
-    counter-reset: page 1;
+
+  .bottom-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 </style>
 </head>
@@ -366,7 +385,8 @@
   </tbody>
 </table>
 
-<table class="vat-recap" style="width: 30%; float: left;">
+<div style="page-break-inside: avoid;">
+<table class="vat-recap" style="width: 30%; float: left; page-break-inside: avoid;">
   <tr>
     <th colspan="2"><strong>Récapitulatif TVA</strong></th>
   </tr>
@@ -384,7 +404,7 @@
 
 {% if selected_scenario == "direct" or (not selected_scenario and not devis.is_location) %}
 {# Direct payment devis - show totals table only #}
-<table class="totals">
+<table class="totals" style="page-break-inside: avoid;">
   <tr>
     <td>Total Hors Taxes</td>
     <td>{{ "{:.2f}".format(devis.montant_HT or 0) }}€</td>
@@ -408,18 +428,21 @@
   </tr>
   {% endif %}
 </table>
+</div>
 {% elif selected_scenario == "location_without_apport" %}
 {# Location without apport scenario #}
-<div class="totals" style="float: right; width: 35%; border: none;">
+<div class="totals" style="float: right; width: 35%; border: none; page-break-inside: avoid;">
   <table style="width: 100%; border-collapse: collapse;">
     <tr><th colspan="2" style="background-color: #4f688b; color: white; text-align: center; border: 1px solid #000; padding: 6px 8px;">Location sans apport<br>({{ location_time }} mois)</th></tr>
     <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Mensuel HT</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ht or 0) }} €</td></tr>
     <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;"><strong>Mensuel TTC</strong></td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;"><strong>{{ "{:.2f}".format(payment_options.location_without_apport.monthly_ttc or 0) }} €</strong></td></tr>
   </table>
 </div>
+</div>
 {% elif selected_scenario == "location_with_apport" %}
 {# Location with apport scenario #}
-<div class="totals" style="float: right; width: 35%; border: none;">
+<div style="page-break-inside: avoid;">
+<div class="totals" style="float: right; width: 35%; border: none; page-break-inside: avoid;">
   <table style="width: 100%; border-collapse: collapse;">
     <tr><th colspan="2" style="background-color: #4f688b; color: white; text-align: center; border: 1px solid #000; padding: 6px 8px;">Location avec apport<br>({{ location_time }} mois)</th></tr>
     <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Apport</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(payment_options.location_with_apport.apport or 0) }} €</td></tr>
@@ -427,9 +450,11 @@
     <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;"><strong>Mensuel TTC</strong></td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;"><strong>{{ "{:.2f}".format(payment_options.location_with_apport.monthly_ttc or 0) }} €</strong></td></tr>
   </table>
 </div>
+</div>
 {% elif devis.is_location %}
 {# Location devis without scenario #}
-<div class="totals" style="float: right; width: 35%; border: none;">
+<div style="page-break-inside: avoid;">
+<div class="totals" style="float: right; width: 35%; border: none; page-break-inside: avoid;">
   <table style="width: 100%; border-collapse: collapse;">
     <tr><th colspan="2" style="background-color: #4f688b; color: white; text-align: center; border: 1px solid #000; padding: 6px 8px;">Location</th></tr>
     <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Durée</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ location_time }} mois</td></tr>
@@ -437,6 +462,7 @@
     <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;">Mensuel</td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;">{{ "{:.2f}".format(devis.location_monthly_total or 0) }} €</td></tr>
     <tr><td style="border: 1px solid #000; padding: 6px 8px; text-align: left;"><strong>Total location</strong></td><td style="border: 1px solid #000; padding: 6px 8px; text-align: right;"><strong>{{ "{:.2f}".format(devis.location_total or 0) }} €</strong></td></tr>
   </table>
+</div>
 </div>
 {% endif %}
 
@@ -448,12 +474,13 @@
 
 <div style="clear: both;"></div>
 
-<p>Conditions générales de ventes :</p>
-<p style="font-size: 11px; line-height: 1.4;">{{ general_conditions }}</p>
+<div class="general-conditions">
+  <p>Conditions générales de ventes :</p>
+  <p style="font-size: 11px; line-height: 1.4;">{{ general_conditions }}</p>
+</div>
 
 <footer>
   <div class="footer-center">{{ company.name }} - {{ company.address_line1 }} {{ company.zip }} {{ company.city }}</div>
-  <div class="footer-right"></div>
 </footer>
 
 </body>
