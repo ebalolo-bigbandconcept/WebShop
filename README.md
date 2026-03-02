@@ -515,19 +515,6 @@ Trois workflows GitHub Actions sont disponibles dans `.github/workflows/` :
   - `dev` branch → **Staging server** (deploy-staging)
   - `main` branch → **Production server** (deploy-production)
 
-**2. Docker Publish** (`.github/workflows/docker-publish.yml`)
-
-- Déclenché sur : `push` vers `dev` et `main`
-- Pousse vers : GitHub Container Registry (GHCR)
-  - `dev` → `ghcr.io/owner/webshop-backend:dev`
-  - `main` → `ghcr.io/owner/webshop-backend:latest`
-
-**3. Nightly** (`.github/workflows/nightly.yml`)
-
-- Déclenché : Tous les jours à 02:00 UTC
-- Exécute : Full test suite, security scan (Trivy), dependency audit
-- Pousse : Images avec tag `nightly`
-
 #### Exemple de Déploiement
 
 ```bash

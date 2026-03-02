@@ -230,7 +230,7 @@ jobs:
         working-directory: frontend
         env:
           REACT_APP_BACKEND_URL: /api
-          CI: false  # Treat warnings as warnings, not errors
+          CI: false 
         run: npm run build
       
       - name: Upload build artifacts
@@ -495,8 +495,10 @@ jobs:
             git config --global --add safe.directory ${{ secrets.WORK_DIR }}
             git fetch origin
             git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml build
+            docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
+            docker compose -f docker-compose.prod.yml up -d
 
   deploy-staging:
     name: Dev Server Deploy
