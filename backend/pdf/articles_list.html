@@ -48,6 +48,13 @@
     padding: 6px 8px;
     text-align: center;
   }
+  thead {
+    display: table-header-group;
+  }
+  tbody tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
   th {
     background-color: #4f688b;
     color: white;
@@ -63,35 +70,17 @@
     text-align: right;
   }
 
-  /* Footer with page number */
+  /* Footer */
   footer {
-    position: fixed;
-    bottom: 10px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
+    margin-top: 20px;
+    padding: 10px 0;
     font-size: 11px;
     color: #555;
+    border-top: 1px solid #ddd;
+    page-break-inside: avoid;
   }
   .footer-center {
-    flex: 1;
     text-align: center;
-  }
-  .footer-right {
-    text-align: right;
-    white-space: nowrap;
-  }
-  .page-number:before {
-    content: "Page ";
-  }
-  .page-number:after {
-    content: counter(page);
-  }
-  @page {
-    counter-reset: page 1;
   }
 
   .summary {
@@ -148,7 +137,6 @@
 
 <footer>
   <div class="footer-center">{{ company_name }} - Liste des Articles</div>
-  <div class="footer-right"><span class="page-number"></span></div>
 </footer>
 
 </body>
