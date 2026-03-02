@@ -4,6 +4,7 @@ import httpClient from "../components/httpClient";
 import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
 import { FloppyFill } from "react-bootstrap-icons";
+import Pagination from "../components/Pagination";
 
 function ListeClients() {
   const navigate = useNavigate();
@@ -497,23 +498,11 @@ function ListeClients() {
       
       {/* START: Pagination Controls */}
       {filteredClients.length > itemsPerPage && (
-        <nav>
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage - 1); }}>Précédent</a>
-            </li>
-            {Array.from({ length: Math.ceil(filteredClients.length / itemsPerPage) }, (_, i) => i + 1).map(number => (
-              <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
-                <a onClick={(e) => { e.preventDefault(); setCurrentPage(number); }} href="!#" className='page-link'>
-                  {number}
-                </a>
-              </li>
-            ))}
-            <li className={`page-item ${currentPage >= Math.ceil(filteredClients.length / itemsPerPage) ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage + 1); }}>Suivant</a>
-            </li>
-          </ul>
-        </nav>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredClients.length / itemsPerPage)}
+          onPageChange={setCurrentPage}
+        />
       )}
       {/* END: Pagination Controls */}
     </div>

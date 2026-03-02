@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../components/httpClient";
 import { useToast } from "../components/Toast";
+import Pagination from "../components/Pagination";
 
 function ListeDevis() {
   const [loading, setLoading] = useState(true)
@@ -202,27 +203,11 @@ function ListeDevis() {
       </div>
 
       {filteredDevis.length > itemsPerPage && (
-        <nav>
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage - 1); }}>
-                Précédent
-              </a>
-            </li>
-            {Array.from({ length: Math.ceil(filteredDevis.length / itemsPerPage) }, (_, i) => i + 1).map(number => (
-              <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
-                <a onClick={(e) => { e.preventDefault(); setCurrentPage(number); }} href="!#" className='page-link'>
-                  {number}
-                </a>
-              </li>
-            ))}
-            <li className={`page-item ${currentPage >= Math.ceil(filteredDevis.length / itemsPerPage) ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage + 1); }}>
-                Suivant
-              </a>
-            </li>
-          </ul>
-        </nav>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredDevis.length / itemsPerPage)}
+          onPageChange={setCurrentPage}
+        />
       )}
 
     </div>

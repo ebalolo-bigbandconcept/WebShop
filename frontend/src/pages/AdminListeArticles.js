@@ -5,6 +5,7 @@ import { useToast } from "../components/Toast";
 import { Trash3Fill, PlusLg, Download, Upload } from "react-bootstrap-icons";
 import QuillEditor from "../components/QuillEditor";
 import RichTextDisplay from "../components/RichTextDisplay";
+import Pagination from "../components/Pagination";
 
 function ListeArticles({ user }) {
   const [loading, setLoading] = useState(true);
@@ -610,27 +611,11 @@ function ListeArticles({ user }) {
       </div>
 
       {filteredArticles.length > itemsPerPage && (
-        <nav>
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage - 1); }}>
-                Précédent
-              </a>
-            </li>
-            {Array.from({ length: Math.ceil(filteredArticles.length / itemsPerPage) }, (_, i) => i + 1).map(number => (
-              <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
-                <a onClick={(e) => { e.preventDefault(); setCurrentPage(number); }} href="!#" className='page-link'>
-                  {number}
-                </a>
-              </li>
-            ))}
-            <li className={`page-item ${currentPage >= Math.ceil(filteredArticles.length / itemsPerPage) ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setCurrentPage(currentPage + 1); }}>
-                Suivant
-              </a>
-            </li>
-          </ul>
-        </nav>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(filteredArticles.length / itemsPerPage)}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );

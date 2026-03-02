@@ -7,6 +7,7 @@ import Modal from "../components/Modal";
 import { useToast } from "../components/Toast";
 import QuillEditor from "../components/QuillEditor";
 import RichTextDisplay from "../components/RichTextDisplay";
+import Pagination from "../components/Pagination";
 import {
   buildArticleLine,
   getDefaultVatRate,
@@ -903,27 +904,11 @@ function Devis() {
         </tbody>
       </table>
       {filteredArticles.length > articleItemsPerPage && (
-        <nav>
-          <ul className="pagination justify-content-center">
-            <li className={`page-item ${articleCurrentPage === 1 ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage - 1); }}>
-                Précédent
-              </a>
-            </li>
-            {Array.from({ length: Math.ceil(filteredArticles.length / articleItemsPerPage) }, (_, i) => i + 1).map(number => (
-              <li key={number} className={`page-item ${articleCurrentPage === number ? 'active' : ''}`}>
-                <a onClick={(e) => { e.preventDefault(); setArticleCurrentPage(number); }} href="!#" className='page-link'>
-                  {number}
-                </a>
-              </li>
-            ))}
-            <li className={`page-item ${articleCurrentPage >= Math.ceil(filteredArticles.length / articleItemsPerPage) ? 'disabled' : ''}`}>
-              <a className="page-link" href="!#" onClick={(e) => { e.preventDefault(); setArticleCurrentPage(articleCurrentPage + 1); }}>
-                Suivant
-              </a>
-            </li>
-          </ul>
-        </nav>
+        <Pagination
+          currentPage={articleCurrentPage}
+          totalPages={Math.ceil(filteredArticles.length / articleItemsPerPage)}
+          onPageChange={setArticleCurrentPage}
+        />
       )}
       <form className="row mt-3">
         <div className="col-5"/>
