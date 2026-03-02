@@ -35,9 +35,6 @@ tests/
 ```bash
 # Inside Docker container
 docker compose exec backend pytest
-
-# Or using the convenience script
-docker compose exec backend bash run_tests.sh
 ```
 
 ### Run Specific Test Suites

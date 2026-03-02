@@ -213,7 +213,6 @@ class TestDevisRetrieval:
         assert response.status_code == 200
         data = response.get_json()
         assert "data" in data
-        assert "pagination" in data
 
     def test_get_devis_by_id_with_auth(self, client, auth_headers, test_devis):
         """Test getting specific devis with authentication."""

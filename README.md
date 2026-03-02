@@ -164,8 +164,6 @@ sudo docker compose exec backend isort --check-only .
 
 Cette application utilise **Flask-Migrate** (Alembic) pour gérer les modifications du schéma de base de données.
 
-> **Important** : Avec Flask-Migrate, `db.create_all()` n'est plus utilisé. Cela évite les redémarrages infinis du backend quand le schéma change.
-
 ### Initialisation (première fois uniquement)
 
 ```bash
