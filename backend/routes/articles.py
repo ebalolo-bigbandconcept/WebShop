@@ -291,15 +291,6 @@ def import_articles_xlsx():
     if not rows:
         return jsonify({"error": "Fichier Excel vide."}), 400
 
-    def normalize_header(value):
-        if value is None:
-            return ""
-        text = str(value).strip().lower()
-        text = unicodedata.normalize("NFKD", text)
-        text = "".join(ch for ch in text if not unicodedata.combining(ch))
-        text = re.sub(r"[^a-z0-9]+", " ", text)
-        return " ".join(text.split())
-
     def parse_price(value):
         if value is None:
             raise ValueError("Prix d'achat HT manquant")
@@ -314,38 +305,16 @@ def import_articles_xlsx():
             return float(cleaned)
         raise ValueError("Prix d'achat HT invalide")
 
-    if len(rows) < 5:
+    if len(rows) < 6:
         return jsonify({"error": "Fichier Excel incomplet."}), 400
 
-    header_row = rows[4]
-    header_map = {}
-    expected = {
-        "reference": "reference",
-        "nom de l'article": "nom",
-        "designation": "nom",  # Accept "Désignation" as article name
-        "prix achat ht": "prix_achat_HT",
-    }
-
-    for idx, cell in enumerate(header_row):
-        normalized = normalize_header(cell)
-        if normalized in expected and expected[normalized] not in header_map:
-            header_map[expected[normalized]] = idx
-
-    missing = [
-        label
-        for label in ("reference", "nom", "prix_achat_HT")
-        if label not in header_map
-    ]
-    if missing:
-        return (
-            jsonify(
-                {
-                    "error": "Colonnes manquantes dans le fichier Excel.",
-                    "missing_columns": missing,
-                }
-            ),
-            400,
-        )
+    # Fixed column positions (0-indexed):
+    # Column B (index 1): Référence
+    # Column C (index 2): Désignation (nom)
+    # Column D (index 3): Prix d'achat HT
+    COL_REFERENCE = 1
+    COL_NOM = 2
+    COL_PRIX = 3
 
     tva_obj = TauxTVA.query.filter_by(taux=0.20).first()
     if not tva_obj:
@@ -359,21 +328,18 @@ def import_articles_xlsx():
     parsed_rows = []
     row_errors = []
 
+    # Start reading from row 6 (index 5)
     for row_index, row in enumerate(rows[5:], start=6):
-        if row is None or all(cell in (None, "") for cell in row):
+        if (
+            row is None
+            or len(row) <= COL_PRIX
+            or all(cell in (None, "") for cell in row)
+        ):
             continue
 
-        reference_raw = (
-            row[header_map["reference"]]
-            if header_map.get("reference") is not None
-            else None
-        )
-        nom_raw = row[header_map["nom"]] if header_map.get("nom") is not None else None
-        prix_raw = (
-            row[header_map["prix_achat_HT"]]
-            if header_map.get("prix_achat_HT") is not None
-            else None
-        )
+        reference_raw = row[COL_REFERENCE] if len(row) > COL_REFERENCE else None
+        nom_raw = row[COL_NOM] if len(row) > COL_NOM else None
+        prix_raw = row[COL_PRIX] if len(row) > COL_PRIX else None
 
         reference = str(reference_raw).strip() if reference_raw is not None else ""
         nom = str(nom_raw).strip() if nom_raw is not None else ""
