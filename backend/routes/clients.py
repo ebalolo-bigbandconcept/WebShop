@@ -12,36 +12,16 @@ clients_bp = Blueprint("clients_bp", __name__, url_prefix="/api/clients")
 # Get all clients info route
 @clients_bp.route("/all", methods=["GET"])
 def get_all_clients():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    # Get all clients without pagination (frontend handles its own pagination)
+    clients = Clients.query.order_by(Clients.id.asc()).all()
 
-    # Ensure reasonable pagination values
-    page = max(1, page)
-    per_page = max(1, min(per_page, 100))  # Max 100 items per page
-
-    paginated = Clients.query.order_by(Clients.id.desc()).paginate(
-        page=page, per_page=per_page
-    )
-
-    if paginated.total == 0:
+    if not clients:
         return jsonify({"error": "Aucun clients trouvé"}), 404
 
     clients_schema = ClientsSchema(many=True)
-    clients_data = clients_schema.dump(paginated.items)
+    clients_data = clients_schema.dump(clients)
 
-    return jsonify(
-        {
-            "data": clients_data,
-            "pagination": {
-                "current_page": page,
-                "total_pages": paginated.pages,
-                "total_items": paginated.total,
-                "per_page": per_page,
-                "has_next": paginated.has_next,
-                "has_prev": paginated.has_prev,
-            },
-        }
-    )
+    return jsonify({"data": clients_data})
 
 
 # Add new client route

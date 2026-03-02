@@ -89,7 +89,7 @@ function App() {
               }/>
               <Route path="/liste-articles" element={
                 <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                  <ListeArticles/>
+                  <ListeArticles user={user}/>
                 </PrivateRoute>
               }/>
               <Route path="/admin/dashboard" element={
@@ -104,7 +104,7 @@ function App() {
               }/>
               <Route path="/admin/liste-articles" element={
                 <PrivateRoute user={user} requiredRole={['Administrateur', 'Utilisateur']}>
-                  <ListeArticles/>
+                  <ListeArticles user={user}/>
                 </PrivateRoute>
               }/>
               <Route path="/admin/manage-user/:id" element={

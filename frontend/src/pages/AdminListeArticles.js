@@ -6,7 +6,7 @@ import { Trash3Fill, PlusLg, Download, Upload } from "react-bootstrap-icons";
 import QuillEditor from "../components/QuillEditor";
 import RichTextDisplay from "../components/RichTextDisplay";
 
-function ListeArticles() {
+function ListeArticles({ user }) {
   const [loading, setLoading] = useState(true);
 
   const [articles, setArticles] = useState([]);
@@ -517,16 +517,20 @@ function ListeArticles() {
         </div>
       </div>
       <div className="d-flex justify-content-end w-100 gap-2">
-        <input
-          ref={importInputRef}
-          type="file"
-          accept=".xlsx"
-          onChange={handleImportFileChange}
-          style={{ display: "none" }}
-        />
-        <button className="btn btn-lg btn-secondary mt-4" onClick={handleImportClick} disabled={importing}>
-          <Upload className="me-1" /> {importing ? "Import en cours..." : "Importer Excel"}
-        </button>
+        {user && user.role === "Administrateur" && (
+          <>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".xlsx"
+              onChange={handleImportFileChange}
+              style={{ display: "none" }}
+            />
+            <button className="btn btn-lg btn-secondary mt-4" hidden onClick={handleImportClick} disabled={importing}>
+              <Upload className="me-1" /> {importing ? "Import en cours..." : "Importer Excel"}
+            </button>
+          </>
+        )}
         <button className="btn btn-lg btn-info mt-4" onClick={exportArticlesPDF}><Download className="me-1" /> Exporter</button>
         <button className="btn btn-lg btn-success mt-4" onClick={handleCreateArticle}>
           <PlusLg className="me-1" /> Ajouter un nouvel article

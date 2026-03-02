@@ -27,36 +27,16 @@ def get_all_articles():
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    # Get all articles without pagination (frontend handles its own pagination)
+    articles = Articles.query.order_by(Articles.id.asc()).all()
 
-    # Ensure reasonable pagination values
-    page = max(1, page)
-    per_page = max(1, min(per_page, 100))  # Max 100 items per page
-
-    paginated = Articles.query.order_by(Articles.id.desc()).paginate(
-        page=page, per_page=per_page
-    )
-
-    if paginated.total == 0:
+    if not articles:
         return jsonify({"error": "Aucuns articles trouvé"}), 404
 
     articles_schema = ArticlesSchema(many=True)
-    articles_data = articles_schema.dump(paginated.items)
+    articles_data = articles_schema.dump(articles)
 
-    return jsonify(
-        {
-            "data": articles_data,
-            "pagination": {
-                "current_page": page,
-                "total_pages": paginated.pages,
-                "total_items": paginated.total,
-                "per_page": per_page,
-                "has_next": paginated.has_next,
-                "has_prev": paginated.has_prev,
-            },
-        }
-    )
+    return jsonify({"data": articles_data})
 
 
 # Get specific article info route
@@ -341,7 +321,8 @@ def import_articles_xlsx():
     header_map = {}
     expected = {
         "reference": "reference",
-        "nom de l article": "nom",
+        "nom de l'article": "nom",
+        "designation": "nom",  # Accept "Désignation" as article name
         "prix achat ht": "prix_achat_HT",
     }
 
