@@ -126,9 +126,27 @@
   .article-reference ul, .article-reference ol {
     margin: 2px 0;
     padding-left: 15px;
+    list-style-type: none;
   }
   .article-reference li {
     margin: 1px 0;
+    display: list-item;
+  }
+  /* Quill uses data-list attributes to differentiate list types */
+  .article-reference li[data-list="bullet"] {
+    list-style-type: disc;
+  }
+  .article-reference li[data-list="ordered"] {
+    counter-increment: list-item;
+    list-style-type: none;
+  }
+  .article-reference li[data-list="ordered"]::before {
+    content: counter(list-item) ". ";
+  }
+  .article-reference ol > li[data-list="ordered"]:first-child,
+  .article-reference li[data-list="bullet"] + li[data-list="ordered"] {
+    counter-reset: list-item;
+    counter-increment: list-item;
   }
   .article-reference strong {
     font-weight: bold;
@@ -157,9 +175,27 @@
   .line-comment ul, .line-comment ol {
     margin: 3px 0;
     padding-left: 18px;
+    list-style-type: none;
   }
   .line-comment li {
     margin: 1px 0;
+    display: list-item;
+  }
+  /* Quill uses data-list attributes to differentiate list types */
+  .line-comment li[data-list="bullet"] {
+    list-style-type: disc;
+  }
+  .line-comment li[data-list="ordered"] {
+    counter-increment: list-item-comment;
+    list-style-type: none;
+  }
+  .line-comment li[data-list="ordered"]::before {
+    content: counter(list-item-comment) ". ";
+  }
+  .line-comment ol > li[data-list="ordered"]:first-child,
+  .line-comment li[data-list="bullet"] + li[data-list="ordered"] {
+    counter-reset: list-item-comment;
+    counter-increment: list-item-comment;
   }
   .line-comment strong {
     font-weight: bold;
@@ -321,7 +357,7 @@
   <div class="header-right">
     <div class="devis-title">{{ devis_title }} N° {{ devis.id }}</div>
     {% set devis_date_str = devis.date|string %}
-    <div class="date">A Vitry-Le-François, Le {{ devis_date_str[8:10] }}-{{ devis_date_str[5:7] }}-{{ devis_date_str[0:4] }}</div>
+    <div class="date">A {{ company.city }}, Le {{ devis_date_str[8:10] }}-{{ devis_date_str[5:7] }}-{{ devis_date_str[0:4] }}</div>
   </div>
 </header>
 
@@ -345,7 +381,7 @@
   <a href="mailto:{{ company.email }}">{{ company.email }}</a><br />
   TVA : {{ company.tva }}<br />
   IBAN : {{ company.iban }}<br />
-  Siret : {{ company.siret }} APRM : {{ company.aprm }}
+  Siret : {{ company.siret }}
 </section>
 
 <table>
@@ -364,8 +400,9 @@
     {% for item in devis.articles %}
     {% set taux = item.taux_tva.taux if item.taux_tva and item.taux_tva.taux is not none else (item.article.taux_tva.taux if item.article and item.article.taux_tva and item.article.taux_tva.taux is not none else 0) %}
     {% set designation = item.article.nom ~ (' (Rénovation)' if devis.client.renovation else '') %}
+    {% set is_zero_price = (item.montant_HT or 0) == 0 or (item.montant_TTC or 0) == 0 %}
     <tr>
-      <td class="left-align">
+      <td class="left-align" {% if is_zero_price %}colspan="5"{% endif %}>
         <strong>{{ designation }}</strong>
         {% if item.article.designation %}
         <div class="article-reference">{{ item.article.designation | safe }}</div>
@@ -374,11 +411,13 @@
         <div class="line-comment">{{ item.commentaire | safe }}</div>
         {% endif %}
       </td>
+      {% if not is_zero_price %}
       <td>{{ item.quantite or 0 }}</td>
       {% if selected_scenario == "direct" or (not selected_scenario and not devis.is_location) %}
       <td class="right">{{ "{:.2f}".format(item.montant_HT or 0) }}€</td>
       <td class="right">{{ "{:.2f}".format(item.montant_TVA or 0) }}€</td>
       <td class="right">{{ "{:.2f}".format(item.montant_TTC or 0) }}€</td>
+      {% endif %}
       {% endif %}
     </tr>
     {% endfor %}

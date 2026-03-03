@@ -38,6 +38,7 @@ function ListeArticles({ user }) {
   const modalRef = useRef(null);
   const designationEditorRef = useRef(null);
   const importInputRef = useRef(null);
+  const articleToDeleteRef = useRef(null);
 
   // Filter and Pagination state
   const [filteredArticles, setFilteredArticles] = useState([]);
@@ -186,12 +187,12 @@ function ListeArticles({ user }) {
     }
   }
 
-  const handleDeleteArticle = async (article) => {
+  const handleDeleteArticle = (article) => {
+    articleToDeleteRef.current = article;
+    setArticleNom(article.nom);
     setDELETE(true);
     setCREATE(false);
     setMODIFY(false);
-    setArticleId(article.id);
-    setArticleNom(article.nom);
     showModal();
   }
 
@@ -263,11 +264,17 @@ function ListeArticles({ user }) {
   };
 
   const deleteArticle = async () => {
+    if (!articleToDeleteRef.current || !articleToDeleteRef.current.id) {
+      showToast({ message: "Erreur: Article non trouvé", variant: "danger" });
+      return;
+    }
+    
     httpClient
-      .delete(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${article_id}`)
+      .delete(`${process.env.REACT_APP_BACKEND_URL}/articles/delete/${articleToDeleteRef.current.id}`)
       .then((resp) => {
         handleClose();
         showToast({ message: "Article supprimé", variant: "success" });
+        articleToDeleteRef.current = null;
         getAllArticles();
       })
       .catch((error) => {

@@ -69,11 +69,18 @@ const QuillEditor = ({ containerRef, value, onChange, isActive, minHeight = "150
 
   useEffect(() => {
     if (!quillRef.current) return;
-    if (initialContentLoaded.current) return;
+    if (!initialContentLoaded.current) {
+      if (value) {
+        quillRef.current.root.innerHTML = value;
+        initialContentLoaded.current = true;
+      }
+      return;
+    }
 
-    if (value) {
-      quillRef.current.root.innerHTML = value;
-      initialContentLoaded.current = true;
+    // Update editor if value changes externally
+    const currentContent = quillRef.current.root.innerHTML;
+    if (value !== currentContent) {
+      quillRef.current.root.innerHTML = value || "";
     }
   }, [value]);
 

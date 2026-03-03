@@ -41,7 +41,6 @@ function AdminParameters() {
     companyIban: "",
     companyTva: "",
     companySiret: "",
-    companyAprm: "",
   });
   const [activeTab, setActiveTab] = useState("enterprise");
 
@@ -74,7 +73,6 @@ function AdminParameters() {
           companyIban: paramsResp.data?.companyIban ?? "",
           companyTva: paramsResp.data?.companyTva ?? "",
           companySiret: paramsResp.data?.companySiret ?? "",
-          companyAprm: paramsResp.data?.companyAprm ?? "",
         });
         setVats(tvaResp.data?.data ?? []);
         setInterestRates(interestResp.data?.data ?? []);
@@ -461,15 +459,6 @@ function AdminParameters() {
                   className="form-control"
                   value={parameters.companyIban}
                   onChange={handleChange("companyIban")}
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">APRM</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={parameters.companyAprm}
-                  onChange={handleChange("companyAprm")}
                 />
               </div>
             </div>

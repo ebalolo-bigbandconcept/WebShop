@@ -26,7 +26,7 @@ const RichTextDisplay = ({
 
   const sanitizedContent = DOMPurify.sanitize(content, { 
     ALLOWED_TAGS: ['p', 'h1', 'h2', 'h3', 'strong', 'b', 'em', 'i', 'u', 's', 'ol', 'ul', 'li', 'a', 'br'],
-    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'data-list'],
     KEEP_CONTENT: true
   });
 

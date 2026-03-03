@@ -172,4 +172,36 @@ button .bi, a .bi {
 .quill-content ul, .quill-content ol {
   margin: 0;
   padding-left: 1.5em;
+  list-style-type: none;
+}
+
+.quill-content li {
+  display: list-item;
+  padding-left: 0.5em;
+  list-style-position: outside;
+}
+
+/* Quill uses data-list attributes to differentiate list types */
+.quill-content li[data-list="bullet"] {
+  list-style-type: disc;
+}
+
+/* Ordered list items increment counter */
+.quill-content li[data-list="ordered"] {
+  counter-increment: list-item;
+  list-style-type: none;
+}
+
+/* Display counter for ordered lists */
+.quill-content li[data-list="ordered"]::before {
+  content: counter(list-item) ". ";
+  margin-left: -1.5em;
+  margin-right: 0.5em;
+}
+
+/* Reset counter: first item in list, or ordered item after bullet item */
+.quill-content ol > li[data-list="ordered"]:first-child,
+.quill-content li[data-list="bullet"] + li[data-list="ordered"] {
+  counter-reset: list-item;
+  counter-increment: list-item;
 }
