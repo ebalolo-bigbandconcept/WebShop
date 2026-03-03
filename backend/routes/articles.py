@@ -7,9 +7,10 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, make_response, render_template, request, session
 from openpyxl import load_workbook
+from sqlalchemy.exc import IntegrityError
 from weasyprint import HTML
 
-from models import Articles, ArticlesSchema, Parameters, TauxTVA, db
+from models import Articles, ArticlesSchema, DevisArticles, Parameters, TauxTVA, db
 from utils import validate_article_fields
 
 from .admin import admin_required
@@ -194,9 +195,32 @@ def delete_article(article_id):
     if not article:
         return jsonify({"error": "Article non trouvé"}), 404
 
+    usage_count = DevisArticles.query.filter_by(article_id=article_id).count()
+    if usage_count > 0:
+        return (
+            jsonify(
+                {
+                    "error": "Cet article est utilisé dans un ou plusieurs devis et ne peut pas être supprimé."
+                }
+            ),
+            400,
+        )
+
     article_name = article.nom
-    Articles.query.filter_by(id=article_id).delete()
-    db.session.commit()
+    try:
+        Articles.query.filter_by(id=article_id).delete()
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return (
+            jsonify(
+                {
+                    "error": "Cet article est utilisé dans un ou plusieurs devis et ne peut pas être supprimé."
+                }
+            ),
+            400,
+        )
+
     logging.info(
         f"Article supprimé: {article_name} (id: {article_id}) par l'utilisateur {session.get('user_id')}"
     )
