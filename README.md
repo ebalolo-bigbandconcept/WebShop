@@ -29,7 +29,6 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 1. [Sauvegarde et restauration](#sauvegarde-et-restauration)
 2. [Logs et monitoring](#logs-et-monitoring)
 3. [Dépannage](#dépannage)
-4. [Aide et support](#aide-et-support)
 
 ---
 
@@ -834,9 +833,12 @@ sudo du -sh /var/lib/docker/volumes/*/
 
 ### Réinitialiser complètement l'application
 
+> **ATTENTION !** : Cette opération supprimera toutes les données de la base de données et les volumes associés. Assurez-vous d'avoir une sauvegarde avant de procéder.
+
 ```bash
 # ATTENTION : Cela supprimera toutes les données !
-sudo docker compose down -v
+sudo docker compose down -v # Supprime la base de données et les volumes
+# Recréer les conteneurs et réinitialiser la base de données
 sudo docker compose build
 sudo docker compose up -d
 sudo docker compose exec backend flask db init
