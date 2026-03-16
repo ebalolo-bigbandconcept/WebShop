@@ -833,7 +833,9 @@ sudo du -sh /var/lib/docker/volumes/*/
 
 ### Réinitialiser complètement l'application
 
+<code style="color: red; font-weight: bold;">
 > **ATTENTION !** : Cette opération supprimera toutes les données de la base de données et les volumes associés. Assurez-vous d'avoir une sauvegarde avant de procéder.
+</code>
 
 ```bash
 # ATTENTION : Cela supprimera toutes les données !
