@@ -26,7 +26,7 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 
 ### 💾 Exploitation & Maintenance
 
-1. [Sauvegarde et restauration](#sauvegarde-et-restauration)
+1. [Sauvegarde et restauration](#sauvegarde-et-restauration-restic)
 2. [Logs et monitoring](#logs-et-monitoring)
 3. [Dépannage](#dépannage)
 
@@ -777,20 +777,167 @@ Le flag `--dry-run` teste le renouvellement sans modifier les certificats réels
 
 ---
 
-## Sauvegarde et restauration
+## Sauvegarde et restauration (Restic)
 
-### Sauvegarde de la base de données
+Cette application utilise un service Docker `backup` basé sur l'image officielle `restic/restic`.
+Le backup est chiffré côté client, envoyé vers un dépôt distant (SFTP/S3/B2), puis une politique de rétention est appliquée.
+
+### 1. Configuration de l'utilisateur backup sur le serveur de backup (SFTP)
+
+#### 1.1 Créer un utilisateur dédié pour les backups
 
 ```bash
-# Créer une backup
-sudo docker compose -f docker-compose.prod.yml exec db pg_dump -U secure_user users_db > backup_$(date +%Y%m%d_%H%M%S).sql
+sudo adduser --disabled-login --gecos "Restic Backup User" backup_user
+sudo chsh -s /usr/sbin/nologin backup_user
 ```
 
-### Restauration de la base de données
+#### 1.2 Créer le dossier de backup
 
 ```bash
-# Restauration depuis une backup
-sudo docker compose -f docker-compose.prod.yml exec -T db psql -U secure_user users_db < backup_20240127_120000.sql
+sudo mkdir -p /path/to/backup/webshop
+sudo chown backup_user:backup_user /path/to/backup/webshop
+sudo chmod 700 /path/to/backup/webshop
+```
+
+#### 1.3 Configurer la clée SSH pour l'accès SFTP
+
+Créer une paire de clés SSH pour le backup sur le serveur de de l'application :
+> **Note** : N'utilisez pas de mot de passe pour les clés SSH.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/restic_backup -C "restic backup key"
+```
+
+Copier la clé publique sur le serveur de backup :
+
+```bash
+ssh-copy-id -i ~/.ssh/restic_backup.pub backup_user@backup.example.com
+```
+
+Tester la connexion depuis le sereur de l'application vers le serveur de backup :
+
+```bash
+ssh -i ~/.ssh/restic_backup backup_user@backup.example.com ls /srv/restic/webshop
+```
+
+Copier la clée privée (`~/.ssh/restic_backup`) dans le dossier de secrets (`.env_prod_secrets`).
+
+### 2. Variables à ajouter
+
+Dans le dossier de secrets `.env_prod_secrets` :
+
+```bash
+echo "votre_mot_de_passe_restic_tres_fort" > .env_prod_secrets/RESTIC_PASSWORD.txt
+chmod 600 .env_prod_secrets/RESTIC_PASSWORD.txt
+```
+
+```bash
+# Exemple SFTP
+echo "sftp:backup_user@backup.example.com:/srv/restic/webshop" > .env_prod_secrets/RESTIC_REPOSITORY.txt
+chmod 600 .env_prod_secrets/RESTIC_REPOSITORY.txt
+```
+
+Autres exemples de repository :
+
+```bash
+# Exemple S3 (compatible AWS/MinIO)
+echo "s3:s3.amazonaws.com/my-restic-bucket/webshop" > .env_prod_secrets/RESTIC_REPOSITORY.txt
+chmod 600 .env_prod_secrets/RESTIC_REPOSITORY.txt
+
+# Exemple Backblaze B2
+echo "b2:my-bucket:webshop" > .env_prod_secrets/RESTIC_REPOSITORY.txt
+chmod 600 .env_prod_secrets/RESTIC_REPOSITORY.txt
+```
+
+### 3. Configuration Docker Compose (production)
+
+Dans `docker-compose.prod.yml`, le service `backup` doit contenir au minimum :
+
+```yaml
+backup:
+  image: restic/restic:latest
+  depends_on:
+    - db
+  environment:
+    - RESTIC_REPOSITORY=$(cat /run/secrets/RESTIC_REPOSITORY)
+    - RESTIC_PASSWORD_FILE=/run/secrets/RESTIC_PASSWORD
+    - RESTIC_HOSTNAME=webshop-prod
+    - POSTGRES_DB=users_db
+    - POSTGRES_USER_FILE=/run/secrets/DB_USER
+    - POSTGRES_PASSWORD_FILE=/run/secrets/DB_PASSWORD
+  secrets:
+    - RESTIC_PASSWORD
+    - RESTIC_REPOSITORY
+    - RESTIC_SSH_KEY  # Si vous utilisez une clé SSH pour SFTP
+    - DB_USER
+    - DB_PASSWORD
+  volumes:
+    - postgres_data:/var/lib/postgresql/data:ro
+    - ./backup:/backup
+  entrypoint: ["/backup/backup.sh"]
+  profiles:
+    - backup
+```
+
+Et dans la section `secrets` :
+
+```yaml
+RESTIC_PASSWORD:
+  file: ./.env_prod_secrets/RESTIC_PASSWORD.txt
+RESTIC_REPOSITORY:
+  file: ./.env_prod_secrets/RESTIC_REPOSITORY.txt
+RESTIC_SSH_KEY:
+  file: ./.env_prod_secrets/restic_backup
+```
+
+### 4. Initialiser le dépôt restic
+
+```bash
+docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic init
+```
+
+### 5. Configurer cron (backup automatique)
+
+Configurer la tache dans la crontab de l'utilisateur qui execute Docker :
+
+```bash
+crontab -e
+```
+
+Ajouter à la fin du fichier (backup tous les jours à minuit, logs avec timestamp):
+
+```bash
+0 0 * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && \
+cd /opt/webshop/project && \
+echo "[$(date '+\%Y-\%m-\%d \%H:\%M:\%S')] Starting backup..." >> /var/log/webshop-backup.log 2>&1 && \
+docker compose -f docker-compose.prod.yml --profile backup run --rm backup >> /var/log/webshop-backup.log 2>&1 && \
+echo "[$(date '+\%Y-\%m-\%d \%H:\%M:\%S')] Backup completed." >> /var/log/webshop-backup.log 2>&1
+```
+
+Vérifier la crontab active :
+
+```bash
+crontab -l
+```
+
+### 6. Faire un backup manuel
+
+```bash
+docker compose -f docker-compose.prod.yml --profile backup run --rm backup
+```
+
+### 7. Restaurer depuis un backup
+
+1. Lister les snapshots :
+
+```bash
+docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic snapshots
+```
+
+2. Restaurer un snapshot vers un dossier temporaire :
+
+```bash
+docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic restore latest --target /path/to/restore
 ```
 
 ---
