@@ -18,6 +18,9 @@ class TestConfig:
     # Testing mode
     TESTING = True
 
+    # Faster password hashing for tests.
+    BCRYPT_LOG_ROUNDS = 4
+
     # Disable CSRF for easier testing (we'll test CSRF separately)
     WTF_CSRF_ENABLED = False
 

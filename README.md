@@ -15,7 +15,7 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 
 ### 📚 Documentation
 
-1. [Démarrage rapide - Développement](#démarrage-rapide--développement)
+1. [Déploiement en développement](#déploiement-en-développement)
 2. [Gestion des migrations de base de données](#gestion-des-migrations-de-base-de-données)
 
 ### 🚀 Déploiement & Production
@@ -32,7 +32,7 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 
 ---
 
-## Démarrage rapide — Développement
+## Déploiement en développement
 
 ### 1. Mettre à jour le système
 

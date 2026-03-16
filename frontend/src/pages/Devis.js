@@ -1,4 +1,4 @@
-import { PlusLg, Trash3Fill, ArrowReturnLeft, FloppyFill, FileEarmarkPdf } from "react-bootstrap-icons";
+import { PlusLg, Trash3Fill, ArrowReturnLeft, FloppyFill, FileEarmarkPdf, Copy } from "react-bootstrap-icons";
 import { useParams } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
@@ -260,6 +260,35 @@ function Devis() {
     showModal();
   };
 
+  // ### Duplicate devis ###
+  const duplicateDevis = async () => {
+    const targetId = (devis && devis.id) ? devis.id : id_devis;
+    if (!targetId) {
+      showToast({ message: "Impossible de dupliquer: aucun id de devis valide.", variant: "warning" });
+      return;
+    }
+    try {
+      const resp = await httpClient.post(`${process.env.REACT_APP_BACKEND_URL}/devis/duplicate/${targetId}`);
+      const newDevis = resp.data?.data || resp.data;
+      const newDevisId = newDevis?.id;
+      const newClientId = newDevis?.client_id || newDevis?.client?.id || id_client;
+
+      if (!newDevisId || !newClientId) {
+        showToast({ message: "Le devis a été dupliqué, mais la redirection a échoué.", variant: "warning" });
+        return;
+      }
+
+      showToast({ message: "Devis dupliqué avec succès.", variant: "success" });
+      navigate(`/devis/${newClientId}/${newDevisId}`, { state: { from: location.state?.from || `/client/${id_client}` } });
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        showToast({ message: error.response.data.error, variant: "danger" });
+      } else {
+        showToast({ message: "Une erreur est survenue.", variant: "danger" });
+      }
+    }
+  };
+
   const handleDeleteDevis = () => {
     if (blockSignedEdit()) return;
     setDELETE(true);
@@ -366,6 +395,7 @@ function Devis() {
         selected_scenario: selected_scenario,
         first_contribution_amount: first_contribution_amount,
         location_subscription_cost: location_subscription_cost,
+        maintenance_ttc: location_interests_cost,
         location_interests_cost: location_interests_cost,
         location_time: location_time,
         articles: articles_in_devis.map(article => ({
@@ -386,11 +416,11 @@ function Devis() {
             return;
           }
           
-          // Update totals from API response
-          if (resp.data.computed) {
-            setDevisMontantHT(resp.data.computed.montant_ht);
-            setDevisMontantTVA(resp.data.computed.montant_tva);
-            setDevisMontantTTC(resp.data.computed.montant_ttc);
+          // Update totals from normalized schema response
+          if (resp.data) {
+            setDevisMontantHT(resp.data.montant_HT);
+            setDevisMontantTVA(resp.data.montant_TVA);
+            setDevisMontantTTC(resp.data.montant_TTC);
           }
           
           setIsNewDevis(false);
@@ -428,11 +458,11 @@ function Devis() {
         // Update existing devis
         try {
         const resp = await httpClient.put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData);
-          // Update totals from API response
-          if (resp.data.computed) {
-            setDevisMontantHT(resp.data.computed.montant_ht);
-            setDevisMontantTVA(resp.data.computed.montant_tva);
-            setDevisMontantTTC(resp.data.computed.montant_ttc);
+          // Update totals from normalized schema response
+          if (resp.data) {
+            setDevisMontantHT(resp.data.montant_HT);
+            setDevisMontantTVA(resp.data.montant_TVA);
+            setDevisMontantTTC(resp.data.montant_TTC);
           }
           
           // Fetch the updated devis to get article amounts
@@ -488,6 +518,7 @@ function Devis() {
       selected_scenario: selected_scenario,
       first_contribution_amount: first_contribution_amount,
       location_subscription_cost: location_subscription_cost,
+      maintenance_ttc: location_interests_cost,
       location_interests_cost: location_interests_cost,
       location_time: location_time,
       articles: articles_in_devis.map(article => ({
@@ -500,11 +531,11 @@ function Devis() {
 
     try {
       const resp = await httpClient.put(`${process.env.REACT_APP_BACKEND_URL}/devis/update/${id_devis}`, devisData);
-      // Update totals from API response
-      if (resp.data.computed) {
-        setDevisMontantHT(resp.data.computed.montant_ht);
-        setDevisMontantTVA(resp.data.computed.montant_tva);
-        setDevisMontantTTC(resp.data.computed.montant_ttc);
+      // Update totals from normalized schema response
+      if (resp.data) {
+        setDevisMontantHT(resp.data.montant_HT);
+        setDevisMontantTVA(resp.data.montant_TVA);
+        setDevisMontantTTC(resp.data.montant_TTC);
       }
       // Navigate to PDF page after saving
       navigate(`/devis/${id_client}/${id_devis}/pdf`, { state: location.state });
@@ -1172,6 +1203,7 @@ function Devis() {
         </button>
         <div>
           {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}><Trash3Fill className="me-1" /> Supprimer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-secondary me-4" onClick={duplicateDevis}><Copy className="me-1" /> Dupliquer le devis</button> : ""}
           {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}><FileEarmarkPdf className="me-1" />Générer le devis</button> : ""}
           <button className="btn btn-success" onClick={saveDevis} disabled={(isLocked && !isNewDevis) || isSaving}>
             <FloppyFill className="me-1" /> {isSaving ? 'Enregistrement...' : 'Enregistrer le devis'}

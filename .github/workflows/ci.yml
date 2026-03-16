@@ -7,9 +7,14 @@ on:
     branches: [ dev, main ]
   workflow_dispatch:  # Allow manual trigger
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
+  COMPOSE_PROJECT_NAME: webshop
 
 jobs:
   changes:
@@ -181,19 +186,25 @@ jobs:
           # Wait for PostgreSQL to be ready
           timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U dev_user; do sleep 1; done'
 
-      - name: Build backend image
-        run: docker compose -f docker-compose.prod.yml build backend
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Run database migrations
-        run: |
-          docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
+      - name: Build backend image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile.prod
+          load: true
+          tags: webshop-backend:latest
+          cache-from: type=gha,scope=backend-prod
+          cache-to: type=gha,mode=max,scope=backend-prod
 
       - name: Run backend tests with coverage (unit+integration)
         run: |
-          docker compose -f docker-compose.prod.yml run --rm -v $PWD/backend:/app backend bash -c "
-            pip install --no-cache-dir pytest pytest-flask pytest-cov pytest-mock faker coverage &&
-            python -m pytest tests/unit tests/integration -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html &&
-            python -m coverage report --fail-under=80 || (echo 'Coverage below 80% threshold' && exit 1)
+          docker compose -f docker-compose.prod.yml run --rm backend bash -c "
+            flask db upgrade &&
+            python -m pytest tests/unit tests/integration -q -o addopts='--strict-markers --tb=short' --cov=. --cov-report=xml --cov-report=term &&
+            python -m coverage report --fail-under=80
           "
       
       - name: Cleanup
@@ -260,7 +271,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r backend/requirements.txt
           pip install flake8 black isort
       
       - name: Run flake8
@@ -364,15 +374,32 @@ jobs:
           EOF
       
       - name: Build all images
-        run: |
-          docker compose -f docker-compose.prod.yml build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile.prod
+          load: true
+          tags: webshop-backend:latest
+          cache-from: type=gha,scope=backend-prod
+          cache-to: type=gha,mode=max,scope=backend-prod
+
+      - name: Build frontend image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile.prod
+          load: true
+          tags: webshop-frontend:latest
+          build-args: |
+            REACT_APP_BACKEND_URL=/api
+          cache-from: type=gha,scope=frontend-prod
+          cache-to: type=gha,mode=max,scope=frontend-prod
       
       - name: Test container startup
         run: |
           docker compose -f docker-compose.prod.yml up -d
           timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml ps --status=running | grep -q "Up"; do sleep 2; done'
           docker compose -f docker-compose.prod.yml ps
-          docker compose -f docker-compose.prod.yml logs
       
       - name: Verify services are healthy
         run: |
@@ -392,6 +419,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       
       - name: Create .env file
         run: |
@@ -445,10 +475,32 @@ jobs:
           dummy-placeholder-for-ci-only
           -----END PRIVATE KEY-----
           EOF
+
+      - name: Build backend image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile.prod
+          load: true
+          tags: webshop-backend:latest
+          cache-from: type=gha,scope=backend-prod
+          cache-to: type=gha,mode=max,scope=backend-prod
+
+      - name: Build frontend image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile.prod
+          load: true
+          tags: webshop-frontend:latest
+          build-args: |
+            REACT_APP_BACKEND_URL=/api
+          cache-from: type=gha,scope=frontend-prod
+          cache-to: type=gha,mode=max,scope=frontend-prod
       
       - name: Start all services
         run: |
-          docker compose -f docker-compose.prod.yml up -d --build
+          docker compose -f docker-compose.prod.yml up -d --no-build
       
       - name: Wait for services to be ready
         run: |
@@ -457,8 +509,7 @@ jobs:
       - name: Run E2E tests
         run: |
           docker compose -f docker-compose.prod.yml exec -T backend bash -c "
-            pip install --no-cache-dir pytest pytest-flask pytest-mock faker &&
-            python -m pytest tests/e2e/ -v
+            python -m pytest tests/e2e/ -v -o addopts='--strict-markers --tb=short'
           "
       
       - name: Show logs on failure

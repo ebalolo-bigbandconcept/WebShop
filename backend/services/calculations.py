@@ -136,9 +136,9 @@ def compute_monthly_from_total_ttc(
 
 def compute_location_totals(
     total_ttc,
-    first_contribution,
-    location_subscription_cost,
-    location_interests_cost,
+    apport,
+    subscription_ttc,
+    maintenance_ttc,
     location_time,
 ):
     """
@@ -149,12 +149,13 @@ def compute_location_totals(
     if location_time <= 0:
         return 0.0, 0.0, 0.0, 0.0
 
-    subscription_ttc = float(location_subscription_cost or 0.0)
+    subscription_ttc = float(subscription_ttc or 0.0)
+    maintenance_ttc = float(maintenance_ttc or 0.0)
     articles_ttc = float(total_ttc or 0.0)
-    apport = float(first_contribution or 0.0)
+    apport = float(apport or 0.0)
 
     # Calculate the base total before interests
-    base_total_ttc = articles_ttc + subscription_ttc - apport
+    base_total_ttc = articles_ttc + subscription_ttc + maintenance_ttc - apport
 
     # Calculate monthly TTC (not rounded) to determine the total for interest lookup
     monthly_ttc_raw = base_total_ttc / location_time
@@ -192,16 +193,15 @@ def compute_location_display_totals(
     maintenance_ttc,
     apport,
     location_time,
-    vat_rate=LOCATION_VAT_RATE,
 ):
-    # Ensure apport is not None
+    # Keep the same computation path as persisted location totals.
     apport_value = float(apport or 0.0)
-    total_ht_value = articles_ttc + subscription_ttc + maintenance_ttc - apport_value
-    total_ht_value = max(total_ht_value, 0.0)
-
-    total_ttc_value = total_ht_value * (1 + vat_rate)
-    monthly_ht, monthly_ttc = compute_monthly_from_total_ttc(
-        total_ttc_value, location_time, vat_rate
+    total_ht_value, total_ttc_value, monthly_ht, monthly_ttc = compute_location_totals(
+        articles_ttc,
+        apport_value,
+        subscription_ttc,
+        maintenance_ttc,
+        location_time,
     )
 
     return {

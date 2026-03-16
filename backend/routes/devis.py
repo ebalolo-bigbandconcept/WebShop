@@ -238,27 +238,69 @@ def create_devis():
         f"Nouveau devis créé: {new_devis.titre} (id: {new_devis.id}) par l'utilisateur {session.get('user_id')}"
     )
 
-    # Return computed structure
+    # Return normalized schema payload
     devis_schema = DevisSchema()
-    devis_data = devis_schema.dump(new_devis)
+    return devis_schema.jsonify(new_devis), 201
 
-    return (
-        jsonify(
-            {
-                "id": new_devis.id,
-                "computed": {
-                    "montant_ht": total_ht,
-                    "montant_tva": total_tva,
-                    "montant_ttc": total_ttc,
-                    "location_total_ht": location_total_ht,
-                    "location_total_ttc": location_total_ttc,
-                    "location_monthly_ht": location_monthly_ht,
-                    "location_monthly_ttc": location_monthly_ttc,
-                },
-            }
-        ),
-        201,
+
+# Duplicate existing devis route
+@devis_bp.route("/duplicate/<devis_id>", methods=["POST"])
+@require_login({"Administrateur", "Utilisateur"})
+def duplicate_devis(devis_id):
+    devis = Devis.query.filter_by(id=devis_id).first()
+    if not devis:
+        return jsonify({"error": "Devis non trouvé"}), 404
+
+    duplicated_devis = Devis(
+        client_id=devis.client_id,
+        titre=devis.titre,
+        description=devis.description,
+        date=devis.date,
+        montant_HT=devis.montant_HT,
+        montant_TVA=devis.montant_TVA,
+        montant_TTC=devis.montant_TTC,
+        remise=devis.remise,
+        statut=devis.statut,
+        date_paiement=devis.date_paiement,
+        is_location=devis.is_location,
+        selected_scenario=devis.selected_scenario,
+        first_contribution_amount=devis.first_contribution_amount,
+        location_monthly_total=devis.location_monthly_total,
+        location_monthly_total_ht=devis.location_monthly_total_ht,
+        location_total=devis.location_total,
+        location_total_ht=devis.location_total_ht,
+        signed_at=devis.signed_at,
+        signed_data=devis.signed_data,
     )
+    db.session.add(duplicated_devis)
+    db.session.flush()
+
+    original_articles = DevisArticles.query.filter_by(devis_id=devis.id).all()
+    for article in original_articles:
+        duplicated_article = DevisArticles(
+            devis_id=duplicated_devis.id,
+            article_id=article.article_id,
+            quantite=article.quantite,
+            taux_tva_id=article.taux_tva_id,
+            commentaire=article.commentaire,
+            montant_HT=article.montant_HT,
+            montant_TVA=article.montant_TVA,
+            montant_TTC=article.montant_TTC,
+            prix_unitaire_ht_snapshot=article.prix_unitaire_ht_snapshot,
+            taux_tva_snapshot=article.taux_tva_snapshot,
+            montant_ht_snapshot=article.montant_ht_snapshot,
+            montant_tva_snapshot=article.montant_tva_snapshot,
+            montant_ttc_snapshot=article.montant_ttc_snapshot,
+        )
+        db.session.add(duplicated_article)
+
+    db.session.commit()
+    logging.info(
+        f"Devis dupliqué: source id {devis.id}, nouvelle id {duplicated_devis.id} par l'utilisateur {session.get('user_id')}"
+    )
+
+    devis_schema = DevisSchema()
+    return devis_schema.jsonify(duplicated_devis), 201
 
 
 # Update devis route
@@ -457,9 +499,7 @@ def update_devis(devis_id):
         )
 
         devis_schema = DevisSchema()
-        devis_data = devis_schema.dump(devis)
-
-        return jsonify({"message": "Devis mis à jour avec succès"})
+        return devis_schema.jsonify(devis)
 
     except Exception as e:
         db.session.rollback()
@@ -686,7 +726,6 @@ def get_devis_pdf(devis_id):
             maintenance_ttc_value,
             0.0,
             location_time,
-            LOCATION_VAT_RATE,
         )
         location_with = compute_location_display_totals(
             articles_ttc,
@@ -694,7 +733,6 @@ def get_devis_pdf(devis_id):
             maintenance_ttc_value,
             devis_data.get("first_contribution_amount"),
             location_time,
-            LOCATION_VAT_RATE,
         )
 
         # Build VAT recap based on articles only
@@ -723,7 +761,6 @@ def get_devis_pdf(devis_id):
                 maintenance_ttc_value,
                 0.0,
                 location_time,
-                LOCATION_VAT_RATE,
             ),
             "location_with_apport": compute_location_display_totals(
                 articles_ttc,
@@ -731,7 +768,6 @@ def get_devis_pdf(devis_id):
                 maintenance_ttc_value,
                 devis_data.get("first_contribution_amount"),
                 location_time,
-                LOCATION_VAT_RATE,
             ),
         }
 

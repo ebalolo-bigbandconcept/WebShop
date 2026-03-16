@@ -250,9 +250,9 @@ class TestLocationCalculations:
         # 1000.0 + 50.0 - 0.0 = 1050.0, falls in 5000-10000 range -> 100 EUR interest
         total_ht, total_ttc, monthly_ht, monthly_ttc = compute_location_totals(
             total_ttc=articles_ttc,
-            first_contribution=apport,
-            location_subscription_cost=subscription,
-            location_interests_cost=0.0,  # Not used anymore (dynamic from DB)
+            apport=apport,
+            subscription_ttc=subscription,
+            maintenance_ttc=0.0,
             location_time=location_time,
         )
 
@@ -273,9 +273,9 @@ class TestLocationCalculations:
         # 1000.0 + 50.0 - 200.0 = 850.0, falls in 5000-10000 range -> 100 EUR interest
         total_ht, total_ttc, monthly_ht, monthly_ttc = compute_location_totals(
             total_ttc=articles_ttc,
-            first_contribution=apport,
-            location_subscription_cost=subscription,
-            location_interests_cost=0.0,  # Not used anymore
+            apport=apport,
+            subscription_ttc=subscription,
+            maintenance_ttc=0.0,
             location_time=location_time,
         )
 

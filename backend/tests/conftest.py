@@ -29,7 +29,7 @@ from models import (
 from tests.fixtures.test_config import TestConfig
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def app():
     """Create and configure a Flask application instance for testing.
 
@@ -44,17 +44,24 @@ def app():
 
     # Create application context
     with flask_app.app_context():
-        # Create all tables
+        # Create schema once per test session for faster execution.
         db.create_all()
-
-        # Initialize default data
-        _init_test_defaults()
 
         yield flask_app
 
-        # Cleanup
+        # Cleanup once at the end of the test session.
         db.session.remove()
         db.drop_all()
+
+
+@pytest.fixture(autouse=True)
+def reset_database_state(app):
+    """Reset table data before each test while keeping schema intact."""
+    with app.app_context():
+        for table in reversed(db.metadata.sorted_tables):
+            db.session.execute(table.delete())
+        db.session.commit()
+        _init_test_defaults()
 
 
 @pytest.fixture(scope="function")

@@ -44,7 +44,7 @@ docker compose exec backend pytest tests/unit/test_devis_calculations.py::TestAr
 ### Run with Coverage
 ```bash
 # Generate coverage report
-docker compose exec backend pytest --cov=. --cov-report=html --cov-report=term
+docker compose exec backend pytest --cov=. --cov-report=term
 
 # View HTML report (opens in browser)
 open backend/htmlcov/index.html

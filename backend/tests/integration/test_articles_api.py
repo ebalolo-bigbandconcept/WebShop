@@ -1,5 +1,9 @@
 """Integration tests for Articles API endpoints."""
 
+import io
+
+from openpyxl import Workbook
+
 
 class TestArticlesRetrieval:
     """Tests for articles retrieval endpoints."""
@@ -108,6 +112,40 @@ class TestArticlesCreate:
         data = response.get_json()
         assert "error" in data
 
+    def test_create_article_with_invalid_tva_format(self, client, auth_headers):
+        """Test creating article with invalid TVA format."""
+        response = client.post(
+            "/api/articles/create",
+            json={
+                "nom": "Article TVA invalide",
+                "designation": "TVA-INV-001",
+                "reference": "REF-TVA-INV-001",
+                "prix_achat_HT": 100.0,
+                "taux_tva": "not-a-number",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert "invalide" in response.get_json()["error"]
+
+    def test_create_article_with_unknown_tva_rate(self, client, auth_headers):
+        """Test creating article with unknown TVA rate."""
+        response = client.post(
+            "/api/articles/create",
+            json={
+                "nom": "Article TVA inconnue",
+                "designation": "TVA-UNK-001",
+                "reference": "REF-TVA-UNK-001",
+                "prix_achat_HT": 100.0,
+                "taux_tva": 5,
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert "introuvable" in response.get_json()["error"]
+
 
 class TestArticlesUpdate:
     """Tests for updating articles."""
@@ -180,6 +218,25 @@ class TestArticlesUpdate:
 
         assert response.status_code == 400
 
+    def test_update_article_with_invalid_tva_format(
+        self, client, auth_headers, test_article
+    ):
+        """Test updating article with invalid TVA format."""
+        response = client.post(
+            f"/api/articles/update/{test_article.id}",
+            json={
+                "nom": "Article TVA invalide",
+                "designation": "UPD-TVA-INV",
+                "reference": "REF-UPD-TVA-INV",
+                "prix_achat_HT": 100.0,
+                "taux_tva": "abc",
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 400
+        assert "invalide" in response.get_json()["error"]
+
 
 class TestArticlesDelete:
     """Tests for deleting articles."""
@@ -227,3 +284,188 @@ class TestArticlesDelete:
         response = client.delete("/api/articles/delete/99999", headers=auth_headers)
 
         assert response.status_code == 404
+
+    def test_delete_article_used_in_devis_returns_400(
+        self, client, auth_headers, test_article, test_devis
+    ):
+        """Test deleting an article that is already used in a devis."""
+        response = client.delete(
+            f"/api/articles/delete/{test_article.id}", headers=auth_headers
+        )
+
+        assert response.status_code == 400
+        assert "ne peut pas être supprimé" in response.get_json()["error"]
+
+
+def _build_import_xlsx(rows):
+    """Build an in-memory .xlsx matching the expected import format."""
+    workbook = Workbook()
+    worksheet = workbook.active
+
+    # Rows 1-5 are ignored by the import logic.
+    for index in range(1, 6):
+        worksheet.cell(row=index, column=1, value=f"header-{index}")
+
+    for index, row in enumerate(rows, start=6):
+        worksheet.cell(row=index, column=2, value=row.get("reference"))
+        worksheet.cell(row=index, column=3, value=row.get("nom"))
+        worksheet.cell(row=index, column=4, value=row.get("prix"))
+
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+class TestArticlesExportPDF:
+    """Tests for the articles PDF export endpoint."""
+
+    def test_export_articles_pdf_requires_auth(self, client):
+        response = client.get("/api/articles/export-pdf")
+        assert response.status_code == 401
+
+    def test_export_articles_pdf_no_articles_returns_404(self, client, auth_headers):
+        response = client.get("/api/articles/export-pdf", headers=auth_headers)
+        assert response.status_code == 404
+
+    def test_export_articles_pdf_success(
+        self, client, auth_headers, test_article, db_session, monkeypatch
+    ):
+        """Ensure PDF export returns a downloadable PDF payload."""
+
+        class FakeHTML:
+            def __init__(self, string, base_url):
+                self.string = string
+                self.base_url = base_url
+
+            def write_pdf(self):
+                return b"%PDF-1.4 fake"
+
+        monkeypatch.setattr("routes.articles.render_template", lambda *a, **k: "html")
+        monkeypatch.setattr("routes.articles.HTML", FakeHTML)
+
+        response = client.get("/api/articles/export-pdf", headers=auth_headers)
+
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "application/pdf"
+        assert (
+            "attachment; filename=liste_articles_"
+            in response.headers["Content-Disposition"]
+        )
+
+    def test_export_articles_pdf_exception_returns_500(
+        self, client, auth_headers, test_article, monkeypatch
+    ):
+        def _raise_template_error(*args, **kwargs):
+            raise RuntimeError("template failure")
+
+        monkeypatch.setattr("routes.articles.render_template", _raise_template_error)
+
+        response = client.get("/api/articles/export-pdf", headers=auth_headers)
+
+        assert response.status_code == 500
+        assert "Erreur lors de la génération du PDF" in response.get_json()["error"]
+
+
+class TestArticlesImportXLSX:
+    """Tests for the articles XLSX import endpoint."""
+
+    def _multipart_headers(self, auth_headers):
+        return {k: v for k, v in auth_headers.items() if k.lower() != "content-type"}
+
+    def test_import_articles_xlsx_requires_auth(self, client):
+        response = client.post("/api/articles/import-xlsx")
+        assert response.status_code == 401
+
+    def test_import_articles_xlsx_missing_file(self, client, auth_headers):
+        response = client.post(
+            "/api/articles/import-xlsx", headers=self._multipart_headers(auth_headers)
+        )
+        assert response.status_code == 400
+        assert "Fichier Excel manquant" in response.get_json()["error"]
+
+    def test_import_articles_xlsx_invalid_extension(self, client, auth_headers):
+        response = client.post(
+            "/api/articles/import-xlsx",
+            data={"file": (io.BytesIO(b"invalid"), "articles.csv")},
+            headers=self._multipart_headers(auth_headers),
+        )
+        assert response.status_code == 400
+        assert "Format de fichier invalide" in response.get_json()["error"]
+
+    def test_import_articles_xlsx_unreadable_file(self, client, auth_headers):
+        response = client.post(
+            "/api/articles/import-xlsx",
+            data={"file": (io.BytesIO(b"not an xlsx"), "articles.xlsx")},
+            headers=self._multipart_headers(auth_headers),
+        )
+        assert response.status_code == 400
+        assert "illisible" in response.get_json()["error"]
+
+    def test_import_articles_xlsx_incomplete_file(self, client, auth_headers):
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.cell(row=1, column=1, value="header")
+
+        buffer = io.BytesIO()
+        workbook.save(buffer)
+        buffer.seek(0)
+
+        response = client.post(
+            "/api/articles/import-xlsx",
+            data={"file": (buffer, "articles.xlsx")},
+            headers=self._multipart_headers(auth_headers),
+        )
+        assert response.status_code == 400
+        assert "incomplet" in response.get_json()["error"]
+
+    def test_import_articles_xlsx_no_tva_available(
+        self, client, auth_headers, db_session
+    ):
+        from models import TauxTVA
+
+        db_session.query(TauxTVA).delete()
+        db_session.commit()
+
+        buffer = _build_import_xlsx(
+            [{"reference": "NEW-REF-001", "nom": "Article 1", "prix": 120}]
+        )
+        response = client.post(
+            "/api/articles/import-xlsx",
+            data={"file": (buffer, "articles.xlsx")},
+            headers=self._multipart_headers(auth_headers),
+        )
+
+        assert response.status_code == 400
+        assert "Aucun taux de TVA" in response.get_json()["error"]
+
+    def test_import_articles_xlsx_mixed_results(
+        self, client, auth_headers, db_session, test_article
+    ):
+        from models import Articles
+
+        rows = [
+            {"reference": "NEW-REF-001", "nom": "Nouvel article", "prix": "100,5"},
+            {"reference": "NEW-REF-001", "nom": "Doublon", "prix": 140},
+            {"reference": test_article.reference, "nom": "Existant", "prix": 200},
+            {"reference": None, "nom": "No ref", "prix": 100},
+            {"reference": "NO-NAME", "nom": None, "prix": 100},
+            {"reference": "BAD-PRICE", "nom": "Prix invalide", "prix": "abc"},
+        ]
+        buffer = _build_import_xlsx(rows)
+
+        response = client.post(
+            "/api/articles/import-xlsx",
+            data={"file": (buffer, "articles.xlsx")},
+            headers=self._multipart_headers(auth_headers),
+        )
+
+        assert response.status_code == 200
+        payload = response.get_json()
+        assert payload["imported"] == 1
+        assert len(payload["skipped"]) == 2
+        assert len(payload["errors"]) == 3
+
+        imported_article = Articles.query.filter_by(reference="NEW-REF-001").first()
+        assert imported_article is not None
+        assert imported_article.designation == ""

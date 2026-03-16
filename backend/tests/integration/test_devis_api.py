@@ -5,6 +5,8 @@ These tests verify endpoint structure and basic error handling.
 Full integration testing should be done with Postman/curl or E2E tests.
 """
 
+from models import Devis, DevisArticles, db
+
 
 class TestDevisCreate:
     """Tests for devis creation endpoint."""
@@ -102,6 +104,75 @@ class TestDevisDelete:
         response = client.delete("/api/devis/delete/99999", headers=auth_headers)
 
         assert response.status_code == 404
+
+
+class TestDevisDuplicate:
+    """Tests for duplicating devis."""
+
+    def test_duplicate_devis_requires_auth(self, client, test_devis):
+        """Test that devis duplication requires authentication."""
+        response = client.post(f"/api/devis/duplicate/{test_devis.id}")
+
+        assert response.status_code == 401
+
+    def test_duplicate_nonexistent_devis(self, client, auth_headers):
+        """Test duplicating a non-existent devis."""
+        response = client.post("/api/devis/duplicate/99999", headers=auth_headers)
+
+        assert response.status_code == 404
+
+    def test_duplicate_devis_success(self, client, auth_headers, test_devis):
+        """Test successful devis duplication with same data and new ID."""
+        original = Devis.query.filter_by(id=test_devis.id).first()
+        original_articles = DevisArticles.query.filter_by(devis_id=original.id).all()
+
+        response = client.post(
+            f"/api/devis/duplicate/{test_devis.id}", headers=auth_headers
+        )
+
+        assert response.status_code == 201
+        duplicated_payload = response.get_json()
+        duplicated_id = duplicated_payload["id"]
+
+        assert duplicated_id != original.id
+
+        duplicated = Devis.query.filter_by(id=duplicated_id).first()
+        assert duplicated is not None
+        assert duplicated.client_id == original.client_id
+        assert duplicated.titre == original.titre
+        assert duplicated.description == original.description
+        assert duplicated.date == original.date
+        assert duplicated.montant_HT == original.montant_HT
+        assert duplicated.montant_TVA == original.montant_TVA
+        assert duplicated.montant_TTC == original.montant_TTC
+        assert duplicated.remise == original.remise
+        assert duplicated.statut == original.statut
+
+        duplicated_articles = DevisArticles.query.filter_by(
+            devis_id=duplicated.id
+        ).all()
+        assert len(duplicated_articles) == len(original_articles)
+
+        # Sort to compare records deterministically by article id then id.
+        original_articles_sorted = sorted(
+            original_articles, key=lambda article: (article.article_id, article.id)
+        )
+        duplicated_articles_sorted = sorted(
+            duplicated_articles, key=lambda article: (article.article_id, article.id)
+        )
+
+        for original_article, duplicated_article in zip(
+            original_articles_sorted, duplicated_articles_sorted
+        ):
+            assert duplicated_article.id != original_article.id
+            assert duplicated_article.devis_id == duplicated.id
+            assert duplicated_article.article_id == original_article.article_id
+            assert duplicated_article.quantite == original_article.quantite
+            assert duplicated_article.taux_tva_id == original_article.taux_tva_id
+            assert duplicated_article.commentaire == original_article.commentaire
+            assert duplicated_article.montant_HT == original_article.montant_HT
+            assert duplicated_article.montant_TVA == original_article.montant_TVA
+            assert duplicated_article.montant_TTC == original_article.montant_TTC
 
 
 class TestDevisScenario:
@@ -252,7 +323,8 @@ class TestDevisUpdateOperations:
 
         assert response.status_code == 200
         data = response.get_json()
-        assert data["message"] == "Devis mis à jour avec succès"
+        assert data["id"] == test_devis.id
+        assert data["titre"] == "Updated Devis Title"
 
     def test_update_nonexistent_devis(self, client, auth_headers):
         """Test updating non-existent devis."""

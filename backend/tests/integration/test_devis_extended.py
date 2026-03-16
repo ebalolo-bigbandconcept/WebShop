@@ -199,10 +199,8 @@ class TestDevisLocationCalculations:
         )
         assert response.status_code == 201
         data = response.get_json()
-        assert "computed" in data
-        computed = data["computed"]
-        assert computed["location_monthly_ttc"] > 0
-        assert computed["location_monthly_ht"] > 0
+        assert data["location_monthly_total"] > 0
+        assert data["location_monthly_total_ht"] > 0
 
     def test_devis_location_zero_time(
         self, client, auth_headers, test_client_record, test_article, taux_tva_20
@@ -233,7 +231,7 @@ class TestDevisLocationCalculations:
         assert response.status_code == 201
         data = response.get_json()
         # When location_time is 0 or None, it defaults to 12 months
-        assert data["computed"]["location_monthly_ttc"] > 0
+        assert data["location_monthly_total"] > 0
 
 
 class TestDevisVATRoutes:
