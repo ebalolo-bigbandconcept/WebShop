@@ -726,6 +726,21 @@ rclone authorize "pcloud"
 
 Rclone va tenter d'ouvrir un navigateur automatiquement. Si ce n'est pas possible, il affiche une URL du type `http://127.0.0.1:53682/auth?state=...` : ouvrez-la manuellement dans votre navigateur, connectez-vous à pCloud et autorisez l'accès.
 
+Si votre serveur est en CLI Linux (sans navigateur), vous pouvez faire l'autorisation via un tunnel SSH :
+
+1. Repérez le port dans l'URL affichée (exemple : `53682`).
+
+2. Depuis votre machine locale, ouvrez un second terminal et créez le tunnel SSH vers ce port :
+
+```bash
+ssh -N -L 53682:127.0.0.1:53682 user@votre-serveur
+ssh -N -L 53682:127.0.0.1:53682 -i "~/.ssh/votre_cle_privee" user@votre-serveur # si vous utilisez une clé privée
+```
+
+3. Sur votre machine locale, ouvrez dans le navigateur l'URL fournie par rclone (ou `http://127.0.0.1:53682/auth?...`), connectez-vous à pCloud et validez.
+
+4. Revenez au terminal serveur : rclone y affiche le token JSON à copier dans `.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt`.
+
 Rclone affiche ensuite le token dans le terminal :
 
 ```json
@@ -843,7 +858,7 @@ crontab -e
 1. Ajoutez la tâche quotidienne :
 
 ```bash
-echo "0 0 * * * PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /bin/bash -lc 'cd /path/to/webshop && echo \"[$(date -Iseconds)] Début du backup...\" >> /var/log/webshop-backup.log 2>&1 && docker compose -f docker-compose.prod.yml --profile backup run --rm backup >> /var/log/webshop-backup.log 2>&1 && echo \"[$(date -Iseconds)] Backup terminé.\" >> /var/log/webshop-backup.log 2>&1'
+0 0 * * * PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /bin/bash -lc 'cd /path/to/webshop && echo "[$(date -Iseconds)] Début du backup..." >> /var/log/webshop-backup.log 2>&1 && docker compose -f docker-compose.prod.yml --profile backup run --rm backup >> /var/log/webshop-backup.log 2>&1 && echo "[$(date -Iseconds)] Backup terminé." >> /var/log/webshop-backup.log 2>&1'
 ```
 
 1. Vérifiez la crontab active :
