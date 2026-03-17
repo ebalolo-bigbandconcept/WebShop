@@ -3,6 +3,7 @@
 .vscode/
 node_modules/
 docusign/
+restore/
 
 # Test coverage reports
 htmlcov/
