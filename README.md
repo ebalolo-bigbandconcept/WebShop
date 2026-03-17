@@ -1,6 +1,6 @@
 # WebShop
 
-Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le cache et integration DocuSign.
+Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le cache et intégration DocuSign.
 
 [![CI Tests](https://github.com/ebalolo-bigbandconcept/WebShop/actions/workflows/ci.yml/badge.svg)](https://github.com/ebalolo-bigbandconcept/WebShop/actions/workflows/ci.yml)
 [![React](https://img.shields.io/badge/Frontend-React-blue?logo=react)](https://reactjs.org/)
@@ -9,51 +9,42 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 [![Redis](https://img.shields.io/badge/Redis-Cache-red?logo=redis)](https://redis.io/)
 [![DocuSign](https://img.shields.io/badge/DocuSign-eSign-orange?logo=docusign)](https://www.docusign.com/)
 
-Ce README sert de guide operatoire principal pour travailler sur le projet, le deployer et le maintenir. Il conserve trois parcours de lecture : developpement, production et maintenance.
+Ce README sert de guide opératoire principal pour travailler sur le projet, le déployer et le maintenir. Il propose trois parcours de lecture : développement, production et maintenance.
 
-**Acces rapide**
+**Table des matières**
 
-- Demarrage local : [Demarrage local](#demarrage-local)
-- Migrations de base de donnees : [Migrations de base de donnees](#migrations-de-base-de-donnees)
-- Deploiement production : [Deployer lapplication](#deployer-lapplication)
-- HTTPS avec Let's Encrypt : [HTTPS avec Let's Encrypt](#https-avec-lets-encrypt)
-- Sauvegarde Restic : [Sauvegarde et restauration](#sauvegarde-et-restauration)
-- Depannage courant : [Depannage](#depannage)
-
-**Table des matieres**
-
-1. [Developpement](#developpement)
+1. [Développement](#développement)
+  1.1 [Installation locale](#1-installation-locale)
+  1.2 [Configuration locale](#2-configuration-locale)
+  1.3 [Démarrage local](#3-démarrage-local)
+  1.4 [Accès à l'application](#4-accès-à-lapplication)
+  1.5 [Qualité de code Python](#5-qualité-de-code-python)
+  1.6 [Migrations de base de données](#6-migrations-de-base-de-données)
 2. [Production](#production)
+  2.1 [Préparation du serveur](#1-préparation-du-serveur)
+  2.2 [Secrets de production](#2-secrets-de-production)
+  2.3 [Configuration applicative](#3-configuration-applicative)
+  2.4 [Déployer l'application](#4-déployer-lapplication)
+  2.5 [HTTPS avec Let's Encrypt](#5-https-avec-lets-encrypt)
+  2.6 [CI/CD et déploiement automatique](#6-cicd-et-déploiement-automatique-optionnel)
 3. [Maintenance](#maintenance)
+  3.1 [Sauvegarde et restauration](#1-sauvegarde-et-restauration)
+  3.2 [Dépannage](#2-dépannage)
+  3.3 [Logs et monitoring](#3-logs-et-monitoring)
 
-Sous-sections principales :
+## Développement
 
-- Developpement : prerequis, installation locale, configuration, demarrage, acces, qualite de code, migrations
-- Production : prerequis, preparation serveur, secrets, configuration applicative, deploiement, HTTPS, CI/CD
-- Maintenance : sauvegarde et restauration, depannage, logs et monitoring
+Cette section couvre l'installation locale, le lancement de la stack Docker et les opérations de développement les plus fréquentes.
 
-## Developpement
+### 1. Installation locale
 
-Cette section couvre l'installation locale, le lancement de la stack Docker et les operations de developpement les plus frequentes.
-
-### Prerequis
-
-Avant de commencer, preparez :
-
-- Une machine Linux, idealement Ubuntu ou Debian
-- Un acces `sudo`
-- Docker et Docker Compose
-- Les identifiants DocuSign si vous utilisez l'integration
-
-### Installation locale
-
-#### Mettre a jour le systeme
+#### 1.1 Mettre à jour le système
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-#### Ajouter le depot Docker
+#### 1.2 Ajouter le dépôt Docker
 
 ```bash
 sudo apt-get install ca-certificates curl
@@ -69,7 +60,7 @@ echo \
 sudo apt-get update
 ```
 
-#### Installer et verifier Docker
+#### 1.3 Installer et vérifier Docker
 
 ```bash
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
@@ -77,21 +68,21 @@ sudo systemctl start docker
 sudo systemctl status docker
 ```
 
-### Configuration locale
+### 2. Configuration locale
 
-#### Generer une cle secrete
+#### 2.1 Générer une clé secrète
 
 ```bash
 openssl rand -base64 32
 ```
 
-Exemple de resultat :
+Exemple de résultat :
 
 ```bash
 0rnd5wsmCJYz9wucw4OCl3uOP3FxbRC+nV6pptA07KE=
 ```
 
-#### Creer le fichier `.env` a la racine
+#### 2.2 Créer le fichier `.env` à la racine
 
 ```bash
 # Secrets et administration
@@ -102,64 +93,64 @@ ADMIN_PASSWORD=SecurePassword123!
 # Configuration frontend
 REACT_APP_BACKEND_URL=http://localhost:5000
 
-# Integration DocuSign
+# Intégration DocuSign
 DOCUSIGN_ACCOUNT_ID=your_account_id
 DOCUSIGN_USER_ID=your_user_id
 DOCUSIGN_INTEGRATION_KEY=your_integration_key
 DOCUSIGN_SERVER_IP=123.456.789.10
 ```
 
-> **Important** : remplacez toutes les valeurs `your_...` par vos identifiants reels.
+> **Important** : remplacez toutes les valeurs `your_...` par vos identifiants réels.
 
-### Demarrage local
+### 3. Démarrage local
 
-Ces commandes construisent les images, demarrent les conteneurs et initialisent la base lors du premier lancement.
+Ces commandes construisent les images, démarrent les conteneurs et initialisent la base lors du premier lancement.
 
 ```bash
 # Construire les images Docker
 sudo docker compose build
 
-# Demarrer les conteneurs
+# Démarrer les conteneurs
 sudo docker compose --profile proxy-only up -d
 
-# Initialiser la base de donnees une seule fois
+# Initialiser la base de données une seule fois
 sudo docker compose exec backend flask db init
 sudo docker compose exec backend flask db migrate -m "Initial migration"
 sudo docker compose exec backend flask db upgrade
 ```
 
-### Acces a l'application
+### 4. Accès à l'application
 
 - Frontend : [http://localhost:3000](http://localhost:3000)
 - API backend : [http://localhost:5000](http://localhost:5000)
 
-### Qualite de code Python
+### 5. Qualité de code Python
 
-Le projet utilise `black` et `isort` pour garder un formatage coherent. Le pipeline CI verifie aussi ces outils.
+Le projet utilise `black` et `isort` pour garder un formatage cohérent. Le pipeline CI vérifie aussi ces outils.
 
-#### Installer les outils dans le conteneur backend
+#### 5.1 Installer les outils dans le conteneur backend
 
 ```bash
 sudo docker compose exec backend pip install black isort
 ```
 
-#### Formater le code
+#### 5.2 Formater le code
 
 ```bash
 sudo docker compose exec backend black .
 sudo docker compose exec backend isort .
 ```
 
-#### Verifier le formatage sans modifier les fichiers
+#### 5.3 Vérifier le formatage sans modifier les fichiers
 
 ```bash
 sudo docker compose exec backend black --check .
 sudo docker compose exec backend isort --check-only .
 ```
 
-#### Tests et couverture
+#### 5.4 Tests et couverture
 
-Pour les suites de tests detaillees, consultez [backend/tests/README.md](backend/tests/README.md).
+Pour les suites de tests détaillées, consultez [backend/tests/README.md](backend/tests/README.md).
 
 Commande utile pour lancer la couverture backend dans le conteneur :
 
@@ -167,15 +158,15 @@ Commande utile pour lancer la couverture backend dans le conteneur :
 sudo docker compose exec backend pytest --cov=. --cov-report=term-missing
 ```
 
-> **Note** : le CI echouera si le formatage attendu n'est pas respecte. Lancez les verifications avant de pousser vos commits.
+> **Note** : le CI échouera si le formatage attendu n'est pas respecté. Lancez les vérifications avant de pousser vos commits.
 
-### Migrations de base de donnees
+### 6. Migrations de base de données
 
-Le projet utilise Flask-Migrate avec Alembic pour gerer le schema de base de donnees.
+Le projet utilise Flask-Migrate avec Alembic pour gérer le schéma de base de données.
 
-#### Initialiser les migrations
+#### 6.1 Initialiser les migrations
 
-Cette sequence est utile uniquement lors de la toute premiere initialisation du projet :
+Cette séquence est utile uniquement lors de la toute première initialisation du projet :
 
 ```bash
 sudo docker compose exec backend flask db init
@@ -183,32 +174,32 @@ sudo docker compose exec backend flask db migrate -m "Initial migration"
 sudo docker compose exec backend flask db upgrade
 ```
 
-#### Ajouter un champ a un modele existant
+#### 6.2 Ajouter un champ à un modèle existant
 
-1. Modifiez le modele concerne dans [backend/models.py](backend/models.py).
-2. Generez puis appliquez la migration.
-3. Utilisez le nouveau champ dans les routes ou services concernes.
+1. Modifiez le modèle concerné dans [backend/models.py](backend/models.py).
+2. Générez puis appliquez la migration.
+3. Utilisez le nouveau champ dans les routes ou services concernés.
 
-Exemple de modification de modele :
+Exemple de modification de modèle :
 
 ```python
 class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer(), primary_key=True, unique=True, autoincrement=True)
     nom = db.Column(db.String(50), nullable=False)
-    prenom = db.Column(db.String(50), nullable=False)
+    prénom = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(345), nullable=False, unique=True)
     mdp = db.Column(db.Text, nullable=False)
     role = db.Column(db.String(50), nullable=False, default="Utilisateur")
     # Nouveau champ, nullable pour ne pas casser les enregistrements existants
-    telephone = db.Column(db.String(20), nullable=True)
+    téléphone = db.Column(db.String(20), nullable=True)
 ```
 
-Commandes associees :
+Commandes associées :
 
 ```bash
-# En developpement
-sudo docker compose exec backend flask db migrate -m "Ajouter le champ telephone au modele User"
+# En développement
+sudo docker compose exec backend flask db migrate -m "Ajouter le champ téléphone au modèle User"
 sudo docker compose exec backend flask db upgrade
 
 # En production
@@ -221,19 +212,19 @@ Exemple d'utilisation du champ dans le code applicatif :
 ```python
 new_user = User(
     email=email,
-    prenom=prenom,
+    prénom=prénom,
     nom=nom,
     mdp=hashed_password,
-    telephone=telephone,
+    téléphone=téléphone,
 )
 ```
 
-#### Supprimer un champ d'un modele
+#### 6.3 Supprimer un champ d'un modèle
 
-1. Supprimez le champ du modele dans [backend/models.py](backend/models.py).
-2. Generez puis appliquez une migration.
+1. Supprimez le champ du modèle dans [backend/models.py](backend/models.py).
+2. Générez puis appliquez une migration.
 
-Exemple de modele apres suppression :
+Exemple de modèle après suppression :
 
 ```python
 class User(db.Model):
@@ -246,65 +237,56 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False, default="Utilisateur")
 ```
 
-Commandes associees :
+Commandes associées :
 
 ```bash
-sudo docker compose exec backend flask db migrate -m "Supprimer le champ telephone du modele User"
+sudo docker compose exec backend flask db migrate -m "Supprimer le champ téléphone du modèle User"
 sudo docker compose exec backend flask db upgrade
 ```
 
-#### Commandes utiles
+#### 6.4 Commandes utiles
 
 ```bash
 # Historique des migrations
 sudo docker compose exec backend flask db history
 
-# Version actuellement appliquee
+# Version actuellement appliquée
 sudo docker compose exec backend flask db current
 
 # Revenir d'une migration
 sudo docker compose exec backend flask db downgrade
 
-# Revenir a l'etat initial
+# Revenir à l'état initial
 sudo docker compose exec backend flask db downgrade base
 
 # Appliquer toutes les migrations en attente
 sudo docker compose exec backend flask db upgrade
 
-# Creer une migration vide a completer a la main
+# Créer une migration vide à compléter à la main
 sudo docker compose exec backend flask db revision -m "Migration manuelle"
 ```
 
-#### Bonnes pratiques
+#### 6.5 Bonnes pratiques
 
-- Creez toujours une migration avant de modifier la base manuellement.
-- Verifiez le contenu du fichier genere dans `backend/migrations/versions/` avant de l'appliquer.
-- Testez d'abord les migrations en developpement.
+- Créez toujours une migration avant de modifier la base manuellement.
+- Vérifiez le contenu du fichier généré dans `backend/migrations/versions/` avant de l'appliquer.
+- Testez d'abord les migrations en développement.
 - Sauvegardez la base avant toute migration en production.
 - Conservez des messages de migration explicites et courts.
 
 ## Production
 
-Cette section couvre la preparation d'un serveur Linux, la configuration des secrets, le deploiement Docker et l'automatisation CI/CD.
+Cette section couvre la préparation d'un serveur Linux, la configuration des secrets, le déploiement Docker et l'automatisation CI/CD.
 
-### Prerequis de deploiement
+### 1. Préparation du serveur
 
-Preparez les elements suivants :
-
-- Une machine Linux, idealement Ubuntu ou Debian
-- Un acces SSH avec droits `sudo`
-- Un nom de domaine si vous activez HTTPS
-- Les identifiants DocuSign si l'integration est utilisee
-
-### Preparation du serveur
-
-#### Mettre a jour le systeme
+#### 1.1 Mettre à jour le système
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-#### Installer Docker
+#### 1.2 Installer Docker
 
 ```bash
 sudo apt-get install ca-certificates curl
@@ -321,18 +303,18 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 ```
 
-#### Verifier Docker
+#### 1.3 Vérifier Docker
 
 ```bash
 sudo systemctl start docker
 sudo systemctl status docker
 ```
 
-### Secrets de production
+### 2. Secrets de production
 
-#### Creer le dossier `.env_prod_secrets`
+#### 2.1 Créer le dossier `.env_prod_secrets`
 
-Ce dossier contient les secrets utilises par la stack de production.
+Ce dossier contient les secrets utilisés par la stack de production.
 
 ```bash
 mkdir -p .env_prod_secrets
@@ -347,7 +329,7 @@ echo "your_docusign_integration_key" > DOCUSIGN_INTEGRATION_KEY.txt
 echo "postgresql://user:password@db:5432/users_db" > DATABASE_URL.txt
 echo "user" > DB_USER.txt
 echo "password" > DB_PASSWORD.txt
-# Copiez aussi votre cle privee DocuSign private.pem dans ce dossier
+# Copiez aussi votre clé privée DocuSign private.pem dans ce dossier
 
 cd ..
 chmod 600 .env_prod_secrets/*
@@ -355,11 +337,11 @@ chmod 600 .env_prod_secrets/*
 
 > **Important** : remplacez toutes les valeurs d'exemple par vos vrais identifiants et ne versionnez jamais ces fichiers.
 
-### Configuration applicative
+### 3. Configuration applicative
 
-#### Variables du backend
+#### 3.1 Variables du backend
 
-Mettez a jour [docker-compose.prod.yml](docker-compose.prod.yml) avec les valeurs adaptees a votre environnement :
+Mettez à jour [docker-compose.prod.yml](docker-compose.prod.yml) avec les valeurs adaptées à votre environnement :
 
 ```yaml
 backend:
@@ -369,18 +351,18 @@ backend:
     - REACT_APP_BACKEND_URL=https://your-domain.tld/api
 ```
 
-#### Configuration Nginx
+#### 3.2 Configuration Nginx
 
-Mettez a jour [frontend/nginx.conf](frontend/nginx.conf) et [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine reel :
+Mettez à jour [frontend/nginx.conf](frontend/nginx.conf) et [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine réel :
 
 ```nginx
 server_name your-domain.tld;
 ```
 
-#### Configurer le pare-feu
+#### 3.3 Configurer le pare-feu
 
 ```bash
-# Politique par defaut
+# Politique par défaut
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
@@ -394,7 +376,7 @@ sudo ufw allow 443/tcp
 # Limiter les tentatives SSH
 sudo ufw limit 22/tcp
 
-# Si vous filtrez aussi les sorties, autorisez explicitement les flux necessaires
+# Si vous filtrez aussi les sorties, autorisez explicitement les flux nécessaires
 # sudo ufw default deny outgoing
 # sudo ufw allow out 53
 # sudo ufw allow out 80/tcp
@@ -405,11 +387,11 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-> **Note** : remplacez `YOUR_ADMIN_IP` et `BACKUP_SERVER_IP` par les adresses reelles.
+> **Note** : remplacez `YOUR_ADMIN_IP` et `BACKUP_SERVER_IP` par les adresses réelles.
 
-### Deployer l'application
+### 4. Déployer l'application
 
-#### Construire, lancer et migrer
+#### 4.1 Construire, lancer et migrer
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml build
@@ -418,25 +400,25 @@ sudo docker compose -f docker-compose.prod.yml exec backend flask db upgrade
 sudo docker compose -f docker-compose.prod.yml exec backend python init_db.py
 ```
 
-#### Verifier l'etat de la stack
+#### 4.2 Vérifier l'état de la stack
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
 ```
 
-#### Acces attendus
+#### 4.3 Accès attendus
 
 - Frontend : [http://your-domain.tld](http://your-domain.tld)
 - API backend : [http://your-domain.tld/api](http://your-domain.tld/api)
 
-### HTTPS avec Let's Encrypt
+### 5. HTTPS avec Let's Encrypt
 
-Cette procedure evite le demarrage en echec de Nginx avant l'obtention du vrai certificat, puis installe le certificat Let's Encrypt definitif.
+Cette procédure évite le démarrage en échec de Nginx avant l'obtention du vrai certificat, puis installe le certificat Let's Encrypt définitif.
 
-#### Preparer la configuration
+#### 5.1 Préparer la configuration
 
-Mettez a jour [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine reel :
+Mettez à jour [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine réel :
 
 ```nginx
 server_name your-domain.tld;
@@ -444,7 +426,7 @@ ssl_certificate /etc/letsencrypt/live/your-domain.tld/fullchain.pem;
 ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
 ```
 
-#### Creer un certificat autosigne temporaire
+#### 5.2 Créer un certificat autosigné temporaire
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
@@ -456,7 +438,7 @@ sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot 
            -out /etc/letsencrypt/live/your-domain.tld/fullchain.pem"
 ```
 
-#### Demarrer les services
+#### 5.3 Démarrer les services
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml up -d --force-recreate proxy
@@ -464,7 +446,7 @@ sudo docker compose -f docker-compose.prod.yml up -d --build
 sudo ss -ltnp | grep ':80'
 ```
 
-#### Obtenir le certificat reel
+#### 5.4 Obtenir le certificat réel
 
 Supprimez d'abord le certificat temporaire :
 
@@ -475,7 +457,7 @@ sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot 
                /etc/letsencrypt/renewal/your-domain.tld.conf"
 ```
 
-Puis lancez la generation du certificat Let's Encrypt :
+Puis lancez la génération du certificat Let's Encrypt :
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm certbot certonly \
@@ -485,13 +467,13 @@ sudo docker compose -f docker-compose.prod.yml run --rm certbot certonly \
   --agree-tos --no-eff-email
 ```
 
-#### Recharger Nginx
+#### 5.5 Recharger Nginx
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload
 ```
 
-#### Configurer le renouvellement automatique
+#### 5.6 Configurer le renouvellement automatique
 
 1. Ouvrez la crontab :
 
@@ -499,29 +481,29 @@ sudo docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload
 crontab -e
 ```
 
-2. Ajoutez la tache de renouvellement suivante :
+1. Ajoutez la tâche de renouvellement suivante :
 
 ```bash
 0 3 * * * cd /path/to/WebShop && docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot && docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload >> /var/log/certbot-renew.log 2>&1
 ```
 
-3. Verifiez la tache active :
+1. Vérifiez la tâche active :
 
 ```bash
 crontab -l
 ```
 
-4. Testez le renouvellement sans modifier les certificats reels :
+1. Testez le renouvellement sans modifier les certificats réels :
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot --dry-run
 ```
 
-### CI/CD et deploiement automatique
+### 6. CI/CD et déploiement automatique (optionnel)
 
-Cette section couvre l'automatisation GitHub Actions pour tester puis deployer sur les environnements de developpement et de production.
+Cette section couvre l'automatisation GitHub Actions pour tester puis déployer sur les environnements de développement et de production.
 
-#### Creer un utilisateur de deploiement dedie
+#### 6.1 Créer un utilisateur de déploiement dédié
 
 ```bash
 ssh root@your-vps
@@ -545,17 +527,17 @@ exit
 exit
 ```
 
-#### Generer des cles SSH
+#### 6.2 Générer des clés SSH
 
 ```bash
-# Cle de production
+# Clé de production
 ssh-keygen -t ed25519 -C "ci-deploy-prod" -f ~/.ssh/webshop_deploy -N ""
 
-# Cle de developpement, si serveur distinct
+# Clé de développement, si serveur distinct
 ssh-keygen -t ed25519 -C "ci-deploy-dev" -f ~/.ssh/webshop_deploy_dev -N ""
 ```
 
-#### Installer les cles publiques sur le serveur
+#### 6.3 Installer les clés publiques sur le serveur
 
 ```bash
 cat ~/.ssh/webshop_deploy.pub
@@ -574,38 +556,38 @@ cp -r /root/WebShop/* /opt/WebShop/
 chown -R deploy:deploy /opt/WebShop
 ```
 
-#### Ajouter les secrets GitHub
+#### 6.4 Ajouter les secrets GitHub
 
-Dans le depot GitHub, ouvrez `Settings` > `Secrets and variables` > `Actions`, puis ajoutez :
+Dans le dépôt GitHub, ouvrez `Settings` > `Secrets and variables` > `Actions`, puis ajoutez :
 
 Secrets de production :
 
-- `SSH_HOST` : nom d'hote ou IP du VPS
+- `SSH_HOST` : nom d'hôte ou IP du VPS
 - `SSH_USER` : `deploy`
 - `SSH_KEY` : contenu complet de `~/.ssh/webshop_deploy`
 - `WORK_DIR` : `/opt/webshop`
-- `DEPLOY_GIT_TOKEN` : optionnel, pour depot prive
+- `DEPLOY_GIT_TOKEN` : optionnel, pour dépôt privé
 
-Secrets de developpement, si serveur distinct :
+Secrets de développement, si serveur distinct :
 
-- `SSH_HOST_DEV` : hote du serveur de developpement
-- `SSH_USER_DEV` : utilisateur de deploiement
+- `SSH_HOST_DEV` : hôte du serveur de développement
+- `SSH_USER_DEV` : utilisateur de déploiement
 - `SSH_KEY_DEV` : contenu complet de `~/.ssh/webshop_deploy_dev`
-- `WORK_DIR_DEV` : chemin du projet sur le serveur de developpement
+- `WORK_DIR_DEV` : chemin du projet sur le serveur de développement
 
-#### Comprendre les workflows
+#### 6.5 Comprendre les workflows
 
-Le depot contient trois workflows GitHub Actions dans `.github/workflows/`.
+Le dépôt contient trois workflows GitHub Actions dans `.github/workflows/`.
 
 Exemple de comportement pour le workflow principal CI :
 
-- Declenchement sur `push` et `pull_request` vers `dev` et `main`
+- Déclenchement sur `push` et `pull_request` vers `dev` et `main`
 - Tests backend avec `pytest` et couverture
 - Build frontend
-- Deploiement automatique vers le staging depuis `dev`
-- Deploiement automatique vers la production depuis `main`
+- Déploiement automatique vers le staging depuis `dev`
+- Déploiement automatique vers la production depuis `main`
 
-Exemple de sequence de deploiement :
+Exemple de séquence de déploiement :
 
 ```bash
 # 1. Travailler en local
@@ -613,31 +595,31 @@ git checkout dev
 git commit -m "Add new feature"
 git push origin dev
 
-# 2. GitHub Actions lance les tests et deploie le staging
+# 2. GitHub Actions lance les tests et déploie le staging
 
-# 3. Verifier le staging
+# 3. Vérifier le staging
 ssh deploy@dev-server "cd /opt/webshop && docker compose ps"
 
-# 4. Fusionner vers main apres validation
+# 4. Fusionner vers main après validation
 git checkout main
 git pull
 git merge dev
 git push origin main
 ```
 
-#### Superviser les deploiements
+#### 6.6 Superviser les déploiements
 
 ```bash
-# Consulter les executions dans l'onglet Actions du depot GitHub
+# Consulter les exécutions dans l'onglet Actions du dépôt GitHub
 
-# Suivre les logs en temps reel sur le serveur
+# Suivre les logs en temps réel sur le serveur
 ssh deploy@your-vps "cd /opt/webshop && docker compose logs -f backend"
 
-# Verifier l'etat des services
+# Vérifier l'état des services
 ssh deploy@your-vps "cd /opt/webshop && docker compose ps"
 ```
 
-#### Renforcer l'acces SSH
+#### 6.7 Renforcer l'accès SSH
 
 Durcissez la configuration SSH sur le serveur :
 
@@ -654,13 +636,13 @@ PasswordAuthentication no
 PubkeyAuthentication yes
 ```
 
-Redemarrez ensuite le service SSH :
+Redémarrez ensuite le service SSH :
 
 ```bash
 sudo systemctl restart ssh
 ```
 
-Si vous devez conserver un acces root par cle :
+Si vous devez conserver un accès root par clé :
 
 ```bash
 # Sur votre machine locale
@@ -684,223 +666,222 @@ cat ~/.ssh/authorized_keys
 exit
 ```
 
-#### Depannage CI/CD
+#### 6.8 Dépannage CI/CD
 
-Probleme : acces refuse avec `Permission denied`
+Problème : accès refusé avec `Permission denied`
 
 ```bash
 cat /home/deploy/.ssh/authorized_keys | head -1
 ls -la /home/deploy/.ssh/
 ```
 
-Probleme : les services ne se relancent pas apres deploiement
+Problème : les services ne se relancent pas après déploiement
 
 ```bash
 cd /opt/webshop && docker compose logs --tail=50
 cd /opt/webshop && docker compose up -d
 ```
 
-Probleme : les migrations echouent
+Problème : les migrations échouent
 
 ```bash
 cd /opt/webshop && docker compose exec -T db pg_isready -U dev_user
 cd /opt/webshop && docker compose exec -T backend flask db current
 ```
 
-> **Important** : conservez vos cles privees SSH dans un emplacement sur. Si plusieurs administrateurs interviennent, attribuez une cle distincte a chacun.
+**Important** : conservez vos clés privées SSH dans un emplacement sûr. Si plusieurs administrateurs interviennent, attribuez une clé distincte à chacun.
 
 ## Maintenance
 
-Cette section regroupe les operations de sauvegarde, les procedures de depannage et les commandes de suivi en exploitation.
+Cette section regroupe les opérations de sauvegarde, les procédures de dépannage et les commandes de suivi en exploitation.
 
-### Sauvegarde et restauration
+### 1. Sauvegarde et restauration
 
-Le projet utilise un service Docker `backup` base sur l'image officielle `restic/restic`. Les sauvegardes sont chiffrees cote client puis envoyees vers un depot distant.
+#### 1.1 Configurer le dépôt de sauvegarde Restic avec Rclone et pCloud
 
-#### Preparer le serveur de sauvegarde (seulement pour SFTP)
+Cette section couvre la configuration de Restic avec Rclone pour sauvegarder les données de votre application WebShop sur pCloud.
 
-1. Creez un utilisateur dedie sur le serveur de sauvegarde :
+##### Créer le fichier secret et obtenir le token pCloud
 
-```bash
-sudo adduser --disabled-login --gecos "Restic Backup User" backup_user
-sudo chsh -s /usr/sbin/nologin backup_user
-```
-
-2. Creez le dossier de stockage :
+Docker requiert que tous les fichiers secrets existent avant de démarrer n'importe quel conteneur. Créez d'abord le fichier placeholder :
 
 ```bash
-sudo mkdir -p /path/to/backup/webshop
-sudo chown backup_user:backup_user /path/to/backup/webshop
-sudo chmod 700 /path/to/backup/webshop
+touch .env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt
+chmod 600 .env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt
 ```
 
-3. Generez une paire de cles SSH depuis le serveur applicatif :
+Installez rclone sur la machine qui dispose d'un navigateur (votre poste local ou le serveur si vous avez accès à un navigateur) :
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/restic_backup -C "restic backup key"
-ssh-copy-id -i ~/.ssh/restic_backup.pub backup_user@backup.example.com
-ssh -i ~/.ssh/restic_backup backup_user@backup.example.com ls /srv/restic/webshop
+curl https://rclone.org/install.sh | sudo bash
 ```
 
-4. Copiez la cle privee `~/.ssh/restic_backup` dans `.env_prod_secrets`.
-
-> **Important** : ne mettez pas de mot de passe sur cette cle si elle est utilisee de facon automatisee.
-
-#### Ajouter les secrets Restic
+Puis lancez l'autorisation :
 
 ```bash
-echo "votre_mot_de_passe_restic_tres_fort" > .env_prod_secrets/RESTIC_PASSWORD.txt
-chmod 600 .env_prod_secrets/RESTIC_PASSWORD.txt
-
-echo "sftp:backup_user@backup.example.com:/srv/restic/webshop" > .env_prod_secrets/RESTIC_REPOSITORY.txt
-chmod 600 .env_prod_secrets/RESTIC_REPOSITORY.txt
+rclone authorize "pcloud"
 ```
 
-> **Note** : Pour les services demandant un utilisateur et un mot de passe, changer `RESTIC_PASSWORD` par le mot de passe de ce service et `RESTIC_REPOSITORY` par l'URL de connexion correspondante (ex: `webdav://pcloud_user@ewebdav.pcloud.com` pour pCloud).
+Rclone va tenter d'ouvrir un navigateur automatiquement. Si ce n'est pas possible, il affiche une URL du type `http://127.0.0.1:53682/auth?state=...` : ouvrez-la manuellement dans votre navigateur, connectez-vous à pCloud et autorisez l'accès.
 
-Autres exemples de depot :
+Rclone affiche ensuite le token dans le terminal :
+
+```
+Paste the following into your remote machine --->
+{"access_token":"your_token_here","token_type":"bearer","expiry":"..."}
+<---End paste
+```
+
+Copiez le JSON affiché entre les marqueurs et enregistrez-le dans le fichier secret :
 
 ```bash
-# Exemple pCloud
-echo "webdav://ewebdav.pcloud.com/restic/backup/" > .env_prod_secrets/RESTIC_REPOSITORY.txt
-chmod 600 .env_prod_secrets/RESTIC_REPOSITORY.txt
-
-# Exemple S3 compatible AWS ou MinIO
-echo "s3:s3.amazonaws.com/my-restic-bucket/webshop" > .env_prod_secrets/RESTIC_REPOSITORY.txt
-chmod 600 .env_prod_secrets/RESTIC_REPOSITORY.txt
-
-# Exemple Backblaze B2
-echo "b2:my-bucket:webshop" > .env_prod_secrets/RESTIC_REPOSITORY.txt
-chmod 600 .env_prod_secrets/RESTIC_REPOSITORY.txt
+echo '{"access_token":"your_token_here","token_type":"bearer","expiry":"..."}' \
+  > .env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt
 ```
 
-#### Configurer Docker Compose pour le profil backup
+> **VPS sans navigateur** : exécutez `rclone authorize "pcloud"` depuis votre **machine locale**, récupérez le token affiché dans le terminal, puis copiez-le sur le serveur dans `.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt`.
 
-Dans [docker-compose.prod.yml](docker-compose.prod.yml), le service `backup` doit au minimum ressembler a ceci :
+**Important** : Ne versionnez jamais ce token. Stockez-le uniquement dans `.env_prod_secrets/`.
 
-```yaml
-backup:
-  image: restic/restic:latest
-  depends_on:
-    - db
-  environment:
-    - RESTIC_REPOSITORY=$(cat /run/secrets/RESTIC_REPOSITORY)
-    - RESTIC_PASSWORD_FILE=/run/secrets/RESTIC_PASSWORD
-    - RESTIC_HOSTNAME=webshop-prod # Pour SFTP, sinon peut etre ignore
-    - POSTGRES_DB=users_db
-    - POSTGRES_USER_FILE=/run/secrets/DB_USER
-    - POSTGRES_PASSWORD_FILE=/run/secrets/DB_PASSWORD
-  secrets:
-    - RESTIC_PASSWORD
-    - RESTIC_REPOSITORY
-    - RESTIC_SSH_KEY # Si vous utilisez une cle SSH pour SFTP
-    - DB_USER
-    - DB_PASSWORD
-  volumes:
-    - postgres_data:/var/lib/postgresql/data:ro
-    - ./backup:/backup
-  entrypoint: ["/backup/backup.sh"]
-  profiles:
-    - backup
-```
+##### Configurer les secrets Docker
 
-Et dans la section `secrets` :
-
-```yaml
-RESTIC_PASSWORD:
-  file: ./.env_prod_secrets/RESTIC_PASSWORD.txt
-RESTIC_REPOSITORY:
-  file: ./.env_prod_secrets/RESTIC_REPOSITORY.txt
-RESTIC_SSH_KEY:
-  file: ./.env_prod_secrets/restic_backup # Seulement pour SFTP
-```
-
-#### Initialiser le depot Restic
+Ajoutez les fichiers de secrets Rclone dans `.env_prod_secrets/` :
 
 ```bash
-docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic init
+# Configuration Restic pointant vers le remote Rclone (ne modifiez pas)
+echo "rclone:pcloud:/Backups/WebShop" > .env_prod_secrets/RESTIC_REPOSITORY.txt
+
+# Générez une clé de chiffrement sécurisée pour Restic
+echo "your_secure_password" > .env_prod_secrets/RESTIC_PASSWORD.txt
+
+# Restreignez les permissions
+chmod 600 .env_prod_secrets/*
 ```
 
-#### Automatiser les sauvegardes
+##### Initialiser le dépôt Restic
 
-1. Ouvrez la crontab de l'utilisateur qui execute Docker :
+Avant la première sauvegarde, initialisez le dépôt Restic sur pCloud :
+
+```bash
+sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic init
+```
+
+##### Tester une première sauvegarde manuelle
+
+Lancez une première sauvegarde pour vérifier que tout fonctionne :
+
+```bash
+sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup
+```
+
+Observez les logs pour vérifier :
+
+- Dumping database : la base de données est exportée
+- Running restic backup : les données sont chiffrées et uploadées vers pCloud
+- Applying retention policy : les anciennes sauvegardes sont nettoyées
+- Backup finished : succès
+
+##### Vérifier les snapshots dans Restic
+
+Listez les snapshots de sauvegarde créés :
+
+```bash
+sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic snapshots
+```
+
+Exemple de sortie :
+
+```
+ID        Time                 Host         Tags  Paths
+--------  -------------------  -----------  ----  ----
+abc12345  2026-03-17 00:00:00  backup-host        /tmp/db_20260317_000000.sql.gz
+...
+```
+
+##### Supprimer une sauvegarde
+
+Si vous souhaitez supprimer une sauvegarde spécifique, utilisez son ID :
+
+```bash
+sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic forget SNAPSHOT_ID --prune
+```
+
+##### Supprimer le dépôt sur pCloud et tous les snapshots (attention, opération irréversible)
+
+```bash
+sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup rclone purge pcloud:Backups/WebShop
+```
+
+##### Dépannage
+
+**Problème** : `Error: repository does not exist`
+
+**Solution** : Exécutez `restic init` pour créer le dépôt (voir Étape 4).
+
+**Problème** : `Error: couldn't find Rclone`
+
+**Solution** : Le script de backup installe automatiquement Rclone si nécessaire. Vérifiez que le conteneur peut accéder à Internet.
+
+**Problème** : `Error: authentication failed` ou `404 Not Found`
+
+**Solution** : Vérifiez votre token pCloud dans `.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt`. Assurez-vous que le token est valide et qu'il n'a pas expiré.
+
+**Problème** : Rclone est trop lent ou upload échoue
+
+**Solution** : Vérifiez votre connexion Internet et la charge du réseau. Les grandes sauvegardes peuvent prendre du temps selon votre connectivité.
+
+#### 1.2 Automatiser les sauvegardes
+
+1. Ouvrez la crontab de l'utilisateur qui exécute Docker :
 
 ```bash
 crontab -e
 ```
 
-2. Ajoutez la tache quotidienne :
+1. Ajoutez la tâche quotidienne :
 
 ```bash
-0 0 * * * export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && \
-cd /opt/webshop/project && \
-echo "[$(date '+\%Y-\%m-\%d \%H:\%M:\%S')] Debut du backup..." >> /var/log/webshop-backup.log 2>&1 && \
-docker compose -f docker-compose.prod.yml --profile backup run --rm backup >> /var/log/webshop-backup.log 2>&1 && \
-echo "[$(date '+\%Y-\%m-\%d \%H:\%M:\%S')] Backup termine." >> /var/log/webshop-backup.log 2>&1
+echo "0 0 * * * PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /bin/bash -lc 'cd /path/to/webshop && echo \"[$(date -Iseconds)] Début du backup...\" >> /var/log/webshop-backup.log 2>&1 && docker compose -f docker-compose.prod.yml --profile backup run --rm backup >> /var/log/webshop-backup.log 2>&1 && echo \"[$(date -Iseconds)] Backup terminé.\" >> /var/log/webshop-backup.log 2>&1'
 ```
 
-3. Verifiez la crontab active :
+1. Vérifiez la crontab active :
 
 ```bash
 crontab -l
 ```
 
-#### Securiser le serveur de sauvegarde (seulement pour SFTP)
-
-Sur le serveur de sauvegarde distant, n'autorisez SSH que depuis l'IP du serveur applicatif :
+#### 1.3 Restaurer depuis une sauvegarde
 
 ```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from WEBSHOP_SERVER_IP to any port 22 proto tcp
-sudo ufw enable
-sudo ufw status verbose
+sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup restore-db latest users_db
 ```
 
-#### Executer un backup manuel
+Cette commande restaure le snapshot Restic, recrée la base `users_db`, puis importe automatiquement le dump SQL.
 
-```bash
-docker compose -f docker-compose.prod.yml --profile backup run --rm backup
-```
+> **Attention** : cette opération écrase la base cible. Arrêtez le backend avant restauration pour éviter les connexions actives.
 
-#### Restaurer depuis une sauvegarde
+### 2. Dépannage
 
-1. Lister les snapshots :
+Cette section regroupe les incidents les plus fréquents et une réponse rapide associée.
 
-```bash
-docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic snapshots
-```
+#### 2.1 Le backend redémarre en boucle
 
-2. Restaurer le dernier snapshot vers un dossier temporaire :
-
-```bash
-docker compose -f docker-compose.prod.yml --profile backup run --rm backup restic restore latest --target /path/to/restore
-```
-
-Pour plus de contexte sur le service de sauvegarde, consultez aussi [backup/README.md](backup/README.md).
-
-### Depannage
-
-Cette section regroupe les incidents les plus frequents et une reponse rapide associee.
-
-#### Le backend redemarre en boucle
-
-Cause probable : le schema de la base de donnees ne correspond plus aux modeles.
+Cause probable : le schéma de la base de données ne correspond plus aux modèles.
 
 ```bash
 sudo docker compose exec backend flask db upgrade
 ```
 
-#### La migration automatique echoue
+#### 2.2 La migration automatique échoue
 
-Cause probable : Flask-Migrate ne detecte pas tous les changements complexes.
+Cause probable : Flask-Migrate ne détecte pas tous les changements complexes.
 
 ```bash
 sudo docker compose exec backend flask db revision -m "Migration manuelle"
 sudo docker compose exec backend flask db upgrade
 ```
 
-#### Les volumes Docker occupent trop d'espace
+#### 2.3 Les volumes Docker occupent trop d'espace
 
 ```bash
 sudo docker volume ls
@@ -908,9 +889,9 @@ sudo docker volume prune
 sudo du -sh /var/lib/docker/volumes/*/
 ```
 
-#### Reinitialiser completement l'application
+#### 2.4 Réinitialiser complètement l'application
 
-> **Attention** : cette operation supprime les donnees de la base et les volumes associes. Verifiez d'abord que vous disposez d'une sauvegarde exploitable.
+> **Attention** : cette opération supprime les données de la base et les volumes associés. Vérifiez d'abord que vous disposez d'une sauvegarde exploitable.
 
 ```bash
 sudo docker compose down -v
@@ -921,14 +902,14 @@ sudo docker compose exec backend flask db migrate -m "Initial migration"
 sudo docker compose exec backend flask db upgrade
 ```
 
-### Logs et monitoring
+### 3. Logs et monitoring
 
-Ces commandes permettent de verifier rapidement l'etat de la plateforme et d'analyser les evenements de securite.
+Ces commandes permettent de vérifier rapidement l'état de la plateforme et d'analyser les événements de sécurité.
 
-#### Consulter les logs applicatifs
+#### 3.1 Consulter les logs applicatifs
 
 ```bash
-# Logs en developpement
+# Logs en développement
 sudo docker compose logs -f frontend
 sudo docker compose logs -f backend
 
@@ -936,10 +917,10 @@ sudo docker compose logs -f backend
 sudo docker compose -f docker-compose.prod.yml logs -f backend
 ```
 
-#### Suivre le journal de securite
+#### 3.2 Suivre le journal de sécurité
 
 ```bash
-# Lire le journal de securite dans le conteneur backend
+# Lire le journal de sécurité dans le conteneur backend
 sudo docker compose -f docker-compose.prod.yml exec backend tail -f security.log
 
 # Affichage brut des logs backend
@@ -952,15 +933,15 @@ sudo docker compose -f docker-compose.prod.yml exec backend cat security.log | j
 # Rechercher les erreurs d'autorisation
 sudo docker compose -f docker-compose.prod.yml exec backend grep "UNAUTHORIZED\|FORBIDDEN\|FAILED" security.log | jq '.'
 
-# Copier le journal sur l'hote
+# Copier le journal sur l'hôte
 sudo docker compose -f docker-compose.prod.yml cp backend:/app/security.log ./security.log
 ```
 
-Evenements journalises les plus courants :
+Événements journalisés les plus courants :
 
 - Authentification : `LOGIN_SUCCESS`, `LOGIN_FAILED`, `LOGOUT`, `REGISTER`
 - Gestion des utilisateurs : `USER_CREATED`, `USER_UPDATED`, `USER_DELETED`
-- Controle d'acces : `UNAUTHORIZED_ACCESS`, `FORBIDDEN_ACCESS`
+- Contrôle d'accès : `UNAUTHORIZED_ACCESS`, `FORBIDDEN_ACCESS`
 - Configuration : `PARAMETERS_UPDATED`, `VAT_CREATED`, `VAT_DELETED`
 
-Chaque entree contient typiquement un horodatage, un `user_id`, un `user_email`, une adresse IP, une action, une ressource et un statut.
+Chaque entrée contient typiquement un horodatage, un `user_id`, un `user_email`, une adresse IP, une action, une ressource et un statut.

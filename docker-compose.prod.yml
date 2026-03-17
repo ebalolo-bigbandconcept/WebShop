@@ -66,12 +66,14 @@ services:
     environment:
       - RESTIC_REPOSITORY=$(cat /run/secrets/RESTIC_REPOSITORY)
       - RESTIC_PASSWORD_FILE=/run/secrets/RESTIC_PASSWORD
+      - RCLONE_CONFIG_PCLOUD_AUTH_FILE=/run/secrets/RCLONE_CONFIG_PCLOUD_AUTH
       - POSTGRES_DB=users_db
       - POSTGRES_USER_FILE=/run/secrets/DB_USER
       - POSTGRES_PASSWORD_FILE=/run/secrets/DB_PASSWORD
     secrets:
       - RESTIC_PASSWORD
       - RESTIC_REPOSITORY
+      - RCLONE_CONFIG_PCLOUD_AUTH
       - DB_USER
       - DB_PASSWORD
     volumes:
@@ -129,6 +131,8 @@ secrets:
     file: ./.env_prod_secrets/RESTIC_PASSWORD.txt
   RESTIC_REPOSITORY:
     file: ./.env_prod_secrets/RESTIC_REPOSITORY.txt
+  RCLONE_CONFIG_PCLOUD_AUTH:
+    file: ./.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt
   DOCUSIGN_ACCOUNT_ID:
     file: ./.env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt
   DOCUSIGN_USER_ID:
