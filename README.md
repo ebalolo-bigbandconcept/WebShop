@@ -11,28 +11,28 @@ Application WebShop avec frontend React/Bootstrap, backend Flask, Redis pour le 
 
 Ce README sert de guide opératoire principal pour travailler sur le projet, le déployer et le maintenir. Il propose trois parcours de lecture : développement, production et maintenance.
 
-**Table des matières**
+## Table des matières
 
 1. [Développement](#développement)
-1.1 [Installation locale](#1-installation-locale)
-1.2 [Configuration locale](#2-configuration-locale)
-1.3 [Démarrage local](#3-démarrage-local)
-1.4 [Accès à l'application](#4-accès-à-lapplication)
-1.5 [Qualité de code Python](#5-qualité-de-code-python)
-1.6 [Migrations de base de données](#6-migrations-de-base-de-données)
+  - [Installation locale](#1-installation-locale)
+  - [Configuration locale](#2-configuration-locale)
+  - [Démarrage local](#3-démarrage-local)
+  - [Accès à l'application](#4-accès-à-lapplication)
+  - [Qualité de code Python](#5-qualité-de-code-python)
+  - [Migrations de base de données](#6-migrations-de-base-de-données)
 
 2. [Production](#production)
-2.1 [Préparation du serveur](#1-préparation-du-serveur)
-2.2 [Secrets de production](#2-secrets-de-production)
-2.3 [Configuration applicative](#3-configuration-applicative)
-2.4 [Déployer l'application](#4-déployer-lapplication)
-2.5 [HTTPS avec Let's Encrypt](#5-https-avec-lets-encrypt)
-2.6 [CI/CD et déploiement automatique](#6-cicd-et-déploiement-automatique-optionnel)
+  - [Préparation du serveur](#1-préparation-du-serveur)
+  - [Secrets de production](#2-secrets-de-production)
+  - [Configuration applicative](#3-configuration-applicative)
+  - [Déployer l'application](#4-déployer-lapplication)
+  - [HTTPS avec Let's Encrypt](#5-https-avec-lets-encrypt)
+  - [CI/CD et déploiement automatique](#6-cicd-et-déploiement-automatique-optionnel)
 
 3. [Maintenance](#maintenance)
-3.1 [Sauvegarde et restauration](#1-sauvegarde-et-restauration)
-3.2 [Dépannage](#2-dépannage)
-3.3 [Logs et monitoring](#3-logs-et-monitoring)
+  - [Sauvegarde et restauration](#1-sauvegarde-et-restauration)
+  - [Dépannage](#2-dépannage)
+  - [Logs et monitoring](#3-logs-et-monitoring)
 
 ## Développement
 
