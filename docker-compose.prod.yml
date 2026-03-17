@@ -5,8 +5,8 @@ services:
       dockerfile: backend/Dockerfile.prod
     environment:
       - FLASK_ENV=production
-      - FRONTEND_URL=https://vps116574.serveur-vps.net
-      - BACKEND_URL=https://vps116574.serveur-vps.net
+      - FRONTEND_URL=https://vps117856.serveur-vps.net
+      - BACKEND_URL=https://vps117856.serveur-vps.net
       - DOCUSIGN_ENV=demo
       - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/DOCUSIGN_PRIVATE_KEY
     secrets:
