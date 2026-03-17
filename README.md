@@ -14,25 +14,25 @@ Ce README sert de guide opératoire principal pour travailler sur le projet, le 
 ## Table des matières
 
 1. [Développement](#développement)
-  - [Installation locale](#1-installation-locale)
-  - [Configuration locale](#2-configuration-locale)
-  - [Démarrage local](#3-démarrage-local)
-  - [Accès à l'application](#4-accès-à-lapplication)
-  - [Qualité de code Python](#5-qualité-de-code-python)
-  - [Migrations de base de données](#6-migrations-de-base-de-données)
+   - [Installation locale](#1-installation-locale)
+   - [Configuration locale](#2-configuration-locale)
+   - [Démarrage local](#3-démarrage-local)
+   - [Accès à l'application](#4-accès-à-lapplication)
+   - [Qualité de code Python](#5-qualité-de-code-python)
+   - [Migrations de base de données](#6-migrations-de-base-de-données)
 
 2. [Production](#production)
-  - [Préparation du serveur](#1-préparation-du-serveur)
-  - [Secrets de production](#2-secrets-de-production)
-  - [Configuration applicative](#3-configuration-applicative)
-  - [Déployer l'application](#4-déployer-lapplication)
-  - [HTTPS avec Let's Encrypt](#5-https-avec-lets-encrypt)
-  - [CI/CD et déploiement automatique](#6-cicd-et-déploiement-automatique-optionnel)
+   - [Préparation du serveur](#1-préparation-du-serveur)
+   - [Secrets de production](#2-secrets-de-production)
+   - [Configuration applicative](#3-configuration-applicative)
+   - [Déployer l'application](#4-déployer-lapplication)
+   - [HTTPS avec Let's Encrypt](#5-https-avec-lets-encrypt)
+   - [CI/CD et déploiement automatique](#6-cicd-et-déploiement-automatique-optionnel)
 
 3. [Maintenance](#maintenance)
-  - [Sauvegarde et restauration](#1-sauvegarde-et-restauration)
-  - [Dépannage](#2-dépannage)
-  - [Logs et monitoring](#3-logs-et-monitoring)
+   - [Sauvegarde et restauration](#1-sauvegarde-et-restauration)
+   - [Dépannage](#2-dépannage)
+   - [Logs et monitoring](#3-logs-et-monitoring)
 
 ## Développement
 
@@ -728,7 +728,7 @@ Rclone va tenter d'ouvrir un navigateur automatiquement. Si ce n'est pas possibl
 
 Rclone affiche ensuite le token dans le terminal :
 
-```
+```json
 Paste the following into your remote machine --->
 {"access_token":"your_token_here","token_type":"bearer","expiry":"..."}
 <---End paste
@@ -793,7 +793,7 @@ sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup 
 
 Exemple de sortie :
 
-```
+```bash
 ID        Time                 Host         Tags  Paths
 --------  -------------------  -----------  ----  ----
 abc12345  2026-03-17 00:00:00  backup-host        /tmp/db_20260317_000000.sql.gz
