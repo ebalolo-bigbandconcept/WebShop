@@ -857,6 +857,8 @@ crontab -e
 
 1. Ajoutez la tâche quotidienne :
 
+> **Note** : changer le `/path/to/webshop` par le chemin réel de votre projet.
+
 ```bash
 0 0 * * * PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /bin/bash -lc 'cd /path/to/webshop && echo "[$(date -Iseconds)] Début du backup..." >> /var/log/webshop-backup.log 2>&1 && docker compose -f docker-compose.prod.yml --profile backup run --rm backup >> /var/log/webshop-backup.log 2>&1 && echo "[$(date -Iseconds)] Backup terminé." >> /var/log/webshop-backup.log 2>&1'
 ```
