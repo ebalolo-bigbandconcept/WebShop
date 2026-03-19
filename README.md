@@ -27,12 +27,12 @@ Ce README sert de guide opératoire principal pour travailler sur le projet, le 
    - [Configuration applicative](#3-configuration-applicative)
    - [Déployer l'application](#4-déployer-lapplication)
    - [HTTPS avec Let's Encrypt](#5-https-avec-lets-encrypt)
-   - [CI/CD et déploiement automatique](#6-cicd-et-déploiement-automatique-optionnel)
+   - [Sauvegarde et restauration](#6-sauvegarde-et-restauration)
+   - [CI/CD et déploiement automatique](#7-cicd-et-déploiement-automatique-optionnel)
 
 3. [Maintenance](#maintenance)
-   - [Sauvegarde et restauration](#1-sauvegarde-et-restauration)
-   - [Dépannage](#2-dépannage)
-   - [Logs et monitoring](#3-logs-et-monitoring)
+   - [Dépannage](#1-dépannage)
+   - [Logs et monitoring](#2-logs-et-monitoring)
 
 ## Développement
 
@@ -501,205 +501,9 @@ crontab -l
 sudo docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot --dry-run
 ```
 
-### 6. CI/CD et déploiement automatique (optionnel)
+### 6. Sauvegarde et restauration
 
-Cette section couvre l'automatisation GitHub Actions pour tester puis déployer sur les environnements de développement et de production.
-
-#### 6.1 Créer un utilisateur de déploiement dédié
-
-```bash
-ssh root@your-vps
-
-useradd -m -s /bin/bash deploy
-usermod -aG docker deploy
-usermod -p 'StrongPassword' deploy
-
-chown -R deploy:deploy /opt/WebShop
-chown -R root:root /opt/WebShop/.env_prod_secrets
-chmod 755 /opt/WebShop/.env_prod_secrets
-
-cat >> /etc/sudoers.d/deploy << 'EOF'
-deploy ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/local/bin/docker-compose
-EOF
-chmod 440 /etc/sudoers.d/deploy
-
-su - deploy
-docker ps
-exit
-exit
-```
-
-#### 6.2 Générer des clés SSH
-
-```bash
-# Clé de production
-ssh-keygen -t ed25519 -C "ci-deploy-prod" -f ~/.ssh/webshop_deploy -N ""
-
-# Clé de développement, si serveur distinct
-ssh-keygen -t ed25519 -C "ci-deploy-dev" -f ~/.ssh/webshop_deploy_dev -N ""
-```
-
-#### 6.3 Installer les clés publiques sur le serveur
-
-```bash
-cat ~/.ssh/webshop_deploy.pub
-
-mkdir -p /home/deploy/.ssh
-chmod 700 /home/deploy/.ssh
-
-cat >> /home/deploy/.ssh/authorized_keys << 'EOF'
-ssh-ed25519 AAAA... ci-deploy-prod
-EOF
-
-chmod 600 /home/deploy/.ssh/authorized_keys
-chown -R deploy:deploy /home/deploy/.ssh
-
-cp -r /root/WebShop/* /opt/WebShop/
-chown -R deploy:deploy /opt/WebShop
-```
-
-#### 6.4 Ajouter les secrets GitHub
-
-Dans le dépôt GitHub, ouvrez `Settings` > `Secrets and variables` > `Actions`, puis ajoutez :
-
-Secrets de production :
-
-- `SSH_HOST` : nom d'hôte ou IP du VPS
-- `SSH_USER` : `deploy`
-- `SSH_KEY` : contenu complet de `~/.ssh/webshop_deploy`
-- `WORK_DIR` : `/opt/webshop`
-- `DEPLOY_GIT_TOKEN` : optionnel, pour dépôt privé
-
-Secrets de développement, si serveur distinct :
-
-- `SSH_HOST_DEV` : hôte du serveur de développement
-- `SSH_USER_DEV` : utilisateur de déploiement
-- `SSH_KEY_DEV` : contenu complet de `~/.ssh/webshop_deploy_dev`
-- `WORK_DIR_DEV` : chemin du projet sur le serveur de développement
-
-#### 6.5 Comprendre les workflows
-
-Le dépôt contient trois workflows GitHub Actions dans `.github/workflows/`.
-
-Exemple de comportement pour le workflow principal CI :
-
-- Déclenchement sur `push` et `pull_request` vers `dev` et `main`
-- Tests backend avec `pytest` et couverture
-- Build frontend
-- Déploiement automatique vers le staging depuis `dev`
-- Déploiement automatique vers la production depuis `main`
-
-Exemple de séquence de déploiement :
-
-```bash
-# 1. Travailler en local
-git checkout dev
-git commit -m "Add new feature"
-git push origin dev
-
-# 2. GitHub Actions lance les tests et déploie le staging
-
-# 3. Vérifier le staging
-ssh deploy@dev-server "cd /opt/webshop && docker compose ps"
-
-# 4. Fusionner vers main après validation
-git checkout main
-git pull
-git merge dev
-git push origin main
-```
-
-#### 6.6 Superviser les déploiements
-
-```bash
-# Consulter les exécutions dans l'onglet Actions du dépôt GitHub
-
-# Suivre les logs en temps réel sur le serveur
-ssh deploy@your-vps "cd /opt/webshop && docker compose logs -f backend"
-
-# Vérifier l'état des services
-ssh deploy@your-vps "cd /opt/webshop && docker compose ps"
-```
-
-#### 6.7 Renforcer l'accès SSH
-
-Durcissez la configuration SSH sur le serveur :
-
-```bash
-ssh root@your-vps
-nano /etc/ssh/ssh_config
-```
-
-Ajoutez ou adaptez :
-
-```text
-PermitRootLogin prohibit-password
-PasswordAuthentication no
-PubkeyAuthentication yes
-```
-
-Redémarrez ensuite le service SSH :
-
-```bash
-sudo systemctl restart ssh
-```
-
-Si vous devez conserver un accès root par clé :
-
-```bash
-# Sur votre machine locale
-ssh-keygen -t ed25519 -C "root-access" -f ~/.ssh/webshop_root
-cat ~/.ssh/webshop_root.pub
-```
-
-Puis sur le VPS :
-
-```bash
-ssh root@your-vps
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
-
-cat >> ~/.ssh/authorized_keys << 'EOF'
-ssh-ed25519 AAAA...your-public-key-here... root-access
-EOF
-
-chmod 600 ~/.ssh/authorized_keys
-cat ~/.ssh/authorized_keys
-exit
-```
-
-#### 6.8 Dépannage CI/CD
-
-Problème : accès refusé avec `Permission denied`
-
-```bash
-cat /home/deploy/.ssh/authorized_keys | head -1
-ls -la /home/deploy/.ssh/
-```
-
-Problème : les services ne se relancent pas après déploiement
-
-```bash
-cd /opt/webshop && docker compose logs --tail=50
-cd /opt/webshop && docker compose up -d
-```
-
-Problème : les migrations échouent
-
-```bash
-cd /opt/webshop && docker compose exec -T db pg_isready -U dev_user
-cd /opt/webshop && docker compose exec -T backend flask db current
-```
-
-**Important** : conservez vos clés privées SSH dans un emplacement sûr. Si plusieurs administrateurs interviennent, attribuez une clé distincte à chacun.
-
-## Maintenance
-
-Cette section regroupe les opérations de sauvegarde, les procédures de dépannage et les commandes de suivi en exploitation.
-
-### 1. Sauvegarde et restauration
-
-#### 1.1 Configurer le dépôt de sauvegarde Restic avec Rclone et pCloud
+#### 6.1 Configurer le dépôt de sauvegarde Restic avec Rclone et pCloud
 
 Cette section couvre la configuration de Restic avec Rclone pour sauvegarder les données de votre application WebShop sur pCloud.
 
@@ -829,25 +633,7 @@ sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup 
 sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup rclone purge pcloud:Backups/WebShop
 ```
 
-##### Dépannage
-
-**Problème** : `Error: repository does not exist`
-
-**Solution** : Exécutez `restic init` pour créer le dépôt (voir Étape 4).
-
-**Problème** : `Error: couldn't find Rclone`
-
-**Solution** : Le script de backup installe automatiquement Rclone si nécessaire. Vérifiez que le conteneur peut accéder à Internet.
-
-**Problème** : `Error: authentication failed` ou `404 Not Found`
-
-**Solution** : Vérifiez votre token pCloud dans `.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt`. Assurez-vous que le token est valide et qu'il n'a pas expiré.
-
-**Problème** : Rclone est trop lent ou upload échoue
-
-**Solution** : Vérifiez votre connexion Internet et la charge du réseau. Les grandes sauvegardes peuvent prendre du temps selon votre connectivité.
-
-#### 1.2 Automatiser les sauvegardes
+#### 6.2 Automatiser les sauvegardes
 
 1. Ouvrez la crontab de l'utilisateur qui exécute Docker :
 
@@ -869,7 +655,7 @@ crontab -e
 crontab -l
 ```
 
-#### 1.3 Restaurer depuis une sauvegarde
+#### 6.3 Restaurer depuis une sauvegarde
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml --profile backup run --rm backup restore-db latest users_db
@@ -879,11 +665,207 @@ Cette commande restaure le snapshot Restic, recrée la base `users_db`, puis imp
 
 > **Attention** : cette opération écrase la base cible. Arrêtez le backend avant restauration pour éviter les connexions actives.
 
-### 2. Dépannage
+### 7. CI/CD et déploiement automatique (optionnel)
+
+Cette section couvre l'automatisation GitHub Actions pour tester puis déployer sur les environnements de développement et de production.
+
+#### 7.1 Créer un utilisateur de déploiement dédié
+
+```bash
+ssh root@your-vps
+
+useradd -m -s /bin/bash deploy
+usermod -aG docker deploy
+usermod -p 'StrongPassword' deploy
+
+chown -R deploy:deploy /opt/WebShop
+chown -R root:root /opt/WebShop/.env_prod_secrets
+chmod 755 /opt/WebShop/.env_prod_secrets
+
+cat >> /etc/sudoers.d/deploy << 'EOF'
+deploy ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/local/bin/docker-compose
+EOF
+chmod 440 /etc/sudoers.d/deploy
+
+su - deploy
+docker ps
+exit
+exit
+```
+
+#### 7.2 Générer des clés SSH
+
+```bash
+# Clé de production
+ssh-keygen -t ed25519 -C "ci-deploy-prod" -f ~/.ssh/webshop_deploy -N ""
+
+# Clé de développement, si serveur distinct
+ssh-keygen -t ed25519 -C "ci-deploy-dev" -f ~/.ssh/webshop_deploy_dev -N ""
+```
+
+#### 7.3 Installer les clés publiques sur le serveur
+
+```bash
+cat ~/.ssh/webshop_deploy.pub
+
+mkdir -p /home/deploy/.ssh
+chmod 700 /home/deploy/.ssh
+
+cat >> /home/deploy/.ssh/authorized_keys << 'EOF'
+ssh-ed25519 AAAA... ci-deploy-prod
+EOF
+
+chmod 600 /home/deploy/.ssh/authorized_keys
+chown -R deploy:deploy /home/deploy/.ssh
+
+cp -r /root/WebShop/* /opt/WebShop/
+chown -R deploy:deploy /opt/WebShop
+```
+
+#### 7.4 Ajouter les secrets GitHub
+
+Dans le dépôt GitHub, ouvrez `Settings` > `Secrets and variables` > `Actions`, puis ajoutez :
+
+Secrets de production :
+
+- `SSH_HOST` : nom d'hôte ou IP du VPS
+- `SSH_USER` : `deploy`
+- `SSH_KEY` : contenu complet de `~/.ssh/webshop_deploy`
+- `WORK_DIR` : `/opt/webshop`
+- `DEPLOY_GIT_TOKEN` : optionnel, pour dépôt privé
+
+Secrets de développement, si serveur distinct :
+
+- `SSH_HOST_DEV` : hôte du serveur de développement
+- `SSH_USER_DEV` : utilisateur de déploiement
+- `SSH_KEY_DEV` : contenu complet de `~/.ssh/webshop_deploy_dev`
+- `WORK_DIR_DEV` : chemin du projet sur le serveur de développement
+
+#### 7.5 Comprendre les workflows
+
+Le dépôt contient trois workflows GitHub Actions dans `.github/workflows/`.
+
+Exemple de comportement pour le workflow principal CI :
+
+- Déclenchement sur `push` et `pull_request` vers `dev` et `main`
+- Tests backend avec `pytest` et couverture
+- Build frontend
+- Déploiement automatique vers le staging depuis `dev`
+- Déploiement automatique vers la production depuis `main`
+
+Exemple de séquence de déploiement :
+
+```bash
+# 1. Travailler en local
+git checkout dev
+git commit -m "Add new feature"
+git push origin dev
+
+# 2. GitHub Actions lance les tests et déploie le staging
+
+# 3. Vérifier le staging
+ssh deploy@dev-server "cd /opt/webshop && docker compose ps"
+
+# 4. Fusionner vers main après validation
+git checkout main
+git pull
+git merge dev
+git push origin main
+```
+
+#### 7.6 Superviser les déploiements
+
+```bash
+# Consulter les exécutions dans l'onglet Actions du dépôt GitHub
+
+# Suivre les logs en temps réel sur le serveur
+ssh deploy@your-vps "cd /opt/webshop && docker compose logs -f backend"
+
+# Vérifier l'état des services
+ssh deploy@your-vps "cd /opt/webshop && docker compose ps"
+```
+
+#### 7.7 Renforcer l'accès SSH
+
+Durcissez la configuration SSH sur le serveur :
+
+```bash
+ssh root@your-vps
+nano /etc/ssh/ssh_config
+```
+
+Ajoutez ou adaptez :
+
+```text
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+PubkeyAuthentication yes
+```
+
+Redémarrez ensuite le service SSH :
+
+```bash
+sudo systemctl restart ssh
+```
+
+Si vous devez conserver un accès root par clé :
+
+```bash
+# Sur votre machine locale
+ssh-keygen -t ed25519 -C "root-access" -f ~/.ssh/webshop_root
+cat ~/.ssh/webshop_root.pub
+```
+
+Puis sur le VPS :
+
+```bash
+ssh root@your-vps
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+cat >> ~/.ssh/authorized_keys << 'EOF'
+ssh-ed25519 AAAA...your-public-key-here... root-access
+EOF
+
+chmod 600 ~/.ssh/authorized_keys
+cat ~/.ssh/authorized_keys
+exit
+```
+
+#### 7.8 Dépannage CI/CD
+
+Problème : accès refusé avec `Permission denied`
+
+```bash
+cat /home/deploy/.ssh/authorized_keys | head -1
+ls -la /home/deploy/.ssh/
+```
+
+Problème : les services ne se relancent pas après déploiement
+
+```bash
+cd /opt/webshop && docker compose logs --tail=50
+cd /opt/webshop && docker compose up -d
+```
+
+Problème : les migrations échouent
+
+```bash
+cd /opt/webshop && docker compose exec -T db pg_isready -U dev_user
+cd /opt/webshop && docker compose exec -T backend flask db current
+```
+
+**Important** : conservez vos clés privées SSH dans un emplacement sûr. Si plusieurs administrateurs interviennent, attribuez une clé distincte à chacun.
+
+## Maintenance
+
+Cette section regroupe les procédures de dépannage et les commandes de suivi en exploitation.
+
+### 1. Dépannage
 
 Cette section regroupe les incidents les plus fréquents et une réponse rapide associée.
 
-#### 2.1 Le backend redémarre en boucle
+#### 1.1 Le backend redémarre en boucle
 
 Cause probable : le schéma de la base de données ne correspond plus aux modèles.
 
@@ -891,7 +873,7 @@ Cause probable : le schéma de la base de données ne correspond plus aux modèl
 sudo docker compose exec backend flask db upgrade
 ```
 
-#### 2.2 La migration automatique échoue
+#### 1.2 La migration automatique échoue
 
 Cause probable : Flask-Migrate ne détecte pas tous les changements complexes.
 
@@ -900,7 +882,7 @@ sudo docker compose exec backend flask db revision -m "Migration manuelle"
 sudo docker compose exec backend flask db upgrade
 ```
 
-#### 2.3 Les volumes Docker occupent trop d'espace
+#### 1.3 Les volumes Docker occupent trop d'espace
 
 ```bash
 sudo docker volume ls
@@ -908,7 +890,7 @@ sudo docker volume prune
 sudo du -sh /var/lib/docker/volumes/*/
 ```
 
-#### 2.4 Réinitialiser complètement l'application
+#### 1.4 Réinitialiser complètement l'application
 
 > **Attention** : cette opération supprime les données de la base et les volumes associés. Vérifiez d'abord que vous disposez d'une sauvegarde exploitable.
 
@@ -921,11 +903,29 @@ sudo docker compose exec backend flask db migrate -m "Initial migration"
 sudo docker compose exec backend flask db upgrade
 ```
 
-### 3. Logs et monitoring
+#### 1.5 Sauvegardes Restic/pCloud: incidents fréquents
+
+**Problème** : `Error: repository does not exist`
+
+**Solution** : Exécutez `restic init` pour créer le dépôt avant la première sauvegarde.
+
+**Problème** : `Error: couldn't find Rclone`
+
+**Solution** : Vérifiez que le conteneur de backup peut accéder à Internet pour installer Rclone automatiquement.
+
+**Problème** : `Error: authentication failed` ou `404 Not Found`
+
+**Solution** : Vérifiez le contenu de `.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt` et regénérez le token pCloud si nécessaire.
+
+**Problème** : upload lent ou échec des sauvegardes
+
+**Solution** : Contrôlez la connectivité réseau et relancez un backup manuel pour valider le flux.
+
+### 2. Logs et monitoring
 
 Ces commandes permettent de vérifier rapidement l'état de la plateforme et d'analyser les événements de sécurité.
 
-#### 3.1 Consulter les logs applicatifs
+#### 2.1 Consulter les logs applicatifs
 
 ```bash
 # Logs en développement
@@ -936,7 +936,7 @@ sudo docker compose logs -f backend
 sudo docker compose -f docker-compose.prod.yml logs -f backend
 ```
 
-#### 3.2 Suivre le journal de sécurité
+#### 2.2 Suivre le journal de sécurité
 
 ```bash
 # Lire le journal de sécurité dans le conteneur backend
