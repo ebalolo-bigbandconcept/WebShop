@@ -150,17 +150,69 @@ sudo docker compose exec backend black --check .
 sudo docker compose exec backend isort --check-only .
 ```
 
+> **Note** : le CI échouera si le formatage attendu n'est pas respecté. Lancez les vérifications avant de pousser vos commits.
+
 #### 5.4 Tests et couverture
 
-Pour les suites de tests détaillées, consultez [backend/tests/README.md](backend/tests/README.md).
+Le backend dispose d'une suite de tests automatisés complète pour la gestion des devis.
 
-Commande utile pour lancer la couverture backend dans le conteneur :
+Structure du dossier `tests/` :
+
+```text
+tests/
+├── README.md
+├── __init__.py
+├── conftest.py
+├── fixtures/
+├── unit/
+├── integration/
+└── e2e/
+```
+
+Exécuter tous les tests :
+
+```bash
+sudo docker compose exec backend pytest
+```
+
+Exécuter des suites spécifiques :
+
+```bash
+# Tests unitaires
+sudo docker compose exec backend pytest tests/unit/
+
+# Tests d'intégration
+sudo docker compose exec backend pytest tests/integration/
+
+# Fichier de test spécifique
+sudo docker compose exec backend pytest tests/unit/test_devis_calculations.py
+
+# Classe de test spécifique
+sudo docker compose exec backend pytest tests/unit/test_devis_calculations.py::TestArticleLineCalculations
+
+# Fonction de test spécifique
+sudo docker compose exec backend pytest tests/unit/test_devis_calculations.py::TestArticleLineCalculations::test_montant_ht_calculation_basic
+```
+
+Exécuter avec couverture :
 
 ```bash
 sudo docker compose exec backend pytest --cov=. --cov-report=term-missing
 ```
 
-> **Note** : le CI échouera si le formatage attendu n'est pas respecté. Lancez les vérifications avant de pousser vos commits.
+Exécuter avec une sortie détaillée :
+
+```bash
+sudo docker compose exec backend pytest -v
+sudo docker compose exec backend pytest -s
+sudo docker compose exec backend pytest -vv
+```
+
+Ressources utiles :
+
+- [Documentation pytest](https://docs.pytest.org/)
+- [Documentation pytest-flask](https://pytest-flask.readthedocs.io/)
+- [Documentation Coverage.py](https://coverage.readthedocs.io/)
 
 ### 6. Migrations de base de données
 
