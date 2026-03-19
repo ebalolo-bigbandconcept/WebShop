@@ -12,7 +12,7 @@ const Modal = forwardRef(({ title, children, footer, size = "modal-lg", backdrop
     return () => {
       if (instanceRef.current && modalRef.current) {
         try {
-          // Force remove any active transitions and backdrops before disposal
+          // Force remove any active transitions and backdrops before disposal.
           const backdrop = document.querySelector('.modal-backdrop');
           if (backdrop) {
             backdrop.remove();

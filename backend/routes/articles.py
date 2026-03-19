@@ -228,7 +228,7 @@ def delete_article(article_id):
     return jsonify({"message": "Article supprimé avec succès"})
 
 
-# Export all articles as PDF
+# Export all articles as PDF.
 @articles_bp.route("/export-pdf", methods=["GET"])
 def export_articles_pdf():
     # Check if user is authenticated

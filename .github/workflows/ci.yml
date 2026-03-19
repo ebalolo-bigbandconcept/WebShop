@@ -543,15 +543,25 @@ jobs:
       - name: Deploy to production server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
+          script_stop: true
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -eu
             cd ${{ secrets.WORK_DIR }}
-            git config --global --add safe.directory ${{ secrets.WORK_DIR }}
+            git config --global --add safe.directory ${{ secrets.WORK_DIR }} || true
+            if [ ! -w .git/objects ]; then
+              echo "Fixing repository permissions in ${{ secrets.WORK_DIR }}"
+              sudo chown -R "$(id -un)":"$(id -gn)" .git
+            fi
+            if [ ! -w .git/objects ]; then
+              echo "ERROR: no write permission on .git/objects after ownership fix"
+              exit 1
+            fi
             git fetch origin
             git reset --hard origin/main
-            git pull origin main
+            git clean -fd
             docker compose -f docker-compose.prod.yml build
             docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
@@ -569,15 +579,25 @@ jobs:
       - name: Deploy to dev server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
+          script_stop: true
           host: ${{ secrets.SSH_HOST_DEV }}
           username: ${{ secrets.SSH_USER_DEV }}
           key: ${{ secrets.SSH_KEY_DEV }}
           script: |
+            set -eu
             cd ${{ secrets.WORK_DIR_DEV }}
-            git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }}
+            git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }} || true
+            if [ ! -w .git/objects ]; then
+              echo "Fixing repository permissions in ${{ secrets.WORK_DIR_DEV }}"
+              sudo chown -R "$(id -un)":"$(id -gn)" .git
+            fi
+            if [ ! -w .git/objects ]; then
+              echo "ERROR: no write permission on .git/objects after ownership fix"
+              exit 1
+            fi
             git fetch origin
             git reset --hard origin/dev
-            git pull origin dev
+            git clean -fd
             docker compose -f docker-compose.prod.yml build
             docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
