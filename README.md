@@ -828,8 +828,6 @@ git push origin main
 #### 7.6 Superviser les déploiements
 
 ```bash
-# Consulter les exécutions dans l'onglet Actions du dépôt GitHub
-
 # Suivre les logs en temps réel sur le serveur
 ssh deploy@your-vps "cd /opt/webshop && docker compose logs -f backend"
 
