@@ -133,11 +133,73 @@ jobs:
             core.setOutput('backend_failed', backend_failed);
             core.setOutput('frontend_failed', frontend_failed);
 
-  backend-tests:
-    name: Backend Tests
+  build-backend-image:
+    name: Build Backend Image
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.backend_last_failed == 'true'
+    outputs:
+      image-tag: webshop-backend:${{ github.sha }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build backend test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile.test
+          load: true
+          tags: webshop-backend-test:latest
+          cache-from: type=gha,scope=backend-test
+          cache-to: type=gha,mode=max,scope=backend-test
+      
+      - name: Build backend prod image (for docker-build)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile.prod
+          tags: webshop-backend:latest
+          cache-from: type=gha,scope=backend-prod
+          cache-to: type=gha,mode=max,scope=backend-prod
+          push: false
+
+  build-frontend-image:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.frontend_last_failed == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile.prod
+          build-args: |
+            REACT_APP_BACKEND_URL=/api
+          tags: webshop-frontend:latest
+          cache-from: type=gha,scope=frontend-prod
+          cache-to: type=gha,mode=max,scope=frontend-prod
+          push: false
+
+  backend-tests-unit:
+    name: Backend Tests - Unit
+    runs-on: ubuntu-latest
+    needs: [changes, build-backend-image]
+    if: (needs.changes.outputs.backend == 'true' || needs.changes.outputs.backend_last_failed == 'true') && (needs.build-backend-image.result == 'success' || needs.build-backend-image.result == 'skipped')
+    strategy:
+      fail-fast: true
     
     steps:
       - name: Checkout code
@@ -202,25 +264,118 @@ jobs:
           # Wait for PostgreSQL to be ready
           timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U dev_user; do sleep 1; done'
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildx (restore test image from cache)
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image (cached)
+      - name: Build backend test image (from cache)
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/Dockerfile.prod
+          file: backend/Dockerfile.test
           load: true
-          tags: webshop-backend:latest
-          cache-from: type=gha,scope=backend-prod
-          cache-to: type=gha,mode=max,scope=backend-prod
+          tags: webshop-backend-test:latest
+          cache-from: type=gha,scope=backend-test
 
-      - name: Run backend tests with coverage (unit+integration)
+      - name: Run backend unit tests (parallel)
         run: |
           docker compose -f docker-compose.prod.yml run --rm backend bash -c "
             flask db upgrade &&
-            python -m pytest tests/unit tests/integration -q -o addopts='--strict-markers --tb=short' --cov=. --cov-report=xml --cov-report=term &&
+            python -m pytest tests/unit -n auto --dist=load -q -o addopts='--strict-markers --tb=short' --cov=. --cov-report=xml --cov-report=term &&
             python -m coverage report --fail-under=80
+          "
+      
+      - name: Cleanup
+        if: always()
+        run: docker compose -f docker-compose.prod.yml down -v
+
+  backend-tests-integration:
+    name: Backend Tests - Integration
+    runs-on: ubuntu-latest
+    needs: [changes, build-backend-image]
+    if: (needs.changes.outputs.backend == 'true' || needs.changes.outputs.backend_last_failed == 'true') && (needs.build-backend-image.result == 'success' || needs.build-backend-image.result == 'skipped')
+    strategy:
+      fail-fast: true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create test .env file
+        run: |
+          cat > .env << EOF
+          SECRET_KEY=test-secret-key-for-ci-only
+          ADMIN_MAIL=admin@test.com
+          ADMIN_PASSWORD=TestPassword123!
+          REACT_APP_BACKEND_URL=/api
+          FRONTEND_URL=http://localhost:3000
+          BACKEND_URL=http://localhost:3000
+          DATABASE_URL=postgresql://dev_user:dev_password@db:5432/users_db
+          DOCUSIGN_ACCOUNT_ID=test
+          DOCUSIGN_USER_ID=test
+          DOCUSIGN_INTEGRATION_KEY=test
+          DOCUSIGN_ENV=demo
+          FLASK_ENV=development
+          EOF
+
+      - name: Prepare prod-style secrets for CI
+        run: |
+          mkdir -p .env_prod_secrets
+          cat > .env_prod_secrets/SECRET_KEY.txt <<'EOF'
+          test-secret-key-for-ci-only
+          EOF
+          cat > .env_prod_secrets/ADMIN_MAIL.txt <<'EOF'
+          admin@test.com
+          EOF
+          cat > .env_prod_secrets/ADMIN_PASSWORD.txt <<'EOF'
+          TestPassword123!
+          EOF
+          cat > .env_prod_secrets/DATABASE_URL.txt <<'EOF'
+          postgresql://dev_user:dev_password@db:5432/users_db
+          EOF
+          cat > .env_prod_secrets/DB_USER.txt <<'EOF'
+          dev_user
+          EOF
+          cat > .env_prod_secrets/DB_PASSWORD.txt <<'EOF'
+          dev_password
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_ACCOUNT_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_USER_ID.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
+          test
+          EOF
+          cat > .env_prod_secrets/private.pem <<'EOF'
+          -----BEGIN PRIVATE KEY-----
+          dummy-placeholder-for-ci-only
+          -----END PRIVATE KEY-----
+          EOF
+
+      - name: Start dependencies (PostgreSQL & Redis)
+        run: |
+          docker compose -f docker-compose.prod.yml up -d db redis
+          # Wait for PostgreSQL to be ready
+          timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U dev_user; do sleep 1; done'
+
+      - name: Set up Docker Buildx (restore test image from cache)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend test image (from cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile.test
+          load: true
+          tags: webshop-backend-test:latest
+          cache-from: type=gha,scope=backend-test
+
+      - name: Run backend integration tests (parallel)
+        run: |
+          docker compose -f docker-compose.prod.yml run --rm backend bash -c "
+            flask db upgrade &&
+            python -m pytest tests/integration -n auto --dist=load -q -o addopts='--strict-markers --tb=short' --cov=. --cov-report=xml
           "
       
       - name: Cleanup
@@ -232,6 +387,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.frontend_last_failed == 'true'
+    strategy:
+      fail-fast: true
     
     steps:
       - name: Checkout code
@@ -272,6 +429,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.backend_last_failed == 'true'
+    strategy:
+      fail-fast: true
     
     steps:
       - name: Checkout code
@@ -311,6 +470,8 @@ jobs:
       security-events: write
     needs: [changes]
     if: needs.changes.outputs.deploy == 'true'
+    strategy:
+      fail-fast: true
     
     steps:
       - name: Checkout code
@@ -334,8 +495,10 @@ jobs:
   docker-build:
     name: Docker Build and Integration
     runs-on: ubuntu-latest
-    needs: [changes, backend-tests, frontend-lint]
-    if: ${{ always() && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') }}
+    needs: [changes, build-backend-image, build-frontend-image, backend-tests-unit, backend-tests-integration, frontend-lint]
+    if: ${{ always() && needs.changes.outputs.build == 'true' && (needs.build-backend-image.result == 'success' || needs.build-backend-image.result == 'skipped') && (needs.build-frontend-image.result == 'success' || needs.build-frontend-image.result == 'skipped') && (needs.backend-tests-unit.result == 'success' || needs.backend-tests-unit.result == 'skipped') && (needs.backend-tests-integration.result == 'success' || needs.backend-tests-integration.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') }}
+    strategy:
+      fail-fast: true
     
     steps:
       - name: Checkout code
@@ -459,8 +622,8 @@ jobs:
   deploy-production:
     name: Production Server Deploy
     runs-on: ubuntu-latest
-    needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build]
-    if: ${{ always() && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
+    needs: [changes, backend-tests-unit, backend-tests-integration, frontend-lint, backend-lint, security-scan, docker-build]
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests-unit.result == 'success' || needs.backend-tests-unit.result == 'skipped') && (needs.backend-tests-integration.result == 'success' || needs.backend-tests-integration.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -476,6 +639,7 @@ jobs:
             git config --global --add safe.directory ${{ secrets.WORK_DIR }}
             git fetch origin
             git reset --hard origin/main
+            git pull origin main
             docker compose -f docker-compose.prod.yml build
             docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml exec backend flask db upgrade
@@ -484,8 +648,8 @@ jobs:
   deploy-staging:
     name: Dev Server Deploy
     runs-on: ubuntu-latest
-    needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build]
-    if: ${{ always() && github.ref == 'refs/heads/dev' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
+    needs: [changes, backend-tests-unit, backend-tests-integration, frontend-lint, backend-lint, security-scan, docker-build]
+    if: ${{ always() && github.ref == 'refs/heads/dev' && (needs.backend-tests-unit.result == 'success' || needs.backend-tests-unit.result == 'skipped') && (needs.backend-tests-integration.result == 'success' || needs.backend-tests-integration.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
