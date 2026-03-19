@@ -95,7 +95,7 @@ def add_user():
     mdp = data.get("mdp", "")
     role = data.get("role", "").strip()
 
-    # Vérification si le nom d'utilisateur existe déjà.
+    # Vérification si le nom d'utilisateur existe déjà
     user_already_exists = User.query.filter_by(email=email).first() is not None
 
     if user_already_exists:

@@ -13,7 +13,7 @@ const getCsrfToken = () => {
 };
 
 // Rewrite insecure absolute HTTP API calls to same-origin /api when page is HTTPS.
-// Avoids mixed-content and insecure download blocks when backend lacks TLS.
+// Avoids mixed-content and insecure download blocks when backend lacks TLS
 client.interceptors.request.use((config) => {
     try {
         const url = config.url || '';
