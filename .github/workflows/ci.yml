@@ -15,6 +15,7 @@ env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
   COMPOSE_PROJECT_NAME: webshop
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   changes:
@@ -31,13 +32,13 @@ jobs:
       frontend_last_failed: ${{ steps.check_last_run.outputs.frontend_failed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Detect changes
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           ref: ${{ github.sha }}
@@ -85,7 +86,7 @@ jobs:
 
       - name: Check last workflow run status
         id: check_last_run
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // Get the current branch
@@ -143,13 +144,13 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       
       - name: Build backend test image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile.test
@@ -159,7 +160,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend-test
       
       - name: Build backend prod image (for docker-build)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile.prod
@@ -176,13 +177,13 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       
       - name: Build frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: frontend/Dockerfile.prod
@@ -203,7 +204,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Create test .env file
         run: |
@@ -265,10 +266,10 @@ jobs:
           timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U dev_user; do sleep 1; done'
 
       - name: Set up Docker Buildx (restore test image from cache)
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build backend test image (from cache)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile.test
@@ -298,7 +299,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Create test .env file
         run: |
@@ -360,10 +361,10 @@ jobs:
           timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U dev_user; do sleep 1; done'
 
       - name: Set up Docker Buildx (restore test image from cache)
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build backend test image (from cache)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile.test
@@ -392,10 +393,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '18'
           cache: 'npm'
@@ -418,7 +419,7 @@ jobs:
         run: npm run build
       
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-build
           path: frontend/build/
@@ -434,10 +435,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -475,10 +476,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -502,10 +503,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       
       - name: Create test .env
         run: |
@@ -561,7 +562,7 @@ jobs:
           EOF
       
       - name: Build backend image (cached)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile.prod
@@ -571,7 +572,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend-prod
 
       - name: Build frontend image (cached)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: frontend/Dockerfile.prod
@@ -626,7 +627,7 @@ jobs:
     if: ${{ always() && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests-unit.result == 'success' || needs.backend-tests-unit.result == 'skipped') && (needs.backend-tests-integration.result == 'success' || needs.backend-tests-integration.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy to production server via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -652,7 +653,7 @@ jobs:
     if: ${{ always() && github.ref == 'refs/heads/dev' && (needs.backend-tests-unit.result == 'success' || needs.backend-tests-unit.result == 'skipped') && (needs.backend-tests-integration.result == 'success' || needs.backend-tests-integration.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy to dev server via SSH
         uses: appleboy/ssh-action@v1.0.3
