@@ -468,6 +468,7 @@ def import_articles_xlsx():
             item["prix_achat_HT"],
             prix_vente_ht,
             tva_obj.id,
+            prix_vente_ht,
         )
         if error:
             row_errors.append({"row": item["row"], "error": error})
@@ -479,6 +480,7 @@ def import_articles_xlsx():
             reference=reference,
             prix_achat_HT=item["prix_achat_HT"],
             prix_vente_HT=prix_vente_ht,
+            location_price=prix_vente_ht,
             taux_tva_id=tva_obj.id,
         )
         db.session.add(new_article)
