@@ -259,9 +259,7 @@ class TestArticlesUpdate:
         assert "id" in data
 
         # Verify location_price was saved
-        response = client.get(
-            f"/api/articles/info/{data['id']}", headers=auth_headers
-        )
+        response = client.get(f"/api/articles/info/{data['id']}", headers=auth_headers)
         assert response.status_code == 200
         article_data = response.get_json()
         assert article_data["location_price"] == 120.0
@@ -287,12 +285,12 @@ class TestArticlesUpdate:
         assert "id" in data
 
         # Verify location_price defaults to prix_vente_HT (100 * 1.5 = 150.0)
-        response = client.get(
-            f"/api/articles/info/{data['id']}", headers=auth_headers
-        )
+        response = client.get(f"/api/articles/info/{data['id']}", headers=auth_headers)
         assert response.status_code == 200
         article_data = response.get_json()
-        assert article_data["location_price"] == 150.0  # prix_achat_HT * margin_rate (100 * 1.5)
+        assert (
+            article_data["location_price"] == 150.0
+        )  # prix_achat_HT * margin_rate (100 * 1.5)
 
     def test_update_article_with_location_price(
         self, client, auth_headers, test_article, taux_tva_20, test_parameters

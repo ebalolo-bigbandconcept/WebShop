@@ -620,7 +620,9 @@ def get_devis_pdf(devis_id):
                     if location_price is not None:
                         unit_ht = float(location_price) * margin_rate_location
                     else:
-                        unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0)
+                        unit_ht = float(
+                            item.get("article", {}).get("prix_vente_HT") or 0
+                        )
                 else:
                     unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0)
 
@@ -701,12 +703,14 @@ def get_devis_pdf(devis_id):
                 margin_rate_location = (
                     params.margin_rate_location if params else 0.0
                 ) or 0.0
-                
+
                 # Use location_price × margin_rate_location if location_price exists, else fallback to prix_vente_HT
                 if location_price is not None:
                     unit_ht_location = float(location_price) * margin_rate_location
                 else:
-                    unit_ht_location = float(item.get("article", {}).get("prix_vente_HT") or 0)
+                    unit_ht_location = float(
+                        item.get("article", {}).get("prix_vente_HT") or 0
+                    )
 
                 # Create modified article with location pricing
                 modified_item = item.copy()
@@ -905,7 +909,9 @@ def get_devis_pdf(devis_id):
                     f"Subscription contract PDF not found at {contract_path}; returning devis PDF only."
                 )
         except Exception as merge_err:
-            logging.exception(f"Failed to append subscription contract PDF: {merge_err}")
+            logging.exception(
+                f"Failed to append subscription contract PDF: {merge_err}"
+            )
     else:
         # For direct scenario, just update page numbers on devis
         try:

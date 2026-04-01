@@ -20,21 +20,17 @@ def upgrade():
     # Add the location_price column to articles table
     # Use simple ALTER TABLE which works directly with PostgreSQL
     conn = op.get_bind()
-    
+
     # Check if column already exists (for idempotency)
-    result = conn.execute(
-        sa.text("""
+    result = conn.execute(sa.text("""
             SELECT column_name FROM information_schema.columns
             WHERE table_name='articles' AND column_name='location_price'
-        """)
-    )
-    
+        """))
+
     if not result.fetchone():
         # Column doesn't exist, add it
-        op.execute(
-            sa.text("ALTER TABLE articles ADD COLUMN location_price FLOAT")
-        )
-        
+        op.execute(sa.text("ALTER TABLE articles ADD COLUMN location_price FLOAT"))
+
         # Backfill existing articles: set location_price to prix_vente_HT
         op.execute(
             sa.text(
@@ -46,14 +42,12 @@ def upgrade():
 def downgrade():
     # Remove the location_price column
     conn = op.get_bind()
-    
+
     # Check if column exists before dropping
-    result = conn.execute(
-        sa.text("""
+    result = conn.execute(sa.text("""
             SELECT column_name FROM information_schema.columns
             WHERE table_name='articles' AND column_name='location_price'
-        """)
-    )
-    
+        """))
+
     if result.fetchone():
         op.execute(sa.text("ALTER TABLE articles DROP COLUMN location_price"))

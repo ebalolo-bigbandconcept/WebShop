@@ -472,9 +472,7 @@ class TestArticleFieldValidation:
         )
         assert result is None
 
-    def test_valid_article_without_location_price_fails(
-        self, db_session, taux_tva_20
-    ):
+    def test_valid_article_without_location_price_fails(self, db_session, taux_tva_20):
         """Test: location_price is now required and cannot be None"""
         result = validate_article_fields(
             nom="Article No Location",

@@ -106,7 +106,13 @@ def add_article():
         location_price = prix_vente_HT
 
     error = validate_article_fields(
-        nom, designation, reference, prix_achat_HT, prix_vente_HT, taux_tva_id, location_price
+        nom,
+        designation,
+        reference,
+        prix_achat_HT,
+        prix_vente_HT,
+        taux_tva_id,
+        location_price,
     )
     if error:
         return jsonify({"error": error}), 400
