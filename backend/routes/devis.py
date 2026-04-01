@@ -798,9 +798,9 @@ def get_devis_pdf(devis_id):
 
     # Determine devis title based on scenario
     if selected_scenario == "location_with_apport":
-        devis_title = "Devis de location avec apport"
+        devis_title = "Devis d'abonnement avec apport"
     elif selected_scenario == "location_without_apport":
-        devis_title = "Devis de location sans apport"
+        devis_title = "Devis d'abonnement sans apport"
     else:
         devis_title = "Devis"
 
@@ -899,14 +899,14 @@ def get_devis_pdf(devis_id):
                 pdf_bytes = buffer.getvalue()
 
                 logging.info(
-                    f"Merged devis ({devis_page_count} pages) with location contract ({contract_page_count} pages) - total {total_page_count} pages with continuous numbering"
+                    f"Merged devis ({devis_page_count} pages) with subscription contract ({contract_page_count} pages) - total {total_page_count} pages with continuous numbering"
                 )
             else:
                 logging.warning(
-                    f"Location contract PDF not found at {contract_path}; returning devis PDF only."
+                    f"Subscription contract PDF not found at {contract_path}; returning devis PDF only."
                 )
         except Exception as merge_err:
-            logging.exception(f"Failed to append location contract PDF: {merge_err}")
+            logging.exception(f"Failed to append subscription contract PDF: {merge_err}")
     else:
         # For direct scenario, just update page numbers on devis
         try:

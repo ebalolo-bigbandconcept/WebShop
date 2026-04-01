@@ -478,7 +478,7 @@ function AdminParameters() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="form-label">Taux de marge de location (x Prix de vente)</label>
+                <label className="form-label">Taux de marge de l'abonnement (x Prix de vente)</label>
                 <input
                   type="number"
                   className="form-control"
@@ -489,7 +489,7 @@ function AdminParameters() {
                 />
               </div>
               <div className="col-md-4">
-                <label className="form-label">Temps de location (mois)</label>
+                <label className="form-label">Temps de l'abonnement (mois)</label>
                 <input
                   type="number"
                   className="form-control"
@@ -500,7 +500,7 @@ function AdminParameters() {
                 />
               </div>
               <div className="col-md-4">
-                <label className="form-label">Coût d'abonement de location (EUR)</label>
+                <label className="form-label">Coût d'abonement (EUR)</label>
                 <input
                   type="number"
                   className="form-control"
@@ -511,7 +511,7 @@ function AdminParameters() {
                 />
               </div>
               <div className="col-md-4">
-                <label className="form-label">Intérêts de la location (EUR)</label>
+                <label className="form-label">Intérêts de l'abonnement (EUR)</label>
                 <input
                   type="number"
                   className="form-control"

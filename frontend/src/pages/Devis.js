@@ -1033,8 +1033,8 @@ function Devis() {
                 <span className="badge bg-info">
                   Scénario sélectionné: <strong>{
                     selected_scenario === "direct" ? "Paiement direct" :
-                    selected_scenario === "location_without_apport" ? "Location sans apport" :
-                    selected_scenario === "location_with_apport" ? "Location avec apport" :
+                    selected_scenario === "location_without_apport" ? "Abonnement sans apport" :
+                    selected_scenario === "location_with_apport" ? "Abonnement avec apport" :
                     selected_scenario
                   }</strong>
                 </span>
@@ -1072,7 +1072,7 @@ function Devis() {
             </li>
             <li className="nav-item" role="presentation">
               <button className={`nav-link ${isLocationDisabled ? 'disabled' : ''}`} id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected="false" disabled={isLocationDisabled}>
-                Location
+                Abonnement
               </button>
             </li>
           </ul>
@@ -1116,7 +1116,7 @@ function Devis() {
             <div className="tab-pane fade" id="location-pane" role="tabpanel" aria-labelledby="location-tab">
                 <div className="mb-3">
                   <small className="text-muted">
-                    Durée location: {Math.floor(location_time / 12)} an{Math.floor(location_time / 12) !== 1 ? 's' : ''}{location_time % 12 > 0 ? ` ${location_time % 12} mois` : ''}
+                    Durée d'abonnement: {Math.floor(location_time / 12)} an{Math.floor(location_time / 12) !== 1 ? 's' : ''}{location_time % 12 > 0 ? ` ${location_time % 12} mois` : ''}
                   </small>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">

@@ -143,8 +143,8 @@ function DevisPdfPreview() {
             onChange={(e) => handleScenarioChange(e.target.value)}
           >
             <option value="direct">Paiement direct</option>
-            <option value="location_without_apport">Location sans apport</option>
-            <option value="location_with_apport">Location avec apport</option>
+            <option value="location_without_apport">Abonnement sans apport</option>
+            <option value="location_with_apport">Abonnement avec apport</option>
           </select>
           <button className="btn btn-success" disabled={isLockedStatus} onClick={handleSendToDocuSign}><SendFill className="me-1" />Envoyer le PDF</button>
         </div>
