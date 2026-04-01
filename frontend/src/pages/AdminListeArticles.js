@@ -17,6 +17,7 @@ function ListeArticles({ user }) {
   const [article_designation, setArticleDesignation] = useState("");
   const [article_reference, setArticleReference] = useState("");
   const [article_prix_achat_HT, setArticlePrixAchatHT] = useState(null);
+  const [article_location_price, setArticleLocationPrice] = useState(null);
   const [article_taux_tva, setArticleTauxTVA] = useState(0.20);
   const [vatRates, setVatRates] = useState([]);
 
@@ -24,6 +25,7 @@ function ListeArticles({ user }) {
   const [article_nom_error, setArticleNomError] = useState("");
   const [article_reference_error, setArticleReferenceError] = useState("");
   const [article_prix_achat_HT_error, setArticlePrixAchatHTError] = useState("");
+  const [article_location_price_error, setArticleLocationPriceError] = useState("");
 
   const { showToast } = useToast();
 
@@ -82,6 +84,20 @@ function ListeArticles({ user }) {
     return true;
   }
 
+  const articleLocationPriceVerif = async (value) => {
+    // Location price defaults to prix_vente_HT if left empty, but if provided must be valid and non-negative
+    if (value === "" || value === null) {
+      setArticleLocationPriceError("");
+      return true; // Allow empty - backend will default to prix_vente_HT
+    }
+    if (!prixRegex.test(value)) {
+      setArticleLocationPriceError("Veuillez entrer un prix d'abonnement valide");
+      return false;
+    }
+    setArticleLocationPriceError("");
+    return true;
+  }
+
   const showModal = () => {
     modalRef.current && modalRef.current.open();
   }
@@ -100,8 +116,9 @@ function ListeArticles({ user }) {
     const isArticleNomValid = await articleNomVerif(article_nom);
     const isArticleReferenceValid = await articleReferenceVerif(article_reference);
     const isArticlePrixAchatHTValid = await articlePrixAchatHTVerif(article_prix_achat_HT);
+    const isArticleLocationPriceValid = await articleLocationPriceVerif(article_location_price);
 
-    const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid;
+    const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid && isArticleLocationPriceValid;
 
     if (isFormValid) {
       httpClient
@@ -110,6 +127,7 @@ function ListeArticles({ user }) {
           designation: article_designation,
           reference: article_reference,
           prix_achat_HT: article_prix_achat_HT,
+          location_price: article_location_price || null,
           taux_tva: article_taux_tva,
         })
         .then((resp) => {
@@ -141,6 +159,7 @@ function ListeArticles({ user }) {
         setArticleDesignation(resp.data.designation || "");
         setArticleReference(resp.data.reference || "");
         setArticlePrixAchatHT(String(resp.data.prix_achat_HT).replace('.', ','));
+        setArticleLocationPrice(resp.data.location_price ? String(resp.data.location_price).replace('.', ',') : null);
         setArticleTauxTVA(resp.data.taux_tva.taux);
         showModal();
       })
@@ -159,7 +178,8 @@ function ListeArticles({ user }) {
     const isArticleNomValid = await articleNomVerif(article_nom);
     const isArticleReferenceValid = await articleReferenceVerif(article_reference);
     const isArticlePrixAchatHTValid = await articlePrixAchatHTVerif(article_prix_achat_HT);
-    const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid;
+    const isArticleLocationPriceValid = await articleLocationPriceVerif(article_location_price);
+    const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid && isArticleLocationPriceValid;
 
     if (isFormValid) {
       httpClient
@@ -168,6 +188,7 @@ function ListeArticles({ user }) {
           designation: article_designation,
           reference: article_reference,
           prix_achat_HT: article_prix_achat_HT,
+          location_price: article_location_price || null,
           taux_tva: article_taux_tva,
         })
         .then((resp) => {
@@ -318,11 +339,13 @@ function ListeArticles({ user }) {
     setArticleDesignation("");
     setArticleReference("");
     setArticlePrixAchatHT("");
+    setArticleLocationPrice(null);
     setArticleTauxTVA(0.20);
 
     setArticleNomError("");
     setArticleReferenceError("");
     setArticlePrixAchatHTError("");
+    setArticleLocationPriceError("");
 
     setCREATE(false);
     setMODIFY(false);
@@ -455,7 +478,22 @@ function ListeArticles({ user }) {
         />
         <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
       </div>
-      <div className={`form-outline ${MODIFY ? 'col-6' : 'col-6'} mt-4`}>
+      <div className="form-outline col-6 mt-4">
+        <label className="form-label">Prix d'abonnement - Par défaut: Prix de vente HT</label>
+        <input
+          type="text"
+          value={article_location_price || ""}
+          onChange={(e) => {
+            const value = e.target.value.replace(',', '.');
+            setArticleLocationPrice(value || null);
+            articleLocationPriceVerif(value);
+          }}
+          className={`form-control form-control-lg ${article_location_price_error ? "is-invalid" : form_submited && article_location_price ? "is-valid" : ""}`}
+          placeholder="15,00€"
+        />
+        <div className="invalid-feedback">{article_location_price_error}</div>
+      </div>
+      <div className={`form-outline col-12 mt-4`}>
         <label className="form-label">TVA</label>
         <select
           id="taux_tva"
@@ -588,6 +626,7 @@ function ListeArticles({ user }) {
               <th scope="col">Référence</th>
               <th scope="col">Prix d'achat HT</th>
               <th scope="col">Prix de vente HT</th>
+              <th scope="col">Prix d'abonnement</th>
               <th scope="col">TVA</th>
               <th scope="col"></th>
             </tr>
@@ -602,6 +641,7 @@ function ListeArticles({ user }) {
                   <td>{article.reference}</td>
                   <td>{article.prix_achat_HT} €</td>
                   <td>{article.prix_vente_HT} €</td>
+                  <td>{article.location_price ? article.location_price + " €" : "-"}</td>
                   <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>
                   <td onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article); }}>
                     <Trash3Fill color="red" />
@@ -610,7 +650,7 @@ function ListeArticles({ user }) {
               ))
             ) : (
               <tr>
-                <td colSpan={7}>Aucun articles trouvé</td>
+                <td colSpan={8}>Aucun articles trouvé</td>
               </tr>
             )}
           </tbody>

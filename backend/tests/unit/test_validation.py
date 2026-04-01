@@ -374,6 +374,7 @@ class TestArticleFieldValidation:
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
+            location_price=150.0,
         )
         assert result is None
 
@@ -386,6 +387,7 @@ class TestArticleFieldValidation:
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
+            location_price=150.0,
         )
         assert result is not None
 
@@ -398,6 +400,7 @@ class TestArticleFieldValidation:
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
+            location_price=150.0,
         )
         assert result is not None
 
@@ -410,6 +413,7 @@ class TestArticleFieldValidation:
             prix_achat_HT=-100.0,
             prix_vente_HT=150.0,
             taux_tva_id=taux_tva_20.id,
+            location_price=150.0,
         )
         assert result is not None
         assert "achat" in result.lower()
@@ -423,6 +427,7 @@ class TestArticleFieldValidation:
             prix_achat_HT=100.0,
             prix_vente_HT=-150.0,
             taux_tva_id=taux_tva_20.id,
+            location_price=150.0,
         )
         assert result is not None
         assert "vente" in result.lower()
@@ -436,6 +441,7 @@ class TestArticleFieldValidation:
             prix_achat_HT=100.0,
             prix_vente_HT=150.0,
             taux_tva_id=99999,  # Non-existent
+            location_price=150.0,
         )
         assert result is not None
         assert "tva" in result.lower()
@@ -449,6 +455,63 @@ class TestArticleFieldValidation:
             prix_achat_HT=0.0,
             prix_vente_HT=0.0,
             taux_tva_id=taux_tva_20.id,
+            location_price=0.0,
+        )
+        assert result is None
+
+    def test_valid_article_fields_with_location_price(self, db_session, taux_tva_20):
+        """Test: accepts article with location_price"""
+        result = validate_article_fields(
+            nom="Article Location",
+            designation="LOC-001",
+            reference="REF-LOC-001",
+            prix_achat_HT=100.0,
+            prix_vente_HT=150.0,
+            taux_tva_id=taux_tva_20.id,
+            location_price=180.0,
+        )
+        assert result is None
+
+    def test_valid_article_without_location_price_fails(
+        self, db_session, taux_tva_20
+    ):
+        """Test: location_price is now required and cannot be None"""
+        result = validate_article_fields(
+            nom="Article No Location",
+            designation="NO-LOC-001",
+            reference="REF-NO-LOC-001",
+            prix_achat_HT=100.0,
+            prix_vente_HT=150.0,
+            taux_tva_id=taux_tva_20.id,
+            location_price=None,
+        )
+        assert result is not None
+        assert "abonnement" in result.lower() or "requis" in result.lower()
+
+    def test_negative_location_price_rejected(self, db_session, taux_tva_20):
+        """Test: rejects negative location_price"""
+        result = validate_article_fields(
+            nom="Caméra Test",
+            designation="CAM-001",
+            reference="REF-001",
+            prix_achat_HT=100.0,
+            prix_vente_HT=150.0,
+            taux_tva_id=taux_tva_20.id,
+            location_price=-50.0,
+        )
+        assert result is not None
+        assert "abonnement" in result.lower()
+
+    def test_zero_location_price_allowed(self, db_session, taux_tva_20):
+        """Test: allows zero location_price (edge case)"""
+        result = validate_article_fields(
+            nom="Free Location",
+            designation="FREE-LOC-001",
+            reference="REF-FREE-LOC-001",
+            prix_achat_HT=100.0,
+            prix_vente_HT=150.0,
+            taux_tva_id=taux_tva_20.id,
+            location_price=0.0,
         )
         assert result is None
 

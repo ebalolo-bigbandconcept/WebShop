@@ -84,6 +84,7 @@ class Articles(db.Model):
     reference = db.Column(db.String(200), nullable=True)
     prix_achat_HT = db.Column(db.Float(), nullable=False)
     prix_vente_HT = db.Column(db.Float(), nullable=False)
+    location_price = db.Column(db.Float(), nullable=True)
     taux_tva_id = db.Column(db.Integer(), db.ForeignKey("taux_tva.id"), nullable=False)
 
     taux_tva = db.relationship("TauxTVA", backref="articles", lazy=True)

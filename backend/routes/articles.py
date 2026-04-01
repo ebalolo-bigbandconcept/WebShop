@@ -74,6 +74,7 @@ def add_article():
         reference = payload.get("reference", "")
     prix_achat_HT = payload["prix_achat_HT"]
     taux_tva = payload["taux_tva"]
+    location_price = payload.get("location_price")
 
     if taux_tva is None:
         return jsonify({"error": "Le taux de TVA est requis."}), 400
@@ -89,13 +90,23 @@ def add_article():
         return jsonify({"error": "Taux TVA introuvable"}), 400
     taux_tva_id = tva_obj.id
 
+    # Normalize location_price if provided
+    if location_price is not None:
+        if isinstance(location_price, str):
+            location_price = location_price.replace(",", ".")
+        location_price = float(location_price)
+
     # Get margin rate from parameters and calculate selling price
     params = Parameters.query.first()
     margin_rate = params.margin_rate if params else 0.0
     prix_vente_HT = float(prix_achat_HT) * margin_rate
 
+    # Default location_price to prix_vente_HT if not provided
+    if location_price is None:
+        location_price = prix_vente_HT
+
     error = validate_article_fields(
-        nom, designation, reference, prix_achat_HT, prix_vente_HT, taux_tva_id
+        nom, designation, reference, prix_achat_HT, prix_vente_HT, taux_tva_id, location_price
     )
     if error:
         return jsonify({"error": error}), 400
@@ -106,6 +117,7 @@ def add_article():
         reference=reference,
         prix_achat_HT=prix_achat_HT,
         prix_vente_HT=prix_vente_HT,
+        location_price=location_price,
         taux_tva_id=taux_tva_id,
     )
     db.session.add(new_article)
@@ -139,6 +151,7 @@ def modify_article(article_id):
         new_reference = payload.get("reference", "")
     new_prix_achat_HT = payload["prix_achat_HT"]
     new_taux_tva = payload["taux_tva"]
+    new_location_price = payload.get("location_price")
 
     if new_taux_tva is None:
         return jsonify({"error": "Le taux de TVA est requis."}), 400
@@ -153,9 +166,19 @@ def modify_article(article_id):
         return jsonify({"error": "Taux TVA introuvable"}), 400
     new_taux_tva_id = new_tva_obj.id
 
+    # Normalize location_price if provided
+    if new_location_price is not None:
+        if isinstance(new_location_price, str):
+            new_location_price = new_location_price.replace(",", ".")
+        new_location_price = float(new_location_price)
+
     params = Parameters.query.first()
     margin_rate = params.margin_rate if params else 0.0
     new_prix_vente_HT = float(new_prix_achat_HT) * margin_rate
+
+    # Default location_price to prix_vente_HT if not provided
+    if new_location_price is None:
+        new_location_price = new_prix_vente_HT
 
     error = validate_article_fields(
         new_nom,
@@ -164,6 +187,7 @@ def modify_article(article_id):
         new_prix_achat_HT,
         new_prix_vente_HT,
         new_taux_tva_id,
+        new_location_price,
     )
     if error:
         return jsonify({"error": error}), 400
@@ -173,6 +197,7 @@ def modify_article(article_id):
     article.reference = new_reference
     article.prix_achat_HT = new_prix_achat_HT
     article.prix_vente_HT = new_prix_vente_HT
+    article.location_price = new_location_price
     article.taux_tva_id = new_taux_tva_id
 
     db.session.commit()

@@ -237,6 +237,102 @@ class TestArticlesUpdate:
         assert response.status_code == 400
         assert "invalide" in response.get_json()["error"]
 
+    def test_create_article_with_location_price(
+        self, client, auth_headers, taux_tva_20, test_parameters
+    ):
+        """Test creating article with location_price (subscription price)."""
+        response = client.post(
+            "/api/articles/create",
+            json={
+                "nom": "Article avec Prix Location",
+                "designation": "LOCATION-001",
+                "reference": "REF-LOCATION-001",
+                "prix_achat_HT": 100.0,
+                "location_price": 120.0,
+                "taux_tva": 20.0,
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "id" in data
+
+        # Verify location_price was saved
+        response = client.get(
+            f"/api/articles/info/{data['id']}", headers=auth_headers
+        )
+        assert response.status_code == 200
+        article_data = response.get_json()
+        assert article_data["location_price"] == 120.0
+
+    def test_create_article_without_location_price_defaults_to_vente(
+        self, client, auth_headers, taux_tva_20, test_parameters
+    ):
+        """Test creating article without location_price defaults to prix_vente_HT."""
+        response = client.post(
+            "/api/articles/create",
+            json={
+                "nom": "Article sans Prix Location",
+                "designation": "NO-LOCATION-001",
+                "reference": "REF-NO-LOCATION-001",
+                "prix_achat_HT": 100.0,
+                "taux_tva": 20.0,
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "id" in data
+
+        # Verify location_price defaults to prix_vente_HT (100 * 1.5 = 150.0)
+        response = client.get(
+            f"/api/articles/info/{data['id']}", headers=auth_headers
+        )
+        assert response.status_code == 200
+        article_data = response.get_json()
+        assert article_data["location_price"] == 150.0  # prix_achat_HT * margin_rate (100 * 1.5)
+
+    def test_update_article_with_location_price(
+        self, client, auth_headers, test_article, taux_tva_20, test_parameters
+    ):
+        """Test updating article with location_price."""
+        response = client.post(
+            f"/api/articles/update/{test_article.id}",
+            json={
+                "nom": test_article.nom,
+                "designation": test_article.designation,
+                "reference": test_article.reference,
+                "prix_achat_HT": 100.0,
+                "location_price": 150.0,
+                "taux_tva": 20.0,
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+
+        # Verify location_price was updated
+        response = client.get(
+            f"/api/articles/info/{test_article.id}", headers=auth_headers
+        )
+        assert response.status_code == 200
+        article_data = response.get_json()
+        assert article_data["location_price"] == 150.0
+
+    def test_get_article_info_includes_location_price(
+        self, client, auth_headers, test_article
+    ):
+        """Test that article info response includes location_price field."""
+        response = client.get(
+            f"/api/articles/info/{test_article.id}", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "location_price" in data
+
 
 class TestArticlesDelete:
     """Tests for deleting articles."""

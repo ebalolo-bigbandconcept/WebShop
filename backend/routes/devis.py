@@ -612,17 +612,15 @@ def get_devis_pdf(devis_id):
 
                 # Use location pricing for location scenarios
                 if use_location_pricing:
-                    prix_achat = float(
-                        item.get("article", {}).get("prix_achat_HT") or 0
-                    )
+                    location_price = item.get("article", {}).get("location_price")
                     margin_rate_location = (
                         params.margin_rate_location if params else 0.0
                     ) or 0.0
-                    unit_ht = (
-                        prix_achat * margin_rate_location
-                        if prix_achat > 0 and margin_rate_location > 0
-                        else float(item.get("article", {}).get("prix_vente_HT") or 0)
-                    )
+                    # Use location_price × margin_rate_location if location_price exists, else fallback to prix_vente_HT
+                    if location_price is not None:
+                        unit_ht = float(location_price) * margin_rate_location
+                    else:
+                        unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0)
                 else:
                     unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0)
 
@@ -699,15 +697,16 @@ def get_devis_pdf(devis_id):
         articles_to_display = []
         for item in devis_data.get("articles", []):
             try:
-                prix_achat = float(item.get("article", {}).get("prix_achat_HT") or 0)
+                location_price = item.get("article", {}).get("location_price")
                 margin_rate_location = (
                     params.margin_rate_location if params else 0.0
                 ) or 0.0
-                unit_ht_location = (
-                    prix_achat * margin_rate_location
-                    if prix_achat > 0 and margin_rate_location > 0
-                    else float(item.get("article", {}).get("prix_vente_HT") or 0)
-                )
+                
+                # Use location_price × margin_rate_location if location_price exists, else fallback to prix_vente_HT
+                if location_price is not None:
+                    unit_ht_location = float(location_price) * margin_rate_location
+                else:
+                    unit_ht_location = float(item.get("article", {}).get("prix_vente_HT") or 0)
 
                 # Create modified article with location pricing
                 modified_item = item.copy()

@@ -64,6 +64,7 @@ def validate_article_fields(
     prix_achat_HT: float,
     prix_vente_HT: float,
     taux_tva_id: int,
+    location_price: Optional[float] = None,
 ) -> Optional[str]:
     if len(nom) < 1 or len(nom) > 200:
         return "Le nom de l'article doit contenir entre 1 et 200 caractères."
@@ -73,6 +74,10 @@ def validate_article_fields(
         return "Le prix d'achat HT ne peut pas être négatif."
     if float(prix_vente_HT) < 0:
         return "Le prix de vente HT ne peut pas être négatif."
+    if location_price is None:
+        return "Le prix d'abonnement est requis."
+    if float(location_price) < 0:
+        return "Le prix d'abonnement ne peut pas être négatif."
     taux_tva = TauxTVA.query.filter_by(id=taux_tva_id).first()
     if not taux_tva:
         return "Le taux de TVA spécifié n'existe pas."

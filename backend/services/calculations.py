@@ -1,6 +1,6 @@
 import math
 
-from models import Articles, InterestRateRange, TauxTVA, db
+from models import Articles, InterestRateRange, Parameters, TauxTVA, db
 
 LOCATION_VAT_RATE = 0.20
 
@@ -73,6 +73,8 @@ def resolve_article_vat(article_payload, article_obj, articles_map, is_location)
 def compute_article_lines(articles_data, articles_map, is_location=False):
     """
     Compute line amounts for each article: montant_HT, montant_TVA, montant_TTC
+    For location scenarios: uses location_price × margin_rate_location (with fallback to prix_vente_HT)
+    For direct scenarios: uses prix_vente_HT
     Returns: list of dicts with computed values, and totals
     """
     lines = []
@@ -80,13 +82,30 @@ def compute_article_lines(articles_data, articles_map, is_location=False):
     total_tva = 0.0
     total_ttc = 0.0
 
+    # Get margin_rate_location for location pricing
+    margin_rate_location = 1.7
+    if is_location:
+        params = Parameters.query.first()
+        if params:
+            margin_rate_location = params.margin_rate_location
+
     for article_payload in articles_data:
         article_obj = articles_map.get(article_payload.get("article_id"))
         if not article_obj:
             continue
 
-        # Get unit price (normal pricing, not location)
-        unit_price = float(article_obj.prix_vente_HT or 0.0)
+        # Determine unit price based on scenario
+        if is_location:
+            # Use location_price × margin_rate_location
+            if article_obj.location_price is not None:
+                unit_price = float(article_obj.location_price) * margin_rate_location
+            else:
+                # Fallback to prix_vente_HT if location_price not set
+                unit_price = float(article_obj.prix_vente_HT or 0.0)
+        else:
+            # Direct payment: use prix_vente_HT
+            unit_price = float(article_obj.prix_vente_HT or 0.0)
+
         qty = float(article_payload.get("quantite") or 1)
 
         taux_val, _ = resolve_article_vat(
