@@ -641,7 +641,7 @@ function ListeArticles({ user }) {
                   <td>{article.reference}</td>
                   <td>{article.prix_achat_HT} €</td>
                   <td>{article.prix_vente_HT} €</td>
-                  <td>{article.location_price ? article.location_price + " €" : "-"}</td>
+                  <td>{article.location_price} €</td>
                   <td>{((Number(article.taux_tva.taux) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, ''))} %</td>
                   <td onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article); }}>
                     <Trash3Fill color="red" />
