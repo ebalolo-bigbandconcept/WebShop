@@ -34,7 +34,7 @@ def upgrade():
         # Backfill existing articles: set location_price to prix_vente_HT
         op.execute(
             sa.text(
-                "UPDATE articles SET location_price = prix_vente_HT WHERE location_price IS NULL"
+                'UPDATE articles SET location_price = "prix_vente_HT" WHERE location_price IS NULL'
             )
         )
 
