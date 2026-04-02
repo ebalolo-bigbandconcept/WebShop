@@ -99,6 +99,8 @@ jobs:
     steps:
       - name: Create database backup
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: ${{ secrets.PRODUCTION_USER }}
@@ -109,7 +111,7 @@ jobs:
             mkdir -p /backups/$(date +%Y-%m-%d)
             
             # Backup PostgreSQL database
-            docker compose exec -T db pg_dump -U dev_user users_db | gzip > /backups/$(date +%Y-%m-%d)/backup_$(date +%H-%M-%S).sql.gz
+            docker compose exec -T db pg_dump -U "$DB_USER" users_db | gzip > /backups/$(date +%Y-%m-%d)/backup_$(date +%H-%M-%S).sql.gz
             
             # Keep only last 7 days of backups
             find /backups -type f -mtime +7 -delete
