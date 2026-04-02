@@ -264,10 +264,10 @@ class TestArticlesUpdate:
         article_data = response.get_json()
         assert article_data["location_price"] == 120.0
 
-    def test_create_article_without_location_price_defaults_to_vente(
+    def test_create_article_without_location_price_defaults_to_zero(
         self, client, auth_headers, taux_tva_20, test_parameters
     ):
-        """Test creating article without location_price defaults to prix_vente_HT."""
+        """Test creating article without location_price defaults to 0."""
         response = client.post(
             "/api/articles/create",
             json={
@@ -284,13 +284,11 @@ class TestArticlesUpdate:
         data = response.get_json()
         assert "id" in data
 
-        # Verify location_price defaults to prix_vente_HT (100 * 1.5 = 150.0)
+        # Verify location_price defaults to 0 when omitted
         response = client.get(f"/api/articles/info/{data['id']}", headers=auth_headers)
         assert response.status_code == 200
         article_data = response.get_json()
-        assert (
-            article_data["location_price"] == 150.0
-        )  # prix_achat_HT * margin_rate (100 * 1.5)
+        assert article_data["location_price"] == 0.0
 
     def test_update_article_with_location_price(
         self, client, auth_headers, test_article, taux_tva_20, test_parameters
