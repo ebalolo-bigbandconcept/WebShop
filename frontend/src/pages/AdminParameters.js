@@ -466,7 +466,7 @@ function AdminParameters() {
 
           <div className={`tab-pane fade ${activeTab === "devis" ? "show active" : ""}`}>
             <div className="row g-3">
-              <div className="col-md-6">
+              <div className="col-md-3">
                 <label className="form-label">Taux de marge (x Prix de vente)</label>
                 <input
                   type="number"
@@ -477,7 +477,7 @@ function AdminParameters() {
                   step="0.1"
                 />
               </div>
-              <div className="col-md-6">
+              <div className="col-md-3" hidden>
                 <label className="form-label">Taux de marge de l'abonnement (x Prix de vente)</label>
                 <input
                   type="number"
@@ -488,7 +488,7 @@ function AdminParameters() {
                   step="0.1"
                 />
               </div>
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Temps de l'abonnement (mois)</label>
                 <input
                   type="number"
@@ -499,8 +499,8 @@ function AdminParameters() {
                   step="1"
                 />
               </div>
-              <div className="col-md-4">
-                <label className="form-label">Coût d'abonement (EUR)</label>
+              <div className="col-md-3">
+                <label className="form-label">Coût d'abonement (€)</label>
                 <input
                   type="number"
                   className="form-control"
@@ -510,8 +510,8 @@ function AdminParameters() {
                   step="0.1"
                 />
               </div>
-              <div className="col-md-4">
-                <label className="form-label">Intérêts de l'abonnement (EUR)</label>
+              <div className="col-md-3">
+                <label className="form-label">Intérêts de l'abonnement (€)</label>
                 <input
                   type="number"
                   className="form-control"

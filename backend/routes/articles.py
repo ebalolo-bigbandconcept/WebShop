@@ -101,9 +101,9 @@ def add_article():
     margin_rate = params.margin_rate if params else 0.0
     prix_vente_HT = float(prix_achat_HT) * margin_rate
 
-    # Default location_price to prix_vente_HT if not provided
+    # Default location_price to 0 if not provided
     if location_price is None:
-        location_price = prix_vente_HT
+        location_price = 0.0
 
     error = validate_article_fields(
         nom,
@@ -182,9 +182,9 @@ def modify_article(article_id):
     margin_rate = params.margin_rate if params else 0.0
     new_prix_vente_HT = float(new_prix_achat_HT) * margin_rate
 
-    # Default location_price to prix_vente_HT if not provided
+    # Default location_price to 0 if not provided
     if new_location_price is None:
-        new_location_price = new_prix_vente_HT
+        new_location_price = 0.0
 
     error = validate_article_fields(
         new_nom,
@@ -468,7 +468,7 @@ def import_articles_xlsx():
             item["prix_achat_HT"],
             prix_vente_ht,
             tva_obj.id,
-            prix_vente_ht,
+            0.0,
         )
         if error:
             row_errors.append({"row": item["row"], "error": error})
@@ -480,7 +480,7 @@ def import_articles_xlsx():
             reference=reference,
             prix_achat_HT=item["prix_achat_HT"],
             prix_vente_HT=prix_vente_ht,
-            location_price=prix_vente_ht,
+            location_price=0.0,
             taux_tva_id=tva_obj.id,
         )
         db.session.add(new_article)

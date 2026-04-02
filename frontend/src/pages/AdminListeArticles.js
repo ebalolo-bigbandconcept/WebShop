@@ -85,10 +85,10 @@ function ListeArticles({ user }) {
   }
 
   const articleLocationPriceVerif = async (value) => {
-    // Location price defaults to prix_vente_HT if left empty, but if provided must be valid and non-negative
+    // Location price defaults to 0 if left empty, but if provided must be valid and non-negative
     if (value === "" || value === null) {
       setArticleLocationPriceError("");
-      return true; // Allow empty - backend will default to prix_vente_HT
+      return true; // Allow empty - backend will default to 0
     }
     if (!prixRegex.test(value)) {
       setArticleLocationPriceError("Veuillez entrer un prix d'abonnement valide");
@@ -479,7 +479,7 @@ function ListeArticles({ user }) {
         <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
       </div>
       <div className="form-outline col-6 mt-4">
-        <label className="form-label">Prix d'abonnement - Par défaut: Prix de vente HT</label>
+        <label className="form-label">Prix d'abonnement</label>
         <input
           type="text"
           value={article_location_price || ""}
