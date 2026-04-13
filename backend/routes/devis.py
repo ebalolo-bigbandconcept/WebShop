@@ -161,7 +161,7 @@ def create_devis():
     # Compute article line amounts server-side
     articles_map = build_article_map(articles_data)
     lines, total_ht, total_tva, total_ttc = compute_article_lines(
-        articles_data, articles_map, is_location
+        articles_data, articles_map, is_location, location_time
     )
 
     # Compute location totals if applicable
@@ -215,7 +215,15 @@ def create_devis():
         )
 
         # Calculate line amounts
-        unit_price = float(article_obj.prix_vente_HT or 0.0)
+        duration_multiplier = max(int(location_time or 1), 1)
+        if is_location:
+            unit_price = float(
+                article_obj.location_price
+                if article_obj.location_price is not None
+                else (article_obj.prix_vente_HT or 0.0)
+            ) * duration_multiplier
+        else:
+            unit_price = float(article_obj.prix_vente_HT or 0.0)
         qty = float(article_payload.get("quantite") or 1)
         line_ht = round(unit_price * qty, 2)
         line_tva = round(line_ht * taux_val, 2)
@@ -343,7 +351,7 @@ def update_devis(devis_id):
     # Compute article line amounts server-side
     articles_map = build_article_map(articles_data)
     lines, total_ht, total_tva, total_ttc = compute_article_lines(
-        articles_data, articles_map, is_location
+        articles_data, articles_map, is_location, location_time
     )
 
     # Compute location totals if applicable
@@ -400,7 +408,15 @@ def update_devis(devis_id):
             )
 
             # Get unit price and line amounts from pre-computed lines
-            unit_price = float(article_obj.prix_vente_HT or 0.0)
+            duration_multiplier = max(int(location_time or 1), 1)
+            if is_location:
+                unit_price = float(
+                    article_obj.location_price
+                    if article_obj.location_price is not None
+                    else (article_obj.prix_vente_HT or 0.0)
+                ) * duration_multiplier
+            else:
+                unit_price = float(article_obj.prix_vente_HT or 0.0)
             qty = float(article_payload.get("quantite") or 1)
             line_ht = round(unit_price * qty, 2)
             line_tva = round(line_ht * taux_val, 2)
@@ -571,6 +587,12 @@ def get_devis_pdf(devis_id):
     direct_base_ttc = float(devis_data.get("montant_TTC") or devis.montant_TTC or 0.0)
     direct_ttc_after_remise = max(direct_base_ttc - remise_value, 0.0)
 
+    # Needed early for location article recomputation in PDF preview
+    if snapshot:
+        location_time = snapshot.get("params", {}).get("location_time", 0)
+    else:
+        location_time = params.location_time if params else 0
+
     # Compute totals by VAT rate from per-line or article default
     vat_totals_map = {}
 
@@ -590,7 +612,6 @@ def get_devis_pdf(devis_id):
             except Exception:
                 continue
     else:
-        # Determine if we should use location pricing
         use_location_pricing = selected_scenario in {
             "location_without_apport",
             "location_with_apport",
@@ -604,31 +625,29 @@ def get_devis_pdf(devis_id):
                 else:
                     taux = float(item["article"]["taux_tva"]["taux"])
 
-                # For location scenarios: always enforce VAT 20% for articles
                 if use_location_pricing:
-                    taux = 0.20
+                    taux = LOCATION_VAT_RATE
 
-                qty = float(item.get("quantite") or 0)
+                qty = float(item.get("quantite") or 0.0)
 
-                # Use location pricing for location scenarios
                 if use_location_pricing:
                     location_price = item.get("article", {}).get("location_price")
-                    margin_rate_location = (
-                        params.margin_rate_location if params else 0.0
-                    ) or 0.0
-                    # Use location_price × margin_rate_location if location_price exists, else fallback to prix_vente_HT
+                    duration_multiplier = max(int(location_time or 1), 1)
                     if location_price is not None:
-                        unit_ht = float(location_price) * margin_rate_location
+                        unit_ht = float(location_price) * duration_multiplier
                     else:
-                        unit_ht = float(
-                            item.get("article", {}).get("prix_vente_HT") or 0
-                        )
+                        unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0.0) * duration_multiplier
                 else:
-                    unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0)
+                    # Keep persisted values for direct scenario
+                    unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0.0)
 
-                line_ht = qty * unit_ht
-                line_tva = line_ht * (taux or 0.0)
-                line_ttc = line_ht + line_tva
+                line_ht = round(unit_ht * qty, 2)
+                line_tva = round(line_ht * (taux or 0.0), 2)
+                line_ttc = round(line_ht + line_tva, 2)
+
+                item["montant_HT"] = line_ht
+                item["montant_TVA"] = line_tva
+                item["montant_TTC"] = line_ttc
 
                 bucket = vat_totals_map.setdefault(
                     taux, {"total_ht": 0.0, "total_tva": 0.0, "total_ttc": 0.0}
@@ -692,34 +711,7 @@ def get_devis_pdf(devis_id):
     subscription_ttc_value = float(subscription_ttc or 0.0)
     maintenance_ttc_value = float(maintenance_ttc or 0.0)
 
-    # For location scenarios, recalculate article prices with location pricing
     articles_to_display = devis_data.get("articles", [])
-    if selected_scenario in {"location_without_apport", "location_with_apport"}:
-        # Create a copy of articles with location pricing
-        articles_to_display = []
-        for item in devis_data.get("articles", []):
-            try:
-                location_price = item.get("article", {}).get("location_price")
-                margin_rate_location = (
-                    params.margin_rate_location if params else 0.0
-                ) or 0.0
-
-                # Use location_price × margin_rate_location if location_price exists, else fallback to prix_vente_HT
-                if location_price is not None:
-                    unit_ht_location = float(location_price) * margin_rate_location
-                else:
-                    unit_ht_location = float(
-                        item.get("article", {}).get("prix_vente_HT") or 0
-                    )
-
-                # Create modified article with location pricing
-                modified_item = item.copy()
-                if "article" in modified_item:
-                    modified_item["article"] = modified_item["article"].copy()
-                    modified_item["article"]["prix_vente_HT"] = unit_ht_location
-                articles_to_display.append(modified_item)
-            except Exception:
-                articles_to_display.append(item)
 
     if selected_scenario in {"location_without_apport", "location_with_apport"}:
         # Calculate location totals first
@@ -778,19 +770,18 @@ def get_devis_pdf(devis_id):
     devis_display = devis_data.copy()
     devis_display["articles"] = articles_to_display
 
-    # For location scenarios, update the article totals to match location pricing
-    if selected_scenario in {"location_without_apport", "location_with_apport"}:
-        articles_ht_total = sum(
-            bucket["total_ht"] for bucket in vat_totals_map.values()
-        )
-        articles_tva_total = sum(
-            bucket["total_tva"] for bucket in vat_totals_map.values()
-        )
-        articles_ttc_total = articles_ht_total + articles_tva_total
+    # Keep displayed totals aligned with stored article lines (HT/TVA/TTC)
+    articles_ht_total = sum(bucket["total_ht"] for bucket in vat_totals_map.values())
+    articles_tva_total = sum(
+        bucket["total_tva"] for bucket in vat_totals_map.values()
+    )
+    articles_ttc_total = sum(
+        bucket["total_ttc"] for bucket in vat_totals_map.values()
+    )
 
-        devis_display["montant_HT"] = round(articles_ht_total, 2)
-        devis_display["montant_TVA"] = round(articles_tva_total, 2)
-        devis_display["montant_TTC"] = round(articles_ttc_total, 2)
+    devis_display["montant_HT"] = round(articles_ht_total, 2)
+    devis_display["montant_TVA"] = round(articles_tva_total, 2)
+    devis_display["montant_TTC"] = round(articles_ttc_total, 2)
 
     effective_remise = remise_value
     ttc_after_remise_display = max(

@@ -93,13 +93,14 @@ class TestCalculationsCoverage:
             articles_data=[{"article_id": article.id, "quantite": 3}],
             articles_map={article.id: article},
             is_location=True,
+            location_time=12,
         )
 
         assert len(lines) == 1
-        assert lines[0]["unit_price_ht"] == 12.0
-        assert total_ht == 36.0
-        assert total_tva == 7.2
-        assert total_ttc == 43.2
+        assert lines[0]["unit_price_ht"] == 144.0
+        assert total_ht == 432.0
+        assert total_tva == 86.4
+        assert total_ttc == 518.4
 
     def test_compute_monthly_from_total_ttc_handles_zero_duration(self):
         monthly_ht, monthly_ttc = compute_monthly_from_total_ttc(1200.0, 0)

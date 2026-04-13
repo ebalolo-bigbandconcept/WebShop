@@ -10,6 +10,7 @@ import RichTextDisplay from "../components/RichTextDisplay";
 import Pagination from "../components/Pagination";
 import {
   buildArticleLine,
+  getEffectiveUnitPriceForScenario,
   getDefaultVatRate,
   isLocationScenario,
   recalcArticleLine,
@@ -166,7 +167,11 @@ function Devis() {
     const updated = articles_in_devis.map((article) => {
       if (!selectedArticleIds.includes(article.id)) return article;
       const taux_tva = { ...(article.taux_tva || {}), taux };
-      const unit_price = parseFloat(article.prix_vente_HT) || 0;
+      const unit_price = getEffectiveUnitPriceForScenario(
+        article,
+        selected_scenario,
+        location_time,
+      );
       const qty = parseFloat(article.quantite) || 0;
       const vat = parseFloat(taux) || 0;
       const montant_HT = (unit_price * qty).toFixed(2);
@@ -306,7 +311,11 @@ function Devis() {
       // Update quantity, comment, and recalculate amounts for immediate display
       const updatedArticles = articles_in_devis.map(article => {
         if (article.id === article_selected.id) {
-          const unit_price = parseFloat(article.prix_vente_HT) || 0;
+          const unit_price = getEffectiveUnitPriceForScenario(
+            article,
+            selected_scenario,
+            location_time,
+          );
           const qty = parseFloat(article_quantite) || 0;
           const taux = parseFloat(article.taux_tva?.taux) || 0;
           
@@ -360,7 +369,13 @@ function Devis() {
     if (isQuantityValid && isArticleSelected) {
       const taux = getDefaultVatRate(client?.renovation, selected_scenario);
       const newArticle = {
-        ...buildArticleLine(article_selected, article_quantite, taux),
+        ...buildArticleLine(
+          article_selected,
+          article_quantite,
+          taux,
+          selected_scenario,
+          location_time,
+        ),
         commentaire: "",
       };
 
@@ -777,7 +792,7 @@ function Devis() {
       const currentTaux = parseFloat(article.taux_tva?.taux) || 0;
       if (Math.abs(currentTaux - taux) < 0.001) return article;
 
-      return recalcArticleLine(article, taux);
+      return recalcArticleLine(article, taux, selected_scenario, location_time);
     });
     
     // Check if any articles were actually updated
@@ -785,7 +800,7 @@ function Devis() {
     if (hasChanges) {
       setArticlesInDevis(updatedArticles);
     }
-  }, [selected_scenario, client?.renovation]);
+  }, [selected_scenario, client?.renovation, location_time]);
 
   useEffect(() => {
   if (devis && !isNewDevis) {
@@ -984,6 +999,19 @@ function Devis() {
   );
 
   const totalTtcAfterRemise = Math.max((parseFloat(devis_montant_TTC) || 0) - (parseFloat(devis_remise) || 0), 0).toFixed(2);
+  const subscriptionArticlesTTC = articles_in_devis
+    .reduce((sum, article) => {
+      const unitPrice = getEffectiveUnitPriceForScenario(
+        article,
+        "location_without_apport",
+        location_time,
+      );
+      const qty = parseFloat(article.quantite) || 0;
+      const lineHt = unitPrice * qty;
+      const lineTva = lineHt * 0.20;
+      return sum + lineHt + lineTva;
+    }, 0)
+    .toFixed(2);
 
   if (loading) return <div>Chargement...</div>;
 
@@ -1121,7 +1149,7 @@ function Devis() {
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <span className="fw-bold">Articles TTC:</span>
-                  <span className="ms-2">{devis_montant_TTC} €</span>
+                  <span className="ms-2">{subscriptionArticlesTTC} €</span>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <span className="fw-bold">Abonement:</span>

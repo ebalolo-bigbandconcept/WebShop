@@ -1,10 +1,6 @@
 name: CD - Deploy to Production
 
 on:
-  push:
-    branches: [ main ]
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:  # Allow manual deployment
     inputs:
       environment:

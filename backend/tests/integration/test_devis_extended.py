@@ -170,6 +170,92 @@ class TestDevisUpdateExtended:
 class TestDevisLocationCalculations:
     """Tests for location-specific devis calculations."""
 
+    def test_location_create_uses_article_subscription_price(
+        self, client, auth_headers, test_client_record, test_article, taux_tva_20
+    ):
+        """Location devis lines should use article location_price (subscription price)."""
+        test_article.location_price = 90.0
+        db.session.commit()
+
+        response = client.post(
+            "/api/devis/create",
+            json={
+                "client_id": test_client_record.id,
+                "title": "Location subscription price",
+                "description": "Location",
+                "date": "2026-01-23",
+                "remise": 0.0,
+                "statut": "Brouillon",
+                "is_location": True,
+                "location_time": 12,
+                "location_apport": 0.0,
+                "articles": [
+                    {
+                        "article_id": test_article.id,
+                        "quantite": 2,
+                        "taux_tva_id": taux_tva_20.id,
+                    }
+                ],
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 201
+        devis_id = response.get_json()["id"]
+
+        devis = Devis.query.get(devis_id)
+        article_line = DevisArticles.query.filter_by(devis_id=devis_id).first()
+
+        assert article_line is not None
+        assert article_line.montant_HT == 2160.0
+        assert article_line.montant_TVA == 432.0
+        assert article_line.montant_TTC == 2592.0
+        assert devis.montant_HT == 2160.0
+        assert devis.montant_TVA == 432.0
+        assert devis.montant_TTC == 2592.0
+
+    def test_location_update_uses_article_subscription_price(
+        self, client, auth_headers, test_devis, test_article, taux_tva_20
+    ):
+        """Location update should keep line totals based on location_price."""
+        test_article.location_price = 90.0
+        db.session.commit()
+
+        response = client.put(
+            f"/api/devis/update/{test_devis.id}",
+            json={
+                "title": "Updated location devis",
+                "description": "Location",
+                "date": "2026-01-23",
+                "remise": 0.0,
+                "statut": "Brouillon",
+                "is_location": True,
+                "location_time": 12,
+                "location_apport": 0.0,
+                "articles": [
+                    {
+                        "article_id": test_article.id,
+                        "quantite": 3,
+                        "taux_tva_id": taux_tva_20.id,
+                    }
+                ],
+            },
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+
+        updated_devis = Devis.query.get(test_devis.id)
+        article_line = DevisArticles.query.filter_by(devis_id=test_devis.id).first()
+
+        assert article_line is not None
+        assert article_line.montant_HT == 3240.0
+        assert article_line.montant_TVA == 648.0
+        assert article_line.montant_TTC == 3888.0
+        assert updated_devis.montant_HT == 3240.0
+        assert updated_devis.montant_TVA == 648.0
+        assert updated_devis.montant_TTC == 3888.0
+
     def test_devis_location_with_all_costs(
         self, client, auth_headers, test_client_record, test_article, taux_tva_20
     ):

@@ -70,10 +70,13 @@ def resolve_article_vat(article_payload, article_obj, articles_map, is_location)
     return taux_val, tva_id
 
 
-def compute_article_lines(articles_data, articles_map, is_location=False):
+def compute_article_lines(
+    articles_data, articles_map, is_location=False, location_time=1
+):
     """
     Compute line amounts for each article: montant_HT, montant_TVA, montant_TTC
-    For location scenarios: uses location_price (with fallback to prix_vente_HT)
+    For location scenarios: uses (location_price * location_time)
+    with fallback to (prix_vente_HT * location_time)
     For direct scenarios: uses prix_vente_HT
     Returns: list of dicts with computed values, and totals
     """
@@ -88,13 +91,14 @@ def compute_article_lines(articles_data, articles_map, is_location=False):
             continue
 
         # Determine unit price based on scenario
+        duration_multiplier = max(int(location_time or 1), 1)
         if is_location:
-            # Use location_price only
+            # Subscription devis: monthly price * duration
             if article_obj.location_price is not None:
-                unit_price = float(article_obj.location_price)
+                unit_price = float(article_obj.location_price) * duration_multiplier
             else:
                 # Fallback to prix_vente_HT if location_price not set
-                unit_price = float(article_obj.prix_vente_HT or 0.0)
+                unit_price = float(article_obj.prix_vente_HT or 0.0) * duration_multiplier
         else:
             # Direct payment: use prix_vente_HT
             unit_price = float(article_obj.prix_vente_HT or 0.0)

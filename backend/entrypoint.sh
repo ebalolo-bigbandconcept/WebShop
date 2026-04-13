@@ -38,19 +38,45 @@ engine = create_engine(database_url)
 with engine.connect() as conn:
   inspector = inspect(conn)
   tables = set(inspector.get_table_names(schema="public"))
+  app_tables = {
+    "users",
+    "clients",
+    "articles",
+    "devis",
+    "devis_articles",
+    "parameters",
+    "taux_tva",
+  }
 
   if "users" in tables:
     print("Database schema looks consistent (users table found).")
     raise SystemExit(0)
 
-  # If alembic metadata exists alone, reset it so upgrade can replay from base.
-  if tables == {"alembic_version"}:
+  # Safe recovery cases:
+  # 1) only alembic_version exists
+  # 2) alembic_version exists but none of the application tables exist
+  # In both cases, clear alembic_version so upgrade replays from base.
+  if "alembic_version" in tables and (tables == {"alembic_version"} or tables.isdisjoint(app_tables)):
     print(
-      "Detected inconsistent schema: only alembic_version table exists. "
+      "Detected inconsistent schema: alembic metadata exists but application tables are missing. "
       "Resetting alembic_version to replay migrations."
     )
     conn.execute(text("DELETE FROM alembic_version"))
     conn.commit()
+    raise SystemExit(0)
+
+  # If schema is partially present and users is missing, don't continue silently.
+  # This usually indicates a broken/incomplete migration state that needs manual action.
+  if not tables.isdisjoint(app_tables):
+    print(
+      "ERROR: Partial application schema detected and users table is missing. "
+      "Refusing to start to avoid runtime failures.\n"
+      "Recovery (development): backup data if needed, then reset DB and rerun migrations."
+    )
+    raise SystemExit(1)
+
+  if not tables:
+    print("Database is empty. Migrations will create schema from scratch.")
   else:
     print(
       "Schema check warning: users table missing but schema is not empty. "
