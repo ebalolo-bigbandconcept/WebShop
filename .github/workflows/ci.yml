@@ -551,6 +551,19 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR }} || true
+            if [ ! -w .git/objects ]; then
+              echo "Fixing .git permissions for deploy user"
+              chown -R "$(id -un)":"$(id -gn)" .git 2>/dev/null || true
+            fi
+            if [ ! -w .git/objects ]; then
+              if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+                sudo -n chown -R "$(id -un)":"$(id -gn)" .git
+              fi
+            fi
+            if [ ! -w .git/objects ]; then
+              echo "ERROR: .git/objects is not writable. Run once on server: sudo chown -R $(id -un):$(id -gn) ${{ secrets.WORK_DIR }}/.git"
+              exit 1
+            fi
             git fetch origin
             git reset --hard origin/main
             git clean -fd
@@ -580,6 +593,19 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR_DEV }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }} || true
+            if [ ! -w .git/objects ]; then
+              echo "Fixing .git permissions for deploy user"
+              chown -R "$(id -un)":"$(id -gn)" .git 2>/dev/null || true
+            fi
+            if [ ! -w .git/objects ]; then
+              if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+                sudo -n chown -R "$(id -un)":"$(id -gn)" .git
+              fi
+            fi
+            if [ ! -w .git/objects ]; then
+              echo "ERROR: .git/objects is not writable. Run once on server: sudo chown -R $(id -un):$(id -gn) ${{ secrets.WORK_DIR_DEV }}/.git"
+              exit 1
+            fi
             git fetch origin
             git reset --hard origin/dev
             git clean -fd
