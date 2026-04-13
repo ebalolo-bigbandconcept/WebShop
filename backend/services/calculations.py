@@ -98,7 +98,9 @@ def compute_article_lines(
                 unit_price = float(article_obj.location_price) * duration_multiplier
             else:
                 # Fallback to prix_vente_HT if location_price not set
-                unit_price = float(article_obj.prix_vente_HT or 0.0) * duration_multiplier
+                unit_price = (
+                    float(article_obj.prix_vente_HT or 0.0) * duration_multiplier
+                )
         else:
             # Direct payment: use prix_vente_HT
             unit_price = float(article_obj.prix_vente_HT or 0.0)

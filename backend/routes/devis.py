@@ -217,11 +217,14 @@ def create_devis():
         # Calculate line amounts
         duration_multiplier = max(int(location_time or 1), 1)
         if is_location:
-            unit_price = float(
-                article_obj.location_price
-                if article_obj.location_price is not None
-                else (article_obj.prix_vente_HT or 0.0)
-            ) * duration_multiplier
+            unit_price = (
+                float(
+                    article_obj.location_price
+                    if article_obj.location_price is not None
+                    else (article_obj.prix_vente_HT or 0.0)
+                )
+                * duration_multiplier
+            )
         else:
             unit_price = float(article_obj.prix_vente_HT or 0.0)
         qty = float(article_payload.get("quantite") or 1)
@@ -410,11 +413,14 @@ def update_devis(devis_id):
             # Get unit price and line amounts from pre-computed lines
             duration_multiplier = max(int(location_time or 1), 1)
             if is_location:
-                unit_price = float(
-                    article_obj.location_price
-                    if article_obj.location_price is not None
-                    else (article_obj.prix_vente_HT or 0.0)
-                ) * duration_multiplier
+                unit_price = (
+                    float(
+                        article_obj.location_price
+                        if article_obj.location_price is not None
+                        else (article_obj.prix_vente_HT or 0.0)
+                    )
+                    * duration_multiplier
+                )
             else:
                 unit_price = float(article_obj.prix_vente_HT or 0.0)
             qty = float(article_payload.get("quantite") or 1)
@@ -636,7 +642,10 @@ def get_devis_pdf(devis_id):
                     if location_price is not None:
                         unit_ht = float(location_price) * duration_multiplier
                     else:
-                        unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0.0) * duration_multiplier
+                        unit_ht = (
+                            float(item.get("article", {}).get("prix_vente_HT") or 0.0)
+                            * duration_multiplier
+                        )
                 else:
                     # Keep persisted values for direct scenario
                     unit_ht = float(item.get("article", {}).get("prix_vente_HT") or 0.0)
@@ -772,12 +781,8 @@ def get_devis_pdf(devis_id):
 
     # Keep displayed totals aligned with stored article lines (HT/TVA/TTC)
     articles_ht_total = sum(bucket["total_ht"] for bucket in vat_totals_map.values())
-    articles_tva_total = sum(
-        bucket["total_tva"] for bucket in vat_totals_map.values()
-    )
-    articles_ttc_total = sum(
-        bucket["total_ttc"] for bucket in vat_totals_map.values()
-    )
+    articles_tva_total = sum(bucket["total_tva"] for bucket in vat_totals_map.values())
+    articles_ttc_total = sum(bucket["total_ttc"] for bucket in vat_totals_map.values())
 
     devis_display["montant_HT"] = round(articles_ht_total, 2)
     devis_display["montant_TVA"] = round(articles_tva_total, 2)
