@@ -551,39 +551,7 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR }} || true
-            repo_url="$(git remote get-url origin 2>/dev/null || echo git@github.com:${{ github.repository }}.git)"
-            # Retry git fetch once after repairing repository ownership (non-interactive SSH-safe).
-            if ! git fetch origin; then
-              echo "git fetch failed, repairing repository permissions in ${{ secrets.WORK_DIR }}"
-              chown -R "$(id -un)":"$(id -gn)" . 2>/dev/null || true
-              if ! git fetch origin; then
-                if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-                  sudo -n chown -R "$(id -un)":"$(id -gn)" . || true
-                fi
-              fi
-              find .git -name '*.lock' -type f -delete || true
-              if ! git fetch origin; then
-                echo "git fetch still failing after permission repair. Recreating repository checkout."
-                cd ..
-                backup_dir="$(basename '${{ secrets.WORK_DIR }}').broken.$(date +%s)"
-                if [ -e "${{ secrets.WORK_DIR }}" ]; then
-                  mv "${{ secrets.WORK_DIR }}" "$backup_dir" 2>/dev/null || {
-                    if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-                      sudo -n mv "${{ secrets.WORK_DIR }}" "$backup_dir" 2>/dev/null || sudo -n rm -rf "${{ secrets.WORK_DIR }}"
-                    else
-                      rm -rf "${{ secrets.WORK_DIR }}" 2>/dev/null || {
-                        echo "ERROR: Cannot clean broken repository path and no passwordless sudo available."
-                        exit 1
-                      }
-                    fi
-                  }
-                fi
-                git clone --branch main "$repo_url" "${{ secrets.WORK_DIR }}"
-                cd "${{ secrets.WORK_DIR }}"
-                git config --global --add safe.directory "${{ secrets.WORK_DIR }}" || true
-                git fetch origin
-              fi
-            fi
+            git fetch origin
             git reset --hard origin/main
             git clean -fd
             docker compose -f docker-compose.prod.yml build
@@ -612,39 +580,7 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR_DEV }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }} || true
-            repo_url="$(git remote get-url origin 2>/dev/null || echo git@github.com:${{ github.repository }}.git)"
-            # Retry git fetch once after repairing repository ownership (non-interactive SSH-safe).
-            if ! git fetch origin; then
-              echo "git fetch failed, repairing repository permissions in ${{ secrets.WORK_DIR_DEV }}"
-              chown -R "$(id -un)":"$(id -gn)" . 2>/dev/null || true
-              if ! git fetch origin; then
-                if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-                  sudo -n chown -R "$(id -un)":"$(id -gn)" . || true
-                fi
-              fi
-              find .git -name '*.lock' -type f -delete || true
-              if ! git fetch origin; then
-                echo "git fetch still failing after permission repair. Recreating repository checkout."
-                cd ..
-                backup_dir="$(basename '${{ secrets.WORK_DIR_DEV }}').broken.$(date +%s)"
-                if [ -e "${{ secrets.WORK_DIR_DEV }}" ]; then
-                  mv "${{ secrets.WORK_DIR_DEV }}" "$backup_dir" 2>/dev/null || {
-                    if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-                      sudo -n mv "${{ secrets.WORK_DIR_DEV }}" "$backup_dir" 2>/dev/null || sudo -n rm -rf "${{ secrets.WORK_DIR_DEV }}"
-                    else
-                      rm -rf "${{ secrets.WORK_DIR_DEV }}" 2>/dev/null || {
-                        echo "ERROR: Cannot clean broken repository path and no passwordless sudo available."
-                        exit 1
-                      }
-                    fi
-                  }
-                fi
-                git clone --branch dev "$repo_url" "${{ secrets.WORK_DIR_DEV }}"
-                cd "${{ secrets.WORK_DIR_DEV }}"
-                git config --global --add safe.directory "${{ secrets.WORK_DIR_DEV }}" || true
-                git fetch origin
-              fi
-            fi
+            git fetch origin
             git reset --hard origin/dev
             git clean -fd
             docker compose -f docker-compose.prod.yml build
