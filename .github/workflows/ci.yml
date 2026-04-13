@@ -408,7 +408,7 @@ jobs:
     name: Docker Build and Integration
     runs-on: ubuntu-latest
     needs: [changes, build-backend-image, build-frontend-image, backend-tests, frontend-lint, backend-lint]
-    if: ${{ needs.changes.outputs.build == 'true' && (needs.build-backend-image.result == 'success' || needs.build-backend-image.result == 'skipped') && (needs.build-frontend-image.result == 'success' || needs.build-frontend-image.result == 'skipped') && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') }}
+    if: ${{ always() && needs.changes.outputs.build == 'true' && (needs.build-backend-image.result == 'success' || needs.build-backend-image.result == 'skipped') && (needs.build-frontend-image.result == 'success' || needs.build-frontend-image.result == 'skipped') && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') }}
     strategy:
       fail-fast: true
     
@@ -535,7 +535,7 @@ jobs:
     name: Production Server Deploy
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build]
-    if: ${{ github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && needs.docker-build.result == 'success' }}
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && needs.docker-build.result == 'success' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -572,7 +572,7 @@ jobs:
     name: Dev Server Deploy
     runs-on: ubuntu-latest
     needs: [changes, backend-tests, frontend-lint, backend-lint, security-scan, docker-build]
-    if: ${{ github.ref == 'refs/heads/dev' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && needs.docker-build.result == 'success' }}
+    if: ${{ always() && github.ref == 'refs/heads/dev' && needs.changes.outputs.deploy == 'true' && needs.changes.outputs.build == 'true' && (needs.backend-tests.result == 'success' || needs.backend-tests.result == 'skipped') && (needs.frontend-lint.result == 'success' || needs.frontend-lint.result == 'skipped') && (needs.backend-lint.result == 'success' || needs.backend-lint.result == 'skipped') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') && needs.docker-build.result == 'success' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
