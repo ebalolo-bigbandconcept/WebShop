@@ -551,10 +551,15 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR }} || true
-            # Retry git fetch once after repairing repository ownership.
+            # Retry git fetch once after repairing repository ownership (non-interactive SSH-safe).
             if ! git fetch origin; then
               echo "git fetch failed, repairing repository permissions in ${{ secrets.WORK_DIR }}"
-              sudo chown -R "$(id -un)":"$(id -gn)" .
+              chown -R "$(id -un)":"$(id -gn)" . 2>/dev/null || true
+              if ! git fetch origin; then
+                if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+                  sudo -n chown -R "$(id -un)":"$(id -gn)" .
+                fi
+              fi
               find .git -name '*.lock' -type f -delete || true
               git fetch origin
             fi
@@ -586,10 +591,15 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR_DEV }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }} || true
-            # Retry git fetch once after repairing repository ownership.
+            # Retry git fetch once after repairing repository ownership (non-interactive SSH-safe).
             if ! git fetch origin; then
               echo "git fetch failed, repairing repository permissions in ${{ secrets.WORK_DIR_DEV }}"
-              sudo chown -R "$(id -un)":"$(id -gn)" .
+              chown -R "$(id -un)":"$(id -gn)" . 2>/dev/null || true
+              if ! git fetch origin; then
+                if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+                  sudo -n chown -R "$(id -un)":"$(id -gn)" .
+                fi
+              fi
               find .git -name '*.lock' -type f -delete || true
               git fetch origin
             fi
