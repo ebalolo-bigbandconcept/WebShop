@@ -581,7 +581,7 @@ def get_devis_pdf(devis_id):
     # Fetch parameters early for general conditions, location duration and fees
     params = Parameters.query.first()
 
-    # Remise should always be considered (even if no scenario selected)
+    # Remise should always be considered (even if no scenario selected).
     try:
         remise_value = (
             float(snapshot.get("remise"))

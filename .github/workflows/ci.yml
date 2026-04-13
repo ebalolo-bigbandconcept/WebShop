@@ -551,6 +551,7 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR }} || true
+            repo_url="$(git remote get-url origin 2>/dev/null || echo git@github.com:${{ github.repository }}.git)"
             # Retry git fetch once after repairing repository ownership (non-interactive SSH-safe).
             if ! git fetch origin; then
               echo "git fetch failed, repairing repository permissions in ${{ secrets.WORK_DIR }}"
@@ -558,6 +559,14 @@ jobs:
               if ! git fetch origin; then
                 if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
                   sudo -n chown -R "$(id -un)":"$(id -gn)" .
+                else
+                  echo "No passwordless sudo available. Recreating repository checkout."
+                  cd ..
+                  backup_dir="$(basename '${{ secrets.WORK_DIR }}').broken.$(date +%s)"
+                  mv "${{ secrets.WORK_DIR }}" "$backup_dir" 2>/dev/null || rm -rf "${{ secrets.WORK_DIR }}"
+                  git clone --branch main "$repo_url" "${{ secrets.WORK_DIR }}"
+                  cd "${{ secrets.WORK_DIR }}"
+                  git config --global --add safe.directory "${{ secrets.WORK_DIR }}" || true
                 fi
               fi
               find .git -name '*.lock' -type f -delete || true
@@ -591,6 +600,7 @@ jobs:
             set -eu
             cd ${{ secrets.WORK_DIR_DEV }}
             git config --global --add safe.directory ${{ secrets.WORK_DIR_DEV }} || true
+            repo_url="$(git remote get-url origin 2>/dev/null || echo git@github.com:${{ github.repository }}.git)"
             # Retry git fetch once after repairing repository ownership (non-interactive SSH-safe).
             if ! git fetch origin; then
               echo "git fetch failed, repairing repository permissions in ${{ secrets.WORK_DIR_DEV }}"
@@ -598,6 +608,14 @@ jobs:
               if ! git fetch origin; then
                 if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
                   sudo -n chown -R "$(id -un)":"$(id -gn)" .
+                else
+                  echo "No passwordless sudo available. Recreating repository checkout."
+                  cd ..
+                  backup_dir="$(basename '${{ secrets.WORK_DIR_DEV }}').broken.$(date +%s)"
+                  mv "${{ secrets.WORK_DIR_DEV }}" "$backup_dir" 2>/dev/null || rm -rf "${{ secrets.WORK_DIR_DEV }}"
+                  git clone --branch dev "$repo_url" "${{ secrets.WORK_DIR_DEV }}"
+                  cd "${{ secrets.WORK_DIR_DEV }}"
+                  git config --global --add safe.directory "${{ secrets.WORK_DIR_DEV }}" || true
                 fi
               fi
               find .git -name '*.lock' -type f -delete || true
