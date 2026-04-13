@@ -8,7 +8,7 @@ class TestCSRFProtection:
         """Test that GET requests don't require CSRF token."""
         response = client.get("/api/devis/all")
 
-        # GET should not fail on CSRF (may need auth)
+        # GET should not fail on CSRF (may need auth).
         assert response.status_code != 400
 
     def test_login_endpoint_csrf_exempt(self, client):
