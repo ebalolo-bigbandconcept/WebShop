@@ -378,11 +378,14 @@ def create_devis_signed_snapshot(devis):
             unit_price = 0.0
             if article_obj:
                 if is_subscription_devis:
-                    unit_price = float(
-                        article_obj.location_price
-                        if article_obj.location_price is not None
-                        else (article_obj.prix_vente_HT or 0.0)
-                    ) * location_time
+                    unit_price = (
+                        float(
+                            article_obj.location_price
+                            if article_obj.location_price is not None
+                            else (article_obj.prix_vente_HT or 0.0)
+                        )
+                        * location_time
+                    )
                 else:
                     unit_price = float(article_obj.prix_vente_HT or 0.0)
 
