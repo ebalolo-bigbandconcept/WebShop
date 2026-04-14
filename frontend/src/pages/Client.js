@@ -53,31 +53,34 @@ function Client() {
   const isLocationScenario = (d) =>
     ["location_without_apport", "location_with_apport"].includes(d.selected_scenario);
 
-  const getVatFactor = (d) => {
-    const ht = parseFloat(d.montant_HT || 0);
-    const ttc = parseFloat(d.montant_TTC || 0);
-    if (ht > 0) {
-      const factor = ttc / ht;
-      return factor > 0 ? factor : 1.2;
-    }
-    return 1.2;
-  };
+  const getSignedLocation = (d) => d?.signed_data?.location || {};
+
+  const getLocationTime = (d) =>
+    Math.max(
+      parseInt(d?.signed_data?.params?.location_time || d?.location_time || 0, 10) || 1,
+      1,
+    );
 
   const getLocationHT = (d) => {
     if (!isLocationScenario(d)) return (parseFloat(d.montant_HT) || 0).toFixed(2);
-    const apport = parseFloat(d.first_contribution_amount || 0);
-    const vatFactor = getVatFactor(d);
-    if (d.location_total_ht != null) return (parseFloat(d.location_total_ht) + apport).toFixed(2);
-    const totalTTC = d.location_total != null ? parseFloat(d.location_total) : parseFloat(d.montant_TTC || 0);
-    const baseHT = totalTTC / vatFactor;
-    return (baseHT + apport).toFixed(2);
+    const signedLocation = getSignedLocation(d);
+    const storedHT = parseFloat(d.location_total_ht || signedLocation.location_total_ht || 0) || 0;
+    if (storedHT > 0) return storedHT.toFixed(2);
+
+    const monthlyHT = parseFloat(d.location_monthly_total_ht || signedLocation.location_monthly_total_ht || 0) || 0;
+    const duration = getLocationTime(d);
+    return (monthlyHT * duration).toFixed(2);
   };
 
   const getDisplayTotal = (d) => {
     if (!isLocationScenario(d)) return (parseFloat(d.montant_TTC) || 0).toFixed(2);
-    const ht = parseFloat(getLocationHT(d));
-    const vatFactor = getVatFactor(d);
-    return (ht * vatFactor).toFixed(2);
+    const signedLocation = getSignedLocation(d);
+    const storedTTC = parseFloat(d.location_total || signedLocation.location_total || 0) || 0;
+    if (storedTTC > 0) return storedTTC.toFixed(2);
+
+    const monthlyTTC = parseFloat(d.location_monthly_total || signedLocation.location_monthly_total || 0) || 0;
+    const duration = getLocationTime(d);
+    return (monthlyTTC * duration).toFixed(2);
   };
 
   const getLocationTVA = (d) => {

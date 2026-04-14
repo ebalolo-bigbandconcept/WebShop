@@ -1,4 +1,11 @@
-import { PlusLg, Trash3Fill, ArrowReturnLeft, FloppyFill, FileEarmarkPdf, Copy } from "react-bootstrap-icons";
+import {
+  PlusLg as PlusLgIcon,
+  Trash3Fill as Trash3FillIcon,
+  ArrowReturnLeft as ArrowReturnLeftIcon,
+  FloppyFill as FloppyFillIcon,
+  FileEarmarkPdf as FileEarmarkPdfIcon,
+  Copy as CopyIcon,
+} from "react-bootstrap-icons";
 import { useParams } from "react-router";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +17,7 @@ import RichTextDisplay from "../components/RichTextDisplay";
 import Pagination from "../components/Pagination";
 import {
   buildArticleLine,
+  getUnitPriceForScenario,
   getEffectiveUnitPriceForScenario,
   getDefaultVatRate,
   isLocationScenario,
@@ -17,6 +25,13 @@ import {
 } from "../utils/devisCalculations";
 
 function Devis() {
+  const SafePlusLgIcon = PlusLgIcon || (() => null);
+  const SafeTrash3FillIcon = Trash3FillIcon || (() => null);
+  const SafeArrowReturnLeftIcon = ArrowReturnLeftIcon || (() => null);
+  const SafeFloppyFillIcon = FloppyFillIcon || (() => null);
+  const SafeFileEarmarkPdfIcon = FileEarmarkPdfIcon || (() => null);
+  const SafeCopyIcon = CopyIcon || (() => null);
+
   const { id_client, id_devis } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,6 +93,10 @@ function Devis() {
   const isPendingOrSigned = devis_status === "En attente de signature" || devis_status === "Signé";
   const isLocationDisabled = isPendingOrSigned && selected_scenario === "direct";
   const isApportDisabled = isPendingOrSigned && selected_scenario === "location_without_apport";
+  const isSubscriptionScenario = isLocationScenario(selected_scenario);
+  const subscriptionApport = parseFloat(
+    first_contribution_amount || devis?.signed_data?.location?.first_contribution_amount || 0,
+  ) || 0;
 
   const blockSignedEdit = () => {
     if (isLocked) {
@@ -993,24 +1012,44 @@ function Devis() {
     <div className="d-flex justify-content-between w-100">
       <button className="btn btn-lg btn-danger" onClick={handleClose}>Annuler</button>
       <button className="btn btn-lg btn-success" onClick={addNewArticle}>
-        <PlusLg className="me-1" /> Ajouter
+        <SafePlusLgIcon className="me-1" /> Ajouter
       </button>
     </div>
   );
 
   const totalTtcAfterRemise = Math.max((parseFloat(devis_montant_TTC) || 0) - (parseFloat(devis_remise) || 0), 0).toFixed(2);
+  const getDisplayedArticleAmounts = (article, forceMonthly = false) => {
+    if (!isSubscriptionScenario && !forceMonthly) {
+      return {
+        ht: parseFloat(article.montant_HT) || 0,
+        tva: parseFloat(article.montant_TVA) || 0,
+        ttc: parseFloat(article.montant_TTC) || 0,
+      };
+    }
+
+    const qty = parseFloat(article.quantite) || 0;
+    const duration = Math.max(parseInt(location_time, 10) || 1, 1);
+    const explicitLocationPrice =
+      article?.location_price !== null && article?.location_price !== undefined
+        ? parseFloat(article.location_price)
+        : NaN;
+    const derivedFromStoredTotal =
+      qty > 0 && duration > 0
+        ? (parseFloat(article.montant_HT) || 0) / (qty * duration)
+        : 0;
+    const unitPriceMonthly = !Number.isNaN(explicitLocationPrice)
+      ? explicitLocationPrice
+      : (derivedFromStoredTotal || getUnitPriceForScenario(article, selected_scenario));
+    const taux = parseFloat(article.taux_tva?.taux) || 0;
+    const ht = unitPriceMonthly * qty;
+    const tva = ht * taux;
+    const ttc = ht + tva;
+
+    return { ht, tva, ttc };
+  };
+
   const subscriptionArticlesTTC = articles_in_devis
-    .reduce((sum, article) => {
-      const unitPrice = getEffectiveUnitPriceForScenario(
-        article,
-        "location_without_apport",
-        location_time,
-      );
-      const qty = parseFloat(article.quantite) || 0;
-      const lineHt = unitPrice * qty;
-      const lineTva = lineHt * 0.20;
-      return sum + lineHt + lineTva;
-    }, 0)
+    .reduce((sum, article) => sum + getDisplayedArticleAmounts(article, true).ttc, 0)
     .toFixed(2);
 
   if (loading) return <div>Chargement...</div>;
@@ -1020,7 +1059,7 @@ function Devis() {
       <div className="d-flex justify-content-between align-items-start">
         <h1 className="mb-0">Devis N°{id_devis}</h1>
         <button className="btn btn-danger" onClick={goBack}>
-          <ArrowReturnLeft className="me-1" /> Retour
+          <SafeArrowReturnLeftIcon className="me-1" /> Retour
         </button>
       </div>
       <br/>
@@ -1043,8 +1082,7 @@ function Devis() {
               <label className="form-label">Date</label>
               <input type="date" id="date" value={devis_date} onChange={(e) => {setDevisDate(e.target.value);devisDateVerif(e.target.value);}}
                 className={`form-control form-control-lg ${devis_date_error ? "is-invalid" : form_submited ? "is-valid": ""}`} disabled={isLocked}/>
-              <div
-              className="invalid-feedback">{devis_date_error}</div>
+              <div className="invalid-feedback">{devis_date_error}</div>
             </div>
           </div>
           <div className="row">
@@ -1094,19 +1132,19 @@ function Devis() {
         <div className="col-lg-4 col-12 d-flex flex-column justify-content-end mt-lg-0 mt-4">
           <ul className="nav nav-tabs mb-3" role="tablist">
             <li className="nav-item" role="presentation">
-              <button className="nav-link active" id="articles-tab" data-bs-toggle="tab" data-bs-target="#articles-pane" type="button" role="tab" aria-controls="articles-pane" aria-selected="true">
+              <button className={`nav-link ${!isSubscriptionScenario ? 'active' : ''} ${isLocked && isSubscriptionScenario ? 'disabled' : ''}`} id="articles-tab" data-bs-toggle="tab" data-bs-target="#articles-pane" type="button" role="tab" aria-controls="articles-pane" aria-selected={!isSubscriptionScenario} disabled={isLocked && isSubscriptionScenario}>
                 Articles
               </button>
             </li>
             <li className="nav-item" role="presentation">
-              <button className={`nav-link ${isLocationDisabled ? 'disabled' : ''}`} id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected="false" disabled={isLocationDisabled}>
+              <button className={`nav-link ${isSubscriptionScenario ? 'active' : ''} ${isLocationDisabled ? 'disabled' : ''}`} id="location-tab" data-bs-toggle="tab" data-bs-target="#location-pane" type="button" role="tab" aria-controls="location-pane" aria-selected={isSubscriptionScenario} disabled={isLocationDisabled}>
                 Abonnement
               </button>
             </li>
           </ul>
 
           <div className="tab-content" id="totalsTabContent">
-            <div className="tab-pane fade show active" id="articles-pane" role="tabpanel" aria-labelledby="articles-tab">
+            <div className={`tab-pane fade ${!isSubscriptionScenario ? 'show active' : ''}`} id="articles-pane" role="tabpanel" aria-labelledby="articles-tab">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="fw-bold">Montant total HT:</span>
                 <span className="ms-2">{parseFloat(devis_montant_HT).toFixed(2)} €</span>
@@ -1141,14 +1179,14 @@ function Devis() {
               </div>
             </div>
 
-            <div className="tab-pane fade" id="location-pane" role="tabpanel" aria-labelledby="location-tab">
+            <div className={`tab-pane fade ${isSubscriptionScenario ? 'show active' : ''}`} id="location-pane" role="tabpanel" aria-labelledby="location-tab">
                 <div className="mb-3">
                   <small className="text-muted">
                     Durée d'abonnement: {Math.floor(location_time / 12)} an{Math.floor(location_time / 12) !== 1 ? 's' : ''}{location_time % 12 > 0 ? ` ${location_time % 12} mois` : ''}
                   </small>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="fw-bold">Articles TTC:</span>
+                  <span className="fw-bold">Articles mensuels TTC:</span>
                   <span className="ms-2">{subscriptionArticlesTTC} €</span>
                 </div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
@@ -1162,7 +1200,7 @@ function Devis() {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <span className="fw-bold">Apport:</span>
                   <div className="d-flex align-items-center">
-                    <input type="number" className="form-control form-control-sm" style={{width: '100px'}} value={isApportDisabled ? 0 : first_contribution_amount} onChange={(e) => handleApportChange(e.target.value)} step="0.01" min="0" disabled={isLocked || isApportDisabled} />
+                    <input type="number" className="form-control form-control-sm" style={{width: '100px'}} value={isApportDisabled ? 0 : subscriptionApport} onChange={(e) => handleApportChange(e.target.value)} step="0.01" min="0" disabled={isLocked || isApportDisabled} />
                     <span className="ms-2">€</span>
                   </div>
                 </div>
@@ -1194,9 +1232,9 @@ function Devis() {
             <th scope="col">Article</th>
             <th scope="col">Quantité</th>
             <th scope="col">TVA</th>
-            <th scope="col">Montant u. HT</th>
-            <th scope="col">Montant u. TVA</th>
-            <th scope="col">Montant u. TTC</th>
+            <th scope="col">{isSubscriptionScenario ? 'Montant mensuel HT' : 'Montant u. HT'}</th>
+            <th scope="col">{isSubscriptionScenario ? 'Montant mensuel TVA' : 'Montant u. TVA'}</th>
+            <th scope="col">{isSubscriptionScenario ? 'Montant mensuel TTC' : 'Montant u. TTC'}</th>
             <th scope="col">Commentaire</th>
             <th scope="col"></th>
           </tr>
@@ -1209,13 +1247,13 @@ function Devis() {
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.nom}{(article.taux_tva?.taux ?? 0) === 0.10 ? ' (Rénovation)' : ''}</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.quantite}</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{((Number(article.taux_tva?.taux ?? 0)) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>
-                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{parseFloat(article.montant_HT).toFixed(2)} €</td>
-                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{parseFloat(article.montant_TVA).toFixed(2)} €</td>
-                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{parseFloat(article.montant_TTC).toFixed(2)} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{getDisplayedArticleAmounts(article).ht.toFixed(2)} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{getDisplayedArticleAmounts(article).tva.toFixed(2)} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{getDisplayedArticleAmounts(article).ttc.toFixed(2)} €</td>
                 <td>
                   <RichTextDisplay content={article.commentaire} fontSize="0.9rem" lineHeight="1.2" />
                 </td>
-                <td onClick={() => { if (!isLocked) handleDeleteArticle(article); }}><Trash3Fill color="red"/></td>
+                <td onClick={() => { if (!isLocked) handleDeleteArticle(article); }}><SafeTrash3FillIcon color="red"/></td>
               </tr>
             ))
           ) : (
@@ -1227,14 +1265,14 @@ function Devis() {
       </table>
       <div className="d-flex justify-content-between">
         <button className="btn btn-primary" onClick={handleAddArticle} disabled={isLocked}>
-          <PlusLg className="me-1" /> Ajouter un article
+          <SafePlusLgIcon className="me-1" /> Ajouter un article
         </button>
         <div>
-          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}><Trash3Fill className="me-1" /> Supprimer le devis</button> : ""}
-          {!isNewDevis ? <button className="btn btn-secondary me-4" onClick={duplicateDevis}><Copy className="me-1" /> Dupliquer le devis</button> : ""}
-          {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}><FileEarmarkPdf className="me-1" />Générer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}><SafeTrash3FillIcon className="me-1" /> Supprimer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-secondary me-4" onClick={duplicateDevis}><SafeCopyIcon className="me-1" /> Dupliquer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}><SafeFileEarmarkPdfIcon className="me-1" />Générer le devis</button> : ""}
           <button className="btn btn-success" onClick={saveDevis} disabled={(isLocked && !isNewDevis) || isSaving}>
-            <FloppyFill className="me-1" /> {isSaving ? 'Enregistrement...' : 'Enregistrer le devis'}
+            <SafeFloppyFillIcon className="me-1" /> {isSaving ? 'Enregistrement...' : 'Enregistrer le devis'}
           </button>
         </div>
       </div>

@@ -359,6 +359,11 @@ def create_devis_signed_snapshot(devis):
     try:
         params = Parameters.query.first()
         remise_value = float(devis.remise or 0.0)
+        is_subscription_devis = devis.is_location and devis.selected_scenario in {
+            "location_without_apport",
+            "location_with_apport",
+        }
+        location_time = max(int(getattr(params, "location_time", 0) or 1), 1)
 
         snapshot_lines = []
         total_ht = 0.0
@@ -372,7 +377,14 @@ def create_devis_signed_snapshot(devis):
             # Get unit price
             unit_price = 0.0
             if article_obj:
-                unit_price = float(article_obj.prix_vente_HT or 0.0)
+                if is_subscription_devis:
+                    unit_price = float(
+                        article_obj.location_price
+                        if article_obj.location_price is not None
+                        else (article_obj.prix_vente_HT or 0.0)
+                    ) * location_time
+                else:
+                    unit_price = float(article_obj.prix_vente_HT or 0.0)
 
             # Get VAT rate
             taux_val = 0.0
