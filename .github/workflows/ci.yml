@@ -555,10 +555,8 @@ jobs:
             git reset --hard origin/main
             git clean -fd
             docker compose -f docker-compose.prod.yml build
-            docker compose -f docker-compose.prod.yml up -d db redis
-            docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
-            docker compose -f docker-compose.prod.yml up -d backend frontend proxy
-            docker compose -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d
 
   deploy-staging:
     name: Dev Server Deploy
@@ -584,7 +582,5 @@ jobs:
             git reset --hard origin/dev
             git clean -fd
             docker compose -f docker-compose.prod.yml build
-            docker compose -f docker-compose.prod.yml up -d db redis
-            docker compose -f docker-compose.prod.yml run --rm backend flask db upgrade
-            docker compose -f docker-compose.prod.yml up -d backend frontend proxy
-            docker compose -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d

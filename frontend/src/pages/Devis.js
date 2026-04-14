@@ -1109,15 +1109,15 @@ function Devis() {
             <div className="tab-pane fade show active" id="articles-pane" role="tabpanel" aria-labelledby="articles-tab">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="fw-bold">Montant total HT:</span>
-                <span className="ms-2">{devis_montant_HT} €</span>
+                <span className="ms-2">{parseFloat(devis_montant_HT).toFixed(2)} €</span>
               </div>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="fw-bold">Montant total TVA:</span>
-                <span className="ms-2">{devis_montant_TVA} €</span>
+                <span className="ms-2">{parseFloat(devis_montant_TVA).toFixed(2)} €</span>
               </div>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="fw-bold fs-6">Montant total TTC:</span>
-                <span className="ms-2 fw-bold">{devis_montant_TTC} €</span>
+                <span className="ms-2 fw-bold">{parseFloat(devis_montant_TTC).toFixed(2)} €</span>
               </div>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="fw-bold">Remise (paiement direct):</span>
@@ -1209,9 +1209,9 @@ function Devis() {
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.nom}{(article.taux_tva?.taux ?? 0) === 0.10 ? ' (Rénovation)' : ''}</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.quantite}</td>
                 <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{((Number(article.taux_tva?.taux ?? 0)) * 100).toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}%</td>
-                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_HT} €</td>
-                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TVA} €</td>
-                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{article.montant_TTC} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{parseFloat(article.montant_HT).toFixed(2)} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{parseFloat(article.montant_TVA).toFixed(2)} €</td>
+                <td onClick={() => { if (!isLocked) handleModifyArticle(article); }}>{parseFloat(article.montant_TTC).toFixed(2)} €</td>
                 <td>
                   <RichTextDisplay content={article.commentaire} fontSize="0.9rem" lineHeight="1.2" />
                 </td>
