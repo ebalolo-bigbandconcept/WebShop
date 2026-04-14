@@ -82,6 +82,7 @@ function Devis() {
   const [DELETE, setDELETE] = useState(false);
   const [article_MODIFY, setArticleMODIFY] = useState(false);
   const [article_DELETE, setArticleDELETE] = useState(false);
+  const [can_delete, setCanDelete] = useState(true);
 
   const { showToast } = useToast();
 
@@ -314,7 +315,6 @@ function Devis() {
   };
 
   const handleDeleteDevis = () => {
-    if (blockSignedEdit()) return;
     setDELETE(true);
     setArticleDELETE(false);
     setArticleMODIFY(false);
@@ -584,7 +584,6 @@ function Devis() {
 
   // ### Delete devis from database ###
   const deleteDevis = async () => {
-    if (blockSignedEdit()) return;
     const targetId = (devis && devis.id) ? devis.id : id_devis;
     if (!targetId) {
       showToast({ message: "Impossible de supprimer: aucun id de devis valide.", variant: "warning" });
@@ -624,6 +623,7 @@ function Devis() {
       const resp = await httpClient.get(`${process.env.REACT_APP_BACKEND_URL}/devis/info/${targetId}`);
       const data = resp.data;
       setDevis(data);
+      setCanDelete(data.can_delete !== false);
       setIsNewDevis(false);
 
       // initialize form fields from fetched devis
@@ -1268,7 +1268,7 @@ function Devis() {
           <SafePlusLgIcon className="me-1" /> Ajouter un article
         </button>
         <div>
-          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isLocked}><SafeTrash3FillIcon className="me-1" /> Supprimer le devis</button> : ""}
+          {!isNewDevis ? <button className="btn btn-danger me-4" onClick={handleDeleteDevis} disabled={isSaving || !can_delete} title={!can_delete ? "Impossible de supprimer un devis signé" : ""}><SafeTrash3FillIcon className="me-1" /> Supprimer le devis</button> : ""}
           {!isNewDevis ? <button className="btn btn-secondary me-4" onClick={duplicateDevis}><SafeCopyIcon className="me-1" /> Dupliquer le devis</button> : ""}
           {!isNewDevis ? <button className="btn btn-success me-4" onClick={handleGeneratePDF}><SafeFileEarmarkPdfIcon className="me-1" />Générer le devis</button> : ""}
           <button className="btn btn-success" onClick={saveDevis} disabled={(isLocked && !isNewDevis) || isSaving}>

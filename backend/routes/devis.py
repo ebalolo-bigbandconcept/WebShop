@@ -77,6 +77,12 @@ def get_devis_info(devis_id):
     if not devis:
         return jsonify({"error": "Devis non trouvé"}), 404
 
+    # Check if signed deletion is allowed
+    allow_deleting_signed = os.environ.get(
+        "ALLOW_DELETING_SIGNED_DEVIS", "false"
+    ).lower() in {"1", "true", "yes", "on"}
+    can_delete = devis.statut != "Signé" or allow_deleting_signed
+
     # For signed devis with snapshot data, use the snapshot
     if devis.statut == "Signé" and devis.signed_data:
         snapshot = devis.signed_data
@@ -111,12 +117,15 @@ def get_devis_info(devis_id):
         devis_schema = DevisSchema()
         devis_data = devis_schema.dump(devis)
         devis_data["articles"] = articles_data
+        devis_data["can_delete"] = can_delete
 
         return jsonify(devis_data)
 
     # For unsigned devis, use normal serialization
     devis_schema = DevisSchema()
-    return devis_schema.jsonify(devis)
+    devis_data = devis_schema.dump(devis)
+    devis_data["can_delete"] = can_delete
+    return jsonify(devis_data)
 
 
 # Get new devis id route (for display in front only)
@@ -536,7 +545,11 @@ def delete_devis(devis_id):
     if not devis:
         return jsonify({"error": "Devis non trouvé"}), 404
 
-    if devis.statut == "Signé":
+    allow_deleting_signed = os.environ.get(
+        "ALLOW_DELETING_SIGNED_DEVIS", "false"
+    ).lower() in {"1", "true", "yes", "on"}
+
+    if devis.statut == "Signé" and not allow_deleting_signed:
         return jsonify({"error": "Devis signé: suppression interdite"}), 409
 
     devis_nom = devis.titre

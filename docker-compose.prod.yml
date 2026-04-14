@@ -9,6 +9,7 @@ services:
       - BACKEND_URL=https://vps117856.serveur-vps.net
       - DOCUSIGN_ENV=demo
       - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/DOCUSIGN_PRIVATE_KEY
+      - ALLOW_DELETING_SIGNED_DEVIS=${ALLOW_DELETING_SIGNED_DEVIS:-false}
     secrets:
       - SECRET_KEY
       - ADMIN_MAIL

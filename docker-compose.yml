@@ -7,6 +7,7 @@ services:
       - .env
     environment:
       - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/docusign_private_key
+      - ALLOW_DELETING_SIGNED_DEVIS=${ALLOW_DELETING_SIGNED_DEVIS:-true}
     expose:
       - "5000"
     depends_on:
