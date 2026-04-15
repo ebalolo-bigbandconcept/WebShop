@@ -71,6 +71,8 @@ function ListeArticles({ user }) {
 
   const prixRegex = /^\d+([.]\d{1,2})?$/;
 
+  const normalizeDecimalInput = (value) => String(value ?? "").replace(/,/g, ".");
+
   const articlePrixAchatHTVerif = async (value) => {
     if (value === "") {
       setArticlePrixAchatHTError("Veuillez entrer un prix d'achat HT");
@@ -121,13 +123,17 @@ function ListeArticles({ user }) {
     const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid && isArticleLocationPriceValid;
 
     if (isFormValid) {
+      const normalizedPrixAchat = normalizeDecimalInput(article_prix_achat_HT);
+      const normalizedLocationPrice = article_location_price === null || article_location_price === ""
+        ? null
+        : normalizeDecimalInput(article_location_price);
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/articles/create`, {
           nom: article_nom,
           designation: article_designation,
           reference: article_reference,
-          prix_achat_HT: article_prix_achat_HT,
-          location_price: article_location_price || null,
+          prix_achat_HT: normalizedPrixAchat,
+          location_price: normalizedLocationPrice,
           taux_tva: article_taux_tva,
         })
         .then((resp) => {
@@ -158,8 +164,8 @@ function ListeArticles({ user }) {
         setArticleNom(resp.data.nom);
         setArticleDesignation(resp.data.designation || "");
         setArticleReference(resp.data.reference || "");
-        setArticlePrixAchatHT(String(resp.data.prix_achat_HT).replace('.', ','));
-        setArticleLocationPrice(resp.data.location_price ? String(resp.data.location_price).replace('.', ',') : null);
+        setArticlePrixAchatHT(normalizeDecimalInput(resp.data.prix_achat_HT));
+        setArticleLocationPrice(resp.data.location_price ? normalizeDecimalInput(resp.data.location_price) : null);
         setArticleTauxTVA(resp.data.taux_tva.taux);
         showModal();
       })
@@ -182,13 +188,17 @@ function ListeArticles({ user }) {
     const isFormValid = isArticleNomValid && isArticleReferenceValid && isArticlePrixAchatHTValid && isArticleLocationPriceValid;
 
     if (isFormValid) {
+      const normalizedPrixAchat = normalizeDecimalInput(article_prix_achat_HT);
+      const normalizedLocationPrice = article_location_price === null || article_location_price === ""
+        ? null
+        : normalizeDecimalInput(article_location_price);
       httpClient
         .post(`${process.env.REACT_APP_BACKEND_URL}/articles/update/${article_id}`, {
           nom: article_nom,
           designation: article_designation,
           reference: article_reference,
-          prix_achat_HT: article_prix_achat_HT,
-          location_price: article_location_price || null,
+          prix_achat_HT: normalizedPrixAchat,
+          location_price: normalizedLocationPrice,
           taux_tva: article_taux_tva,
         })
         .then((resp) => {
@@ -468,13 +478,14 @@ function ListeArticles({ user }) {
           type="text"
           id="adresse"
           value={article_prix_achat_HT}
+          inputMode="decimal"
           onChange={(e) => {
-            const value = e.target.value.replace(',', '.');
+            const value = normalizeDecimalInput(e.target.value);
             setArticlePrixAchatHT(value);
             articlePrixAchatHTVerif(value);
           }}
           className={`form-control form-control-lg ${article_prix_achat_HT_error ? "is-invalid" : form_submited ? "is-valid" : ""}`}
-          placeholder="10,00€"
+          placeholder="10.00€"
         />
         <div className="invalid-feedback">{article_prix_achat_HT_error}</div>
       </div>
@@ -483,13 +494,14 @@ function ListeArticles({ user }) {
         <input
           type="text"
           value={article_location_price || ""}
+          inputMode="decimal"
           onChange={(e) => {
-            const value = e.target.value.replace(',', '.');
+            const value = normalizeDecimalInput(e.target.value);
             setArticleLocationPrice(value || null);
             articleLocationPriceVerif(value);
           }}
           className={`form-control form-control-lg ${article_location_price_error ? "is-invalid" : form_submited && article_location_price ? "is-valid" : ""}`}
-          placeholder="15,00€"
+          placeholder="15.00€"
         />
         <div className="invalid-feedback">{article_location_price_error}</div>
       </div>
