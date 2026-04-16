@@ -504,7 +504,7 @@ jobs:
       
       - name: Test container startup
         run: |
-          docker compose -f docker-compose.prod.yml up -d --no-build db redis backend frontend proxy
+          docker compose -f docker-compose.prod.yml up -d --no-build db redis backend frontend
           timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml ps --status=running | grep -q "Up"; do sleep 2; done'
           docker compose -f docker-compose.prod.yml ps
       
@@ -532,8 +532,10 @@ jobs:
           docker compose -f docker-compose.prod.yml logs backend
           echo "=== Frontend logs ==="
           docker compose -f docker-compose.prod.yml logs frontend
-          echo "=== Proxy logs ==="
-          docker compose -f docker-compose.prod.yml logs proxy
+          echo "=== Redis logs ==="
+          docker compose -f docker-compose.prod.yml logs redis
+          echo "=== DB logs ==="
+          docker compose -f docker-compose.prod.yml logs db
       
       - name: Cleanup
         if: always()

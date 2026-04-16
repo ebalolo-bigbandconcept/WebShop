@@ -991,7 +991,7 @@ def select_scenario(devis_id):
             409,
         )
 
-    # Prevent changing scenario if already selected (lock it)
+    # Prevent changing scenario if already selected (lock it).
     if devis.selected_scenario and devis.selected_scenario != scenario:
         return (
             jsonify(
