@@ -31,6 +31,13 @@ services:
       echo 'Starting Flask application...' &&
       python app.py
       "
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webshop-backend-dev.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.webshop-backend-dev.entrypoints=websecure"
+      - "traefik.http.routers.webshop-backend-dev.tls=true"
+      - "traefik.http.routers.webshop-backend-dev.priority=100"
+      - "traefik.http.services.webshop-backend-dev.loadbalancer.server.port=5000"
 
   frontend:
     container_name: webshop_frontend_dev
@@ -46,28 +53,38 @@ services:
     volumes:
       - ./frontend:/app # Mount frontend code for development
       - /app/node_modules # Persist node_modules in container
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webshop-frontend-dev.rule=Host(`localhost`)"
+      - "traefik.http.routers.webshop-frontend-dev.entrypoints=websecure"
+      - "traefik.http.routers.webshop-frontend-dev.tls=true"
+      - "traefik.http.routers.webshop-frontend-dev.priority=1"
+      - "traefik.http.services.webshop-frontend-dev.loadbalancer.server.port=3000"
 
-  proxy:
-    image: nginx:alpine
-    container_name: webshop_proxy_dev
+  traefik:
+    image: traefik:v3.7.0-rc.1
+    container_name: webshop_traefik_dev
     depends_on:
       - frontend
       - backend
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entryPoint.permanent=true"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--log.level=INFO"
+      - "--accesslog=true"
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
     volumes:
-      - ./proxy/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-      - proxy_certs:/etc/nginx/certs
-    command: >
-      /bin/sh -ec "
-      apk add --no-cache openssl >/dev/null;
-      mkdir -p /etc/nginx/certs;
-      if [ ! -f /etc/nginx/certs/localhost.crt ] || [ ! -f /etc/nginx/certs/localhost.key ]; then
-        openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 3650 -batch -subj '/CN=localhost' -keyout /etc/nginx/certs/localhost.key -out /etc/nginx/certs/localhost.crt;
-      fi;
-      nginx -g 'daemon off;'
-      "
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
   redis:
     image: redis:7-alpine
@@ -90,7 +107,6 @@ services:
 volumes:
   db_data:
   postgres_data_dev:
-  proxy_certs:
 
 networks:
   default:

@@ -5,11 +5,20 @@ services:
       dockerfile: backend/Dockerfile.prod
     environment:
       - FLASK_ENV=production
-      - FRONTEND_URL=https://vps117856.serveur-vps.net
-      - BACKEND_URL=https://vps117856.serveur-vps.net
+      - FRONTEND_URL=https://${TRAEFIK_DOMAIN:-vps117856.serveur-vps.net}
+      - BACKEND_URL=https://${TRAEFIK_DOMAIN:-vps117856.serveur-vps.net}
       - DOCUSIGN_ENV=demo
       - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/DOCUSIGN_PRIVATE_KEY
       - ALLOW_DELETING_SIGNED_DEVIS=${ALLOW_DELETING_SIGNED_DEVIS:-false}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-proxy}"
+      - "traefik.http.routers.webshop-backend.rule=Host(`${TRAEFIK_DOMAIN:-vps117856.serveur-vps.net}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.webshop-backend.entrypoints=websecure"
+      - "traefik.http.routers.webshop-backend.tls=true"
+      - "traefik.http.routers.webshop-backend.tls.certresolver=le"
+      - "traefik.http.routers.webshop-backend.priority=100"
+      - "traefik.http.services.webshop-backend.loadbalancer.server.port=5000"
     secrets:
       - SECRET_KEY
       - ADMIN_MAIL
@@ -28,6 +37,9 @@ services:
       - db_data:/app/instance
       - ./backend/migrations:/app/migrations
     restart: always
+    networks:
+      - default
+      - proxy
 
   frontend:
     build:
@@ -39,27 +51,20 @@ services:
       - "80"
     depends_on:
       - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-proxy}"
+      - "traefik.http.routers.webshop-frontend.rule=Host(`${TRAEFIK_DOMAIN:-vps117856.serveur-vps.net}`)"
+      - "traefik.http.routers.webshop-frontend.entrypoints=websecure"
+      - "traefik.http.routers.webshop-frontend.tls=true"
+      - "traefik.http.routers.webshop-frontend.tls.certresolver=le"
+      - "traefik.http.routers.webshop-frontend.priority=1"
+      - "traefik.http.services.webshop-frontend.loadbalancer.server.port=80"
     restart: always
+    networks:
+      - default
+      - proxy
 
-  proxy:
-    image: nginx:alpine
-    depends_on:
-      - frontend
-      - backend
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
-      - certbot-www:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
-    restart: always
-
-  certbot:
-    image: certbot/certbot:latest
-    volumes:
-      - certbot-www:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
   backup:
     image: restic/restic:latest
     depends_on:
@@ -108,12 +113,13 @@ services:
 volumes:
   db_data:
   postgres_data:
-  certbot-www:
-  letsencrypt:
 
 networks:
   default:
     driver: bridge
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-proxy}
 
 secrets:
   SECRET_KEY:
@@ -142,3 +148,7 @@ secrets:
     file: ./.env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt
   DOCUSIGN_PRIVATE_KEY:
     file: ./.env_prod_secrets/private.pem
+  TRAEFIK_DOMAIN:
+    file: ./.env_prod_secrets/TRAEFIK_DOMAIN.txt
+  TRAEFIK_NETWORK:
+    file: ./.env_prod_secrets/TRAEFIK_NETWORK.txt

@@ -26,7 +26,7 @@ Ce README sert de guide opératoire principal pour travailler sur le projet, le 
    - [Secrets de production](#2-secrets-de-production)
    - [Configuration applicative](#3-configuration-applicative)
    - [Déployer l'application](#4-déployer-lapplication)
-   - [HTTPS avec Let's Encrypt](#5-https-avec-lets-encrypt)
+   - [Déploiement Traefik séparé](#5-déploiement-traefik-séparé-opttraefik--optapp)
    - [Sauvegarde et restauration](#6-sauvegarde-et-restauration)
    - [CI/CD et déploiement automatique](#7-cicd-et-déploiement-automatique-optionnel)
 
@@ -40,7 +40,7 @@ Cette section couvre l'installation locale, le lancement de la stack Docker et l
 
 ### 1. Installation locale
 
-#### 1.1 Mettre à jour le système
+#### 1.1 Mettre à jour le système (production)
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -388,6 +388,8 @@ echo "your_docusign_integration_key" > DOCUSIGN_INTEGRATION_KEY.txt
 echo "postgresql://user:password@db:5432/users_db" > DATABASE_URL.txt
 echo "user" > DB_USER.txt
 echo "password" > DB_PASSWORD.txt
+echo "your-domain.tld" > TRAEFIK_DOMAIN.txt
+echo "proxy" > TRAEFIK_NETWORK.txt
 # Copiez aussi votre clé privée DocuSign private.pem dans ce dossier
 
 cd ..
@@ -398,27 +400,21 @@ chmod 600 .env_prod_secrets/*
 
 ### 3. Configuration applicative
 
-#### 3.1 Variables du backend
+#### 3.1 Variables Traefik
 
-Mettez à jour [docker-compose.prod.yml](docker-compose.prod.yml) avec les valeurs adaptées à votre environnement :
+Mettez à jour les variables d'environnement utilisées par Traefik et l'app :
 
-```yaml
-backend:
-  environment:
-    - DOCUSIGN_SERVER_IP=http://your-docusign-ip
-    - FRONTEND_URL=https://your-domain.tld
-    - REACT_APP_BACKEND_URL=https://your-domain.tld/api
+```bash
+# Dans la stack Traefik externe (/opt/traefik/docker-compose.yml)
+ACME_EMAIL=admin@example.com
+TRAEFIK_NETWORK=proxy
+
+# Dans la stack app (/opt/WebShop/docker-compose.prod.yml)
+TRAEFIK_DOMAIN=your-domain.tld
+TRAEFIK_NETWORK=proxy
 ```
 
-#### 3.2 Configuration Nginx
-
-Mettez à jour [frontend/nginx.conf](frontend/nginx.conf) et [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine réel :
-
-```nginx
-server_name your-domain.tld;
-```
-
-#### 3.3 Configurer le pare-feu
+#### 3.2 Configurer le pare-feu
 
 ```bash
 # Politique par défaut
@@ -448,9 +444,63 @@ sudo ufw status verbose
 
 > **Note** : remplacez `YOUR_ADMIN_IP` et `BACKUP_SERVER_IP` par les adresses réelles.
 
-### 4. Déployer l'application
+### 4. Déploiement Traefik séparé (/opt/traefik + /opt/WebShop)
 
-#### 4.1 Construire, lancer et migrer
+Cette stratégie sépare l'infrastructure d'entrée (Traefik) de la stack applicative. Traefik tourne dans son propre dossier (`/opt/traefik`) et l'application dans `/opt/WebShop`.
+
+- Traefik expose `80/443`.
+- L'application n'expose pas de ports publics.
+- Le routage est géré via labels Traefik sur `frontend` et `backend`.
+
+#### 4.1 Préparer les dossiers traefik
+
+```bash
+sudo mkdir -p /opt/traefik
+sudo chown -R $USER:$USER /opt/traefik
+```
+
+#### 4.2 Copier les fichiers nécessaires
+
+Depuis la racine du projet :
+
+```bash
+cp -r traefik/* /opt/traefik/
+```
+
+#### 4.3 Créer le réseau Docker partagé
+
+```bash
+docker network create proxy || true
+```
+
+#### 4.4 Configurer Traefik
+
+```bash
+cd /opt/traefik
+cp .env.example .env
+
+# Éditer .env et définir au minimum ACME_EMAIL
+touch letsencrypt/acme.json
+chmod 600 letsencrypt/acme.json
+```
+
+#### 4.5 Démarrer Traefik puis l'application
+
+```bash
+# 1) Démarrer Traefik (infra)
+cd /opt/traefik
+docker compose up -d
+
+# 2) Démarrer l'application (app)
+cd /opt/WebShop
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml exec backend flask db upgrade
+docker compose -f docker-compose.prod.yml exec backend python init_db.py
+```
+
+### 5. Déployer l'application
+
+#### 5.1 Construire, lancer et migrer
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml build
@@ -459,104 +509,17 @@ sudo docker compose -f docker-compose.prod.yml exec backend flask db upgrade
 sudo docker compose -f docker-compose.prod.yml exec backend python init_db.py
 ```
 
-#### 4.2 Vérifier l'état de la stack
+#### 5.2 Vérifier l'état de la stack
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml ps
 sudo docker compose -f docker-compose.prod.yml logs -f
 ```
 
-#### 4.3 Accès attendus
+#### 5.3 Accès attendus
 
 - Frontend : [http://your-domain.tld](http://your-domain.tld)
 - API backend : [http://your-domain.tld/api](http://your-domain.tld/api)
-
-### 5. HTTPS avec Let's Encrypt
-
-Cette procédure évite le démarrage en échec de Nginx avant l'obtention du vrai certificat, puis installe le certificat Let's Encrypt définitif.
-
-#### 5.1 Préparer la configuration
-
-Mettez à jour [proxy/nginx.conf](proxy/nginx.conf) avec votre domaine réel :
-
-```nginx
-server_name your-domain.tld;
-ssl_certificate /etc/letsencrypt/live/your-domain.tld/fullchain.pem;
-ssl_certificate_key /etc/letsencrypt/live/your-domain.tld/privkey.pem;
-```
-
-#### 5.2 Créer un certificat autosigné temporaire
-
-```bash
-sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
-  sh -c "apk add --no-cache openssl >/dev/null && \
-         mkdir -p /etc/letsencrypt/live/your-domain.tld && \
-         openssl req -x509 -nodes -newkey rsa:2048 -days 2 \
-           -subj '/CN=your-domain.tld' \
-           -keyout /etc/letsencrypt/live/your-domain.tld/privkey.pem \
-           -out /etc/letsencrypt/live/your-domain.tld/fullchain.pem"
-```
-
-#### 5.3 Démarrer les services
-
-```bash
-sudo docker compose -f docker-compose.prod.yml up -d --force-recreate proxy
-sudo docker compose -f docker-compose.prod.yml up -d --build
-sudo ss -ltnp | grep ':80'
-```
-
-#### 5.4 Obtenir le certificat réel
-
-Supprimez d'abord le certificat temporaire :
-
-```bash
-sudo docker compose -f docker-compose.prod.yml run --rm --entrypoint "" certbot \
-  sh -c "rm -rf /etc/letsencrypt/live/your-domain.tld \
-               /etc/letsencrypt/archive/your-domain.tld \
-               /etc/letsencrypt/renewal/your-domain.tld.conf"
-```
-
-Puis lancez la génération du certificat Let's Encrypt :
-
-```bash
-sudo docker compose -f docker-compose.prod.yml run --rm certbot certonly \
-  --webroot -w /var/www/certbot \
-  -d your-domain.tld \
-  --email admin@example.com \
-  --agree-tos --no-eff-email
-```
-
-#### 5.5 Recharger Nginx
-
-```bash
-sudo docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload
-```
-
-#### 5.6 Configurer le renouvellement automatique
-
-1. Ouvrez la crontab :
-
-```bash
-crontab -e
-```
-
-1. Ajoutez la tâche de renouvellement suivante :
-
-```bash
-0 3 * * * cd /path/to/WebShop && docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot && docker compose -f docker-compose.prod.yml exec -T proxy nginx -s reload >> /var/log/certbot-renew.log 2>&1
-```
-
-1. Vérifiez la tâche active :
-
-```bash
-crontab -l
-```
-
-1. Testez le renouvellement sans modifier les certificats réels :
-
-```bash
-sudo docker compose -f docker-compose.prod.yml run --rm certbot renew --webroot -w /var/www/certbot --dry-run
-```
 
 ### 6. Sauvegarde et restauration
 
@@ -598,9 +561,9 @@ ssh -N -L 53682:127.0.0.1:53682 user@votre-serveur
 ssh -N -L 53682:127.0.0.1:53682 -i "~/.ssh/votre_cle_privee" user@votre-serveur # si vous utilisez une clé privée
 ```
 
-3. Sur votre machine locale, ouvrez dans le navigateur l'URL fournie par rclone (ou `http://127.0.0.1:53682/auth?...`), connectez-vous à pCloud et validez.
+1. Sur votre machine locale, ouvrez dans le navigateur l'URL fournie par rclone (ou `http://127.0.0.1:53682/auth?...`), connectez-vous à pCloud et validez.
 
-4. Revenez au terminal serveur : rclone y affiche le token JSON à copier dans `.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt`.
+2. Revenez au terminal serveur : rclone y affiche le token JSON à copier dans `.env_prod_secrets/RCLONE_CONFIG_PCLOUD_AUTH.txt`.
 
 Rclone affiche ensuite le token dans le terminal :
 
