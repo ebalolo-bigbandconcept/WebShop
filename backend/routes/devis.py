@@ -1025,7 +1025,8 @@ def select_scenario(devis_id):
                 "quantite": line.quantite,
                 "taux_tva": (
                     line.taux_tva.taux
-                    if getattr(line, "taux_tva", None) and line.taux_tva.taux is not None
+                    if getattr(line, "taux_tva", None)
+                    and line.taux_tva.taux is not None
                     else None
                 ),
             }
