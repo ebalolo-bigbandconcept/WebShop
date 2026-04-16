@@ -1,5 +1,3 @@
-import math
-
 from models import Articles, InterestRateRange, TauxTVA, db
 
 LOCATION_VAT_RATE = 0.20
@@ -146,9 +144,8 @@ def compute_monthly_from_total_ttc(
     if location_time_int <= 0:
         return 0.0, 0.0
 
-    monthly_ttc_raw = total_ttc_value / location_time_int
-    monthly_ttc = math.ceil(monthly_ttc_raw)
-    monthly_ht = round(monthly_ttc / (1 + vat_rate), 2)
+    monthly_ttc = total_ttc_value / location_time_int
+    monthly_ht = total_ttc_value / ((1 + vat_rate) * location_time_int)
     return monthly_ht, monthly_ttc
 
 

@@ -107,3 +107,9 @@ class TestCalculationsCoverage:
 
         assert monthly_ht == 0.0
         assert monthly_ttc == 0.0
+
+    def test_compute_monthly_from_total_ttc_uses_direct_division(self):
+        monthly_ht, monthly_ttc = compute_monthly_from_total_ttc(1100.0, 36)
+
+        assert monthly_ttc == 1100.0 / 36
+        assert monthly_ht == 1100.0 / (1.2 * 36)

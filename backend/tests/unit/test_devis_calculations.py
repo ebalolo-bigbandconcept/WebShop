@@ -13,6 +13,8 @@ import os
 import sys
 from datetime import datetime
 
+import pytest
+
 # Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -258,9 +260,9 @@ class TestLocationCalculations:
 
         # 1050.0 + 50 (interest from 0-5000 range) = 1100.0 TTC
         # 1100.0 / 1.20 = 916.67 HT
-        # monthly: ceil(1100 / 36) = 31
         assert total_ttc == 1100.0
-        assert monthly_ttc == 31.0  # Rounded up with math.ceil
+        assert monthly_ttc == pytest.approx(1100.0 / 36)
+        assert monthly_ht == pytest.approx(1100.0 / (1.2 * 36))
 
     def test_location_with_apport(self, db_session, test_parameters):
         """Test: location with apport deducted and interest rates from database."""
@@ -281,9 +283,9 @@ class TestLocationCalculations:
 
         # 850.0 + 50 (interest from 0-5000 range) = 900.0 TTC
         # 900.0 / 1.20 = 750.0 HT
-        # monthly: ceil(900 / 36) = 25
         assert total_ttc == 900.0
-        assert monthly_ttc == 25.0  # Rounded up with math.ceil
+        assert monthly_ttc == pytest.approx(900.0 / 36)
+        assert monthly_ht == pytest.approx(900.0 / (1.2 * 36))
 
     def test_location_ht_from_ttc(self, db_session):
         """Test: location_total_ht = location_total_ttc / 1.20 (assuming 20% VAT)"""
