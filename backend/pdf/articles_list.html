@@ -109,11 +109,12 @@
   <thead>
     <tr>
       <th style="width: 5%">#</th>
-      <th style="width: 30%">Article</th>
-      <th style="width: 20%">Désignation</th>
-      <th style="width: 15%">Prix d'achat HT</th>
-      <th style="width: 15%">Prix de vente HT</th>
-      <th style="width: 10%">TVA</th>
+      <th style="width: 25%">Article</th>
+      <th style="width: 20%">Référence</th>
+      <th style="width: 14%">Prix d'achat HT</th>
+      <th style="width: 14%">Prix de vente HT</th>
+      <th style="width: 14%">Prix d'abonnement</th>
+      <th style="width: 8%">TVA</th>
     </tr>
   </thead>
   <tbody>
@@ -121,9 +122,10 @@
     <tr>
       <td>{{ article.id }}</td>
       <td class="left-align">{{ article.nom }}</td>
-      <td class="left-align">{{ article.designation }}</td>
+      <td class="left-align">{{ article.reference }}</td>
       <td class="right-align">{{ "{:.2f}".format(article.prix_achat_HT or 0) }} €</td>
       <td class="right-align">{{ "{:.2f}".format(article.prix_vente_HT or 0) }} €</td>
+      <td class="right-align">{{ "{:.2f}".format(article.location_price or 0) }} €</td>
       <td>{{ "{:.0%}".format(article.taux_tva.taux if article.taux_tva else 0.20) }}</td>
     </tr>
     {% endfor %}

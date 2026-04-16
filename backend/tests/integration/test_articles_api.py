@@ -425,6 +425,8 @@ class TestArticlesExportPDF:
     ):
         """Ensure PDF export returns a downloadable PDF payload."""
 
+        rendered_context = {}
+
         class FakeHTML:
             def __init__(self, string, base_url):
                 self.string = string
@@ -433,7 +435,11 @@ class TestArticlesExportPDF:
             def write_pdf(self):
                 return b"%PDF-1.4 fake"
 
-        monkeypatch.setattr("routes.articles.render_template", lambda *a, **k: "html")
+        def fake_render_template(*args, **kwargs):
+            rendered_context.update(kwargs)
+            return "html"
+
+        monkeypatch.setattr("routes.articles.render_template", fake_render_template)
         monkeypatch.setattr("routes.articles.HTML", FakeHTML)
 
         response = client.get("/api/articles/export-pdf", headers=auth_headers)
@@ -444,6 +450,8 @@ class TestArticlesExportPDF:
             "attachment; filename=liste_articles_"
             in response.headers["Content-Disposition"]
         )
+        assert "articles" in rendered_context
+        assert rendered_context["articles"][0]["location_price"] == test_article.location_price
 
     def test_export_articles_pdf_exception_returns_500(
         self, client, auth_headers, test_article, monkeypatch

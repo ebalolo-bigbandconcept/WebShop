@@ -291,6 +291,7 @@ def export_articles_pdf():
                     "reference": article.reference,
                     "prix_achat_HT": article.prix_achat_HT,
                     "prix_vente_HT": article.prix_vente_HT,
+                    "location_price": article.location_price,
                     "taux_tva": article.taux_tva,
                 }
             )
