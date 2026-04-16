@@ -22,6 +22,15 @@ services:
       - db_data:/app/instance
     secrets:
       - docusign_private_key
+    command: >
+      sh -c "
+      echo 'Running database migrations...' &&
+      flask db upgrade &&
+      echo 'Initializing default data...' &&
+      python init_db.py &&
+      echo 'Starting Flask application...' &&
+      python app.py
+      "
 
   frontend:
     container_name: webshop_frontend_dev
