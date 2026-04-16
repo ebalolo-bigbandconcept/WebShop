@@ -280,17 +280,12 @@ def duplicate_devis(devis_id):
         montant_TVA=devis.montant_TVA,
         montant_TTC=devis.montant_TTC,
         remise=devis.remise,
-        statut=devis.statut,
-        date_paiement=devis.date_paiement,
-        is_location=devis.is_location,
-        selected_scenario=devis.selected_scenario,
+        statut="Non signé",
         first_contribution_amount=devis.first_contribution_amount,
         location_monthly_total=devis.location_monthly_total,
         location_monthly_total_ht=devis.location_monthly_total_ht,
         location_total=devis.location_total,
         location_total_ht=devis.location_total_ht,
-        signed_at=devis.signed_at,
-        signed_data=devis.signed_data,
     )
     db.session.add(duplicated_devis)
     db.session.flush()
@@ -306,11 +301,6 @@ def duplicate_devis(devis_id):
             montant_HT=article.montant_HT,
             montant_TVA=article.montant_TVA,
             montant_TTC=article.montant_TTC,
-            prix_unitaire_ht_snapshot=article.prix_unitaire_ht_snapshot,
-            taux_tva_snapshot=article.taux_tva_snapshot,
-            montant_ht_snapshot=article.montant_ht_snapshot,
-            montant_tva_snapshot=article.montant_tva_snapshot,
-            montant_ttc_snapshot=article.montant_ttc_snapshot,
         )
         db.session.add(duplicated_article)
 

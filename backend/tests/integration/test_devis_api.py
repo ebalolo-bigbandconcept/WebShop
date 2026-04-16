@@ -146,7 +146,6 @@ class TestDevisDuplicate:
         assert duplicated.montant_TVA == original.montant_TVA
         assert duplicated.montant_TTC == original.montant_TTC
         assert duplicated.remise == original.remise
-        assert duplicated.statut == original.statut
 
         duplicated_articles = DevisArticles.query.filter_by(
             devis_id=duplicated.id
