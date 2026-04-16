@@ -259,6 +259,10 @@ jobs:
           -----END PRIVATE KEY-----
           EOF
 
+      - name: Ensure Traefik network exists for prod compose
+        run: |
+          docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
+
       - name: Start dependencies (PostgreSQL & Redis)
         run: |
           docker compose -f docker-compose.prod.yml up -d db redis
@@ -493,6 +497,10 @@ jobs:
             REACT_APP_BACKEND_URL=/api
           cache-from: type=gha,scope=frontend-prod
           cache-to: type=gha,mode=max,scope=frontend-prod
+
+      - name: Ensure Traefik network exists for prod compose
+        run: |
+          docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
       
       - name: Test container startup
         run: |
