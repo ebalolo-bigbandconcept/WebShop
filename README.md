@@ -25,8 +25,8 @@ Ce README sert de guide opératoire principal pour travailler sur le projet, le 
    - [Préparation du serveur](#1-préparation-du-serveur)
    - [Secrets de production](#2-secrets-de-production)
    - [Configuration applicative](#3-configuration-applicative)
-   - [Déployer l'application](#4-déployer-lapplication)
-   - [Déploiement Traefik séparé](#5-déploiement-traefik-séparé-opttraefik--optapp)
+   - [Déployer l'application](#5-déployer-lapplication)
+   - [Déploiement Traefik séparé](#4-déploiement-traefik-séparé-opttraefik--optwebshop)
    - [Sauvegarde et restauration](#6-sauvegarde-et-restauration)
    - [CI/CD et déploiement automatique](#7-cicd-et-déploiement-automatique-optionnel)
 
@@ -400,21 +400,7 @@ chmod 600 .env_prod_secrets/*
 
 ### 3. Configuration applicative
 
-#### 3.1 Variables Traefik
-
-Mettez à jour les variables d'environnement utilisées par Traefik et l'app :
-
-```bash
-# Dans la stack Traefik externe (/opt/traefik/docker-compose.yml)
-ACME_EMAIL=admin@example.com
-TRAEFIK_NETWORK=proxy
-
-# Dans la stack app (/opt/WebShop/docker-compose.prod.yml)
-TRAEFIK_DOMAIN=your-domain.tld
-TRAEFIK_NETWORK=proxy
-```
-
-#### 3.2 Configurer le pare-feu
+#### 3.1 Configurer le pare-feu
 
 ```bash
 # Politique par défaut
@@ -465,6 +451,7 @@ Depuis la racine du projet :
 
 ```bash
 cp -r traefik/* /opt/traefik/
+cp traefik/.env.example /opt/traefik/.env
 ```
 
 #### 4.3 Créer le réseau Docker partagé
