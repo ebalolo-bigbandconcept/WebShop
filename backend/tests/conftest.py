@@ -14,6 +14,14 @@ from flask_bcrypt import Bcrypt
 # Add parent directory to path to import app modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+# Safety: force an isolated SQLite database for pytest before importing the app.
+# This prevents destructive fixtures from running against development PostgreSQL.
+os.environ["DATABASE_URL"] = "sqlite:////tmp/webshop_pytest.db"
+os.environ.setdefault("FLASK_ENV", "testing")
+os.environ.setdefault("SECRET_KEY", "pytest-secret-key")
+os.environ.setdefault("ADMIN_MAIL", "admin@test.local")
+os.environ.setdefault("ADMIN_PASSWORD", "pytest-admin-password")
+
 from app import app as flask_app
 from models import (
     Articles,
@@ -29,6 +37,20 @@ from models import (
 from tests.fixtures.test_config import TestConfig
 
 
+def _assert_safe_test_database(app_instance):
+    """Abort tests if the active DB is not an isolated test database."""
+    db_uri = (app_instance.config.get("SQLALCHEMY_DATABASE_URI") or "").lower()
+
+    if not db_uri:
+        raise RuntimeError("Tests aborted: SQLALCHEMY_DATABASE_URI is empty")
+
+    if db_uri.startswith("postgresql"):
+        raise RuntimeError(
+            "Tests aborted: refusing to run destructive fixtures on PostgreSQL. "
+            f"Active SQLALCHEMY_DATABASE_URI={app_instance.config.get('SQLALCHEMY_DATABASE_URI')}"
+        )
+
+
 @pytest.fixture(scope="session")
 def app():
     """Create and configure a Flask application instance for testing.
@@ -41,6 +63,7 @@ def app():
 
     # Disable CSRF for testing
     flask_app.config["WTF_CSRF_ENABLED"] = False
+    _assert_safe_test_database(flask_app)
 
     # Create application context
     with flask_app.app_context():

@@ -92,8 +92,10 @@ SECRET_KEY=your_generated_key_here
 ADMIN_MAIL=admin@example.com
 ADMIN_PASSWORD=SecurePassword123!
 
-# Configuration frontend
-REACT_APP_BACKEND_URL=http://localhost:5000
+# Configuration via proxy nginx (dev)
+REACT_APP_BACKEND_URL=/api
+FRONTEND_URL=https://localhost
+BACKEND_URL=https://localhost
 
 # Intégration DocuSign
 DOCUSIGN_ACCOUNT_ID=your_account_id
@@ -113,7 +115,7 @@ Ces commandes construisent les images, démarrent les conteneurs et initialisent
 sudo docker compose build
 
 # Démarrer les conteneurs
-sudo docker compose --profile proxy-only up -d
+sudo docker compose up -d
 
 # Initialiser la base de données une seule fois
 sudo docker compose exec backend flask db init
@@ -123,8 +125,9 @@ sudo docker compose exec backend flask db upgrade
 
 ### 4. Accès à l'application
 
-- Frontend : [http://localhost:3000](http://localhost:3000)
-- API backend : [http://localhost:5000](http://localhost:5000)
+- Application (frontend + API via proxy) : [https://localhost](https://localhost)
+
+> Au premier démarrage en développement, le conteneur `proxy` génère automatiquement un certificat auto-signé pour `localhost`.
 
 ### 5. Qualité de code Python
 

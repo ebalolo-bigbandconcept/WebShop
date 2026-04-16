@@ -31,6 +31,30 @@ _CACHED_PRIVATE_KEY = None
 DOCUSIGN_TOKEN_CACHE = {"access_token": None, "expires_at": 0}
 
 
+def _parse_docusign_api_error(api_error):
+    """Extract structured details from a DocuSign ApiException."""
+    error_code = None
+    error_description = None
+    trace_token = None
+
+    try:
+        if getattr(api_error, "body", None):
+            payload = json.loads(api_error.body)
+            error_code = payload.get("error")
+            error_description = payload.get("error_description")
+    except (TypeError, ValueError):
+        # Keep raw exception details only when body is not parseable JSON.
+        pass
+
+    headers = getattr(api_error, "headers", None)
+    if headers:
+        trace_token = headers.get("X-DocuSign-TraceToken") or headers.get(
+            "x-docusign-tracetoken"
+        )
+
+    return error_code, error_description, trace_token
+
+
 def load_private_key():
     """Load and cache DocuSign private key from file"""
     global _CACHED_PRIVATE_KEY
@@ -104,7 +128,29 @@ def get_docusign_token(integrator_key, user_id):
         return access_token
 
     except ApiException as e:
-        logger.error(f"DocuSign JWT error: {e}")
+        error_code, error_description, trace_token = _parse_docusign_api_error(e)
+        error_status = getattr(e, "status", None)
+        error_reason = getattr(e, "reason", None)
+        logger.error(
+            "DocuSign JWT error: status=%s reason=%s code=%s description=%s trace_token=%s",
+            error_status,
+            error_reason,
+            error_code,
+            error_description,
+            trace_token,
+        )
+
+        if (
+            error_code == "invalid_grant"
+            and error_description == "no_valid_keys_or_signatures"
+        ):
+            raise ValueError(
+                "DocuSign JWT rejected: invalid_grant/no_valid_keys_or_signatures. "
+                "The private key does not match the Integration Key public key "
+                "or the key format is invalid. "
+                f"TraceToken: {trace_token or 'n/a'}"
+            )
+
         raise e
 
 
@@ -341,7 +387,11 @@ def send_envelope_for_signing(
         logger.error(f"Validation error: {e}")
         raise e
     except ApiException as e:
-        logger.error(f"DocuSign API error: {e}")
+        logger.error(
+            "DocuSign API error: status=%s reason=%s",
+            getattr(e, "status", None),
+            getattr(e, "reason", None),
+        )
         raise e
 
 

@@ -267,6 +267,38 @@ class TestDocuSignService:
         token = get_docusign_token("test-key", "test-user")
         assert token == "cached-token"
 
+    @patch("services.docusign_service.load_private_key")
+    @patch("services.docusign_service.ApiClient")
+    def test_get_docusign_token_invalid_grant_no_valid_keys(
+        self, mock_api_client, mock_load_key
+    ):
+        """Test JWT key/signature mismatch is surfaced with actionable message"""
+        from docusign_esign import ApiException
+
+        from services.docusign_service import DOCUSIGN_TOKEN_CACHE, get_docusign_token
+
+        DOCUSIGN_TOKEN_CACHE["access_token"] = None
+        DOCUSIGN_TOKEN_CACHE["expires_at"] = 0
+
+        mock_load_key.return_value = "fake-private-key"
+
+        mock_client_instance = MagicMock()
+        mock_api_client.return_value = mock_client_instance
+
+        api_error = ApiException(status=400, reason="Bad Request")
+        api_error.body = json.dumps(
+            {
+                "error": "invalid_grant",
+                "error_description": "no_valid_keys_or_signatures",
+            }
+        )
+        api_error.headers = {"X-DocuSign-TraceToken": "trace-123"}
+        mock_client_instance.request_jwt_user_token.side_effect = api_error
+
+        with patch.dict("os.environ", {"DOCUSIGN_ENV": "demo"}):
+            with pytest.raises(ValueError, match="no_valid_keys_or_signatures"):
+                get_docusign_token("test-key", "test-user")
+
     def test_prepare_document(self):
         """Test PDF document preparation"""
         from services.docusign_service import prepare_document
