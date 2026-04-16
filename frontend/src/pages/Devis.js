@@ -92,6 +92,7 @@ function Devis() {
   const [commentDraft, setCommentDraft] = useState("");
   const isLocked = !isNewDevis && devis?.statut === "Signé";
   const isPendingOrSigned = devis_status === "En attente de signature" || devis_status === "Signé";
+  const isDirectDisabled = isPendingOrSigned && isLocationScenario(selected_scenario);
   const isLocationDisabled = isPendingOrSigned && selected_scenario === "direct";
   const isApportDisabled = isPendingOrSigned && selected_scenario === "location_without_apport";
   const isSubscriptionScenario = isLocationScenario(selected_scenario);
@@ -1132,7 +1133,7 @@ function Devis() {
         <div className="col-lg-4 col-12 d-flex flex-column justify-content-end mt-lg-0 mt-4">
           <ul className="nav nav-tabs mb-3" role="tablist">
             <li className="nav-item" role="presentation">
-              <button className={`nav-link ${!isSubscriptionScenario ? 'active' : ''} ${isLocked && isSubscriptionScenario ? 'disabled' : ''}`} id="articles-tab" data-bs-toggle="tab" data-bs-target="#articles-pane" type="button" role="tab" aria-controls="articles-pane" aria-selected={!isSubscriptionScenario} disabled={isLocked && isSubscriptionScenario}>
+              <button className={`nav-link ${!isSubscriptionScenario ? 'active' : ''} ${isDirectDisabled ? 'disabled' : ''}`} id="articles-tab" data-bs-toggle="tab" data-bs-target="#articles-pane" type="button" role="tab" aria-controls="articles-pane" aria-selected={!isSubscriptionScenario} disabled={isDirectDisabled}>
                 Articles
               </button>
             </li>

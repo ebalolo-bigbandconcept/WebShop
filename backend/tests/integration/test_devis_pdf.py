@@ -12,7 +12,7 @@ from datetime import datetime
 
 import pytest
 
-from models import Articles, DevisArticles, TauxTVA, db
+from models import Articles, Devis, DevisArticles, TauxTVA, db
 
 
 class TestPDFGeneration:
@@ -175,6 +175,21 @@ class TestScenarioSelection:
         assert response.status_code == 200
         data = response.get_json()
         assert data["selected_scenario"] == "location_with_apport"
+
+        updated = Devis.query.get(test_devis.id)
+        assert updated is not None
+        assert updated.selected_scenario == "location_with_apport"
+        assert updated.is_location is True
+        assert (updated.location_total or 0) > 0
+        assert (updated.location_total_ht or 0) > 0
+        assert (updated.location_monthly_total or 0) > 0
+        assert (updated.location_monthly_total_ht or 0) > 0
+
+        line = DevisArticles.query.filter_by(devis_id=test_devis.id).first()
+        assert line is not None
+        assert (line.montant_HT or 0) > 0
+        assert (line.montant_TVA or 0) > 0
+        assert (line.montant_TTC or 0) > 0
 
     def test_select_scenario_invalid(self, client, auth_headers, test_devis):
         """Test selecting invalid scenario returns 400"""

@@ -1004,8 +1004,74 @@ def select_scenario(devis_id):
             409,
         )
 
-    # Save the selected scenario
+    # Save scenario and recalculate persisted totals so pending/signed views
+    # always use coherent pricing for the selected scenario.
+    params = Parameters.query.first()
+    is_location = scenario in {"location_without_apport", "location_with_apport"}
+    location_time = int(getattr(params, "location_time", 12) or 12)
+    location_subscription_cost = float(
+        getattr(params, "location_subscription_cost", 0.0) or 0.0
+    )
+    location_interests_cost = float(
+        getattr(params, "location_interests_cost", 0.0) or 0.0
+    )
+    first_contribution_amount = float(devis.first_contribution_amount or 0.0)
+
+    articles_payload = []
+    for line in devis.articles:
+        articles_payload.append(
+            {
+                "article_id": line.article_id,
+                "quantite": line.quantite,
+                "taux_tva": (
+                    line.taux_tva.taux
+                    if getattr(line, "taux_tva", None) and line.taux_tva.taux is not None
+                    else None
+                ),
+            }
+        )
+
+    articles_map = build_article_map(articles_payload)
+    lines, total_ht, total_tva, total_ttc = compute_article_lines(
+        articles_payload,
+        articles_map,
+        is_location,
+        location_time,
+    )
+
+    location_total_ht = 0.0
+    location_total_ttc = 0.0
+    location_monthly_ht = 0.0
+    location_monthly_ttc = 0.0
+    if is_location:
+        (
+            location_total_ht,
+            location_total_ttc,
+            location_monthly_ht,
+            location_monthly_ttc,
+        ) = compute_location_totals(
+            total_ttc,
+            first_contribution_amount,
+            location_subscription_cost,
+            location_interests_cost,
+            location_time,
+        )
+
+    for line, computed_line in zip(devis.articles, lines):
+        line.montant_HT = computed_line.get("line_ht")
+        line.montant_TVA = computed_line.get("line_tva")
+        line.montant_TTC = computed_line.get("line_ttc")
+
     devis.selected_scenario = scenario
+    devis.is_location = is_location
+    devis.montant_HT = total_ht
+    devis.montant_TVA = total_tva
+    devis.montant_TTC = total_ttc
+    devis.location_monthly_total = location_monthly_ttc if is_location else 0.0
+    devis.location_monthly_total_ht = location_monthly_ht if is_location else 0.0
+    devis.location_total = location_total_ttc if is_location else 0.0
+    devis.location_total_ht = location_total_ht if is_location else 0.0
+
     db.session.commit()
 
     return (
