@@ -175,41 +175,43 @@ tests/
 Exécuter tous les tests :
 
 ```bash
-sudo docker compose exec backend pytest
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest'
 ```
 
 Exécuter des suites spécifiques :
 
 ```bash
 # Tests unitaires
-sudo docker compose exec backend pytest tests/unit/
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest tests/unit/'
 
 # Tests d'intégration
-sudo docker compose exec backend pytest tests/integration/
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest tests/integration/'
 
 # Fichier de test spécifique
-sudo docker compose exec backend pytest tests/unit/test_devis_calculations.py
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest tests/unit/test_devis_calculations.py'
 
 # Classe de test spécifique
-sudo docker compose exec backend pytest tests/unit/test_devis_calculations.py::TestArticleLineCalculations
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest tests/unit/test_devis_calculations.py::TestArticleLineCalculations'
 
 # Fonction de test spécifique
-sudo docker compose exec backend pytest tests/unit/test_devis_calculations.py::TestArticleLineCalculations::test_montant_ht_calculation_basic
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest tests/unit/test_devis_calculations.py::TestArticleLineCalculations::test_montant_ht_calculation_basic'
 ```
 
 Exécuter avec couverture :
 
 ```bash
-sudo docker compose exec backend pytest --cov=. --cov-report=term-missing
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest --cov=. --cov-report=term-missing'
 ```
 
 Exécuter avec une sortie détaillée :
 
 ```bash
-sudo docker compose exec backend pytest -v
-sudo docker compose exec backend pytest -s
-sudo docker compose exec backend pytest -vv
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest -v'
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest -s'
+sudo docker compose exec backend sh -lc 'cd /app && PYTHONPATH=/app pytest -vv'
 ```
+
+> **Pourquoi cette forme ?** Dans ce projet, les imports Flask/pytest sont résolus de façon fiable en exécutant les tests depuis `/app` avec `PYTHONPATH=/app`.
 
 Ressources utiles :
 

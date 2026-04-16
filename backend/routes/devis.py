@@ -1059,9 +1059,9 @@ def select_scenario(devis_id):
         )
 
     for line, computed_line in zip(devis.articles, lines):
-        line.montant_HT = computed_line.get("line_ht")
-        line.montant_TVA = computed_line.get("line_tva")
-        line.montant_TTC = computed_line.get("line_ttc")
+        line.montant_HT = computed_line.get("montant_ht")
+        line.montant_TVA = computed_line.get("montant_tva")
+        line.montant_TTC = computed_line.get("montant_ttc")
 
     devis.selected_scenario = scenario
     devis.is_location = is_location
