@@ -451,7 +451,10 @@ class TestArticlesExportPDF:
             in response.headers["Content-Disposition"]
         )
         assert "articles" in rendered_context
-        assert rendered_context["articles"][0]["location_price"] == test_article.location_price
+        assert (
+            rendered_context["articles"][0]["location_price"]
+            == test_article.location_price
+        )
 
     def test_export_articles_pdf_exception_returns_500(
         self, client, auth_headers, test_article, monkeypatch
