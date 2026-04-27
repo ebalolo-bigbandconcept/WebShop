@@ -21,7 +21,7 @@ class TestConfig:
         "poolclass": StaticPool,
         "connect_args": {
             "check_same_thread": False,
-        }
+        },
     }
 
     # Testing mode

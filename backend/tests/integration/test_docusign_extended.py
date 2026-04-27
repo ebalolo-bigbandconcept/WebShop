@@ -196,8 +196,9 @@ class TestDocuSignService:
         """Test DOCUSIGN_ENV defaults to demo when unset"""
         from services.docusign_service import _get_docusign_env
 
-        with patch.dict("os.environ", {}, clear=True), patch(
-            "os.path.exists", return_value=False
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("os.path.exists", return_value=False),
         ):
             assert _get_docusign_env() == "demo"
 
