@@ -192,6 +192,35 @@ class TestDocuSignSendPDF:
 class TestDocuSignService:
     """Test DocuSign service functions"""
 
+    def test_get_docusign_env_defaults_to_demo(self):
+        """Test DOCUSIGN_ENV defaults to demo when unset"""
+        from services.docusign_service import _get_docusign_env
+
+        with patch.dict("os.environ", {}, clear=True), patch(
+            "os.path.exists", return_value=False
+        ):
+            assert _get_docusign_env() == "demo"
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="prod\n",
+    )
+    @patch("os.path.exists", return_value=True)
+    def test_get_docusign_env_reads_secret(self, mock_exists, mock_file):
+        """Test DOCUSIGN_ENV can be read from Docker secret file"""
+        from services.docusign_service import _get_docusign_env
+
+        with patch.dict("os.environ", {}, clear=True):
+            assert _get_docusign_env() == "prod"
+
+    def test_get_docusign_env_invalid_value_falls_back_to_demo(self):
+        """Test invalid DOCUSIGN_ENV values are sanitized"""
+        from services.docusign_service import _get_docusign_env
+
+        with patch.dict("os.environ", {"DOCUSIGN_ENV": "staging"}):
+            assert _get_docusign_env() == "demo"
+
     def test_load_private_key_missing_env(self):
         """Test loading private key with missing environment variable"""
         from services.docusign_service import load_private_key

@@ -1,8 +1,10 @@
 """Test configuration for WebShop backend."""
 
+import os
 import tempfile
 
 from dotenv import load_dotenv
+from sqlalchemy.pool import StaticPool
 
 load_dotenv()
 
@@ -10,10 +12,17 @@ load_dotenv()
 class TestConfig:
     """Configuration for running tests."""
 
-    # Use in-memory SQLite for fast tests
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    # Use a single in-memory SQLite connection shared by the test process.
+    # This avoids filesystem-level lock contention during high-volume fixtures.
+    SQLALCHEMY_DATABASE_URI = "sqlite://"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "poolclass": StaticPool,
+        "connect_args": {
+            "check_same_thread": False,
+        }
+    }
 
     # Testing mode
     TESTING = True

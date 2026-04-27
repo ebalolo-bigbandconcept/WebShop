@@ -6,17 +6,19 @@ including database setup, authentication helpers, and test data factories.
 
 import os
 import sys
+import time
 from datetime import datetime
 
 import pytest
 from flask_bcrypt import Bcrypt
+from sqlalchemy.exc import OperationalError
 
 # Add parent directory to path to import app modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-# Safety: force an isolated SQLite database for pytest before importing the app.
+# Safety: force an isolated in-memory SQLite DB for pytest before importing the app.
 # This prevents destructive fixtures from running against development PostgreSQL.
-os.environ["DATABASE_URL"] = "sqlite:////tmp/webshop_pytest.db"
+os.environ["DATABASE_URL"] = "sqlite://"
 os.environ.setdefault("FLASK_ENV", "testing")
 os.environ.setdefault("SECRET_KEY", "pytest-secret-key")
 os.environ.setdefault("ADMIN_MAIL", "admin@test.local")
@@ -81,10 +83,29 @@ def app():
 def reset_database_state(app):
     """Reset table data before each test while keeping schema intact."""
     with app.app_context():
-        for table in reversed(db.metadata.sorted_tables):
-            db.session.execute(table.delete())
-        db.session.commit()
-        _init_test_defaults()
+        max_attempts = 5
+        for attempt in range(1, max_attempts + 1):
+            try:
+                # Ensure no leftover transaction/connection from a previous test.
+                db.session.remove()
+
+                for table in reversed(db.metadata.sorted_tables):
+                    db.session.execute(table.delete())
+                db.session.commit()
+
+                _init_test_defaults()
+                db.session.remove()
+                return
+            except OperationalError as exc:
+                db.session.rollback()
+                db.session.remove()
+
+                # SQLite can briefly lock when another connection has an open write.
+                if "database is locked" in str(exc).lower() and attempt < max_attempts:
+                    time.sleep(0.2 * attempt)
+                    continue
+
+                raise
 
 
 @pytest.fixture(scope="function")

@@ -253,6 +253,9 @@ jobs:
           cat > .env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt <<'EOF'
           test
           EOF
+          cat > .env_prod_secrets/DOCUSIGN_ENV.txt <<'EOF'
+          demo
+          EOF
           cat > .env_prod_secrets/private.pem <<'EOF'
           -----BEGIN PRIVATE KEY-----
           dummy-placeholder-for-ci-only

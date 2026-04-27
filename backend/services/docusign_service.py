@@ -29,6 +29,27 @@ logger = logging.getLogger(__name__)
 # Token caching
 _CACHED_PRIVATE_KEY = None
 DOCUSIGN_TOKEN_CACHE = {"access_token": None, "expires_at": 0}
+_DOCUSIGN_ENV_SECRET_PATH = "/run/secrets/DOCUSIGN_ENV"
+_VALID_DOCUSIGN_ENVS = {"demo", "prod"}
+
+
+def _get_docusign_env():
+    """Resolve and validate DocuSign environment from env var or Docker secret."""
+    configured_env = os.getenv("DOCUSIGN_ENV")
+
+    if configured_env is None and os.path.exists(_DOCUSIGN_ENV_SECRET_PATH):
+        with open(_DOCUSIGN_ENV_SECRET_PATH, "r", encoding="utf-8") as env_file:
+            configured_env = env_file.read().strip()
+
+    docusign_env = (configured_env or "demo").strip().lower()
+    if docusign_env not in _VALID_DOCUSIGN_ENVS:
+        logger.warning(
+            "Invalid DOCUSIGN_ENV '%s'. Falling back to 'demo'.",
+            configured_env,
+        )
+        return "demo"
+
+    return docusign_env
 
 
 def _parse_docusign_api_error(api_error):
@@ -98,7 +119,7 @@ def get_docusign_token(integrator_key, user_id):
         return DOCUSIGN_TOKEN_CACHE["access_token"]
 
     private_key = load_private_key()
-    docusign_env = os.getenv("DOCUSIGN_ENV", "demo")
+    docusign_env = _get_docusign_env()
     auth_server = (
         "account-d.docusign.com" if docusign_env == "demo" else "account.docusign.com"
     )
@@ -338,7 +359,7 @@ def send_envelope_for_signing(
         access_token = get_docusign_token(integrator_key, user_id)
 
         # Determine API endpoint
-        docusign_env = os.getenv("DOCUSIGN_ENV", "demo")
+        docusign_env = _get_docusign_env()
         base_path = (
             "https://demo.docusign.net/restapi"
             if docusign_env == "demo"
