@@ -7,7 +7,7 @@ services:
       - FLASK_ENV=production
       - FRONTEND_URL=https://${TRAEFIK_DOMAIN:-vps117856.serveur-vps.net}
       - BACKEND_URL=https://${TRAEFIK_DOMAIN:-vps117856.serveur-vps.net}
-      - DOCUSIGN_ENV=demo
+      - DOCUSIGN_ENV=prod
       - DOCUSIGN_PRIVATE_KEY_PATH=/run/secrets/DOCUSIGN_PRIVATE_KEY
       - ALLOW_DELETING_SIGNED_DEVIS=${ALLOW_DELETING_SIGNED_DEVIS:-false}
     labels:
@@ -28,7 +28,6 @@ services:
       - DOCUSIGN_USER_ID
       - DOCUSIGN_INTEGRATION_KEY
       - DOCUSIGN_PRIVATE_KEY
-      - DOCUSIGN_ENV
     expose:
       - "5000"
     depends_on:
@@ -147,8 +146,6 @@ secrets:
     file: ./.env_prod_secrets/DOCUSIGN_USER_ID.txt
   DOCUSIGN_INTEGRATION_KEY:
     file: ./.env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt
-  DOCUSIGN_ENV:
-    file: ./.env_prod_secrets/DOCUSIGN_ENV.txt
   DOCUSIGN_PRIVATE_KEY:
     file: ./.env_prod_secrets/private.pem
   TRAEFIK_DOMAIN:
