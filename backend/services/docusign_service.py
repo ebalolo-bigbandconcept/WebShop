@@ -342,7 +342,7 @@ def send_envelope_for_signing(
         base_path = (
             "https://demo.docusign.net/restapi"
             if docusign_env == "demo"
-            else "https://www.docusign.net/restapi"
+            else "https://eu.docusign.net/restapi"
         )
 
         logger.info("Sending envelope to DocuSign...")

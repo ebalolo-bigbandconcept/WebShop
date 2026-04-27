@@ -28,6 +28,7 @@ services:
       - DOCUSIGN_USER_ID
       - DOCUSIGN_INTEGRATION_KEY
       - DOCUSIGN_PRIVATE_KEY
+      - DOCUSIGN_ENV
     expose:
       - "5000"
     depends_on:
@@ -146,6 +147,8 @@ secrets:
     file: ./.env_prod_secrets/DOCUSIGN_USER_ID.txt
   DOCUSIGN_INTEGRATION_KEY:
     file: ./.env_prod_secrets/DOCUSIGN_INTEGRATION_KEY.txt
+  DOCUSIGN_ENV:
+    file: ./.env_prod_secrets/DOCUSIGN_ENV.txt
   DOCUSIGN_PRIVATE_KEY:
     file: ./.env_prod_secrets/private.pem
   TRAEFIK_DOMAIN:
