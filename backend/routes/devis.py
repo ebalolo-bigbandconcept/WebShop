@@ -742,13 +742,15 @@ def get_devis_pdf(devis_id):
             location_time,
         )
 
-        # Build VAT recap based on articles only
-        # For location scenarios, we show all VAT rates from articles (without location VAT)
+        # Build VAT recap based on monthly payment, not articles
+        # For location scenarios, we show monthly VAT instead of articles total VAT
         vat_tva_totals = {}
 
-        # Copy article-level VAT breakdown (from location pricing)
-        for taux, bucket in vat_totals_map.items():
-            vat_tva_totals[taux] = round(bucket["total_tva"], 2)
+        # Calculate monthly VAT for the recap
+        monthly_ht = location_without["monthly_ht"]
+        monthly_ttc = location_without["monthly_ttc"]
+        monthly_tva = round(monthly_ttc - monthly_ht, 2)
+        vat_tva_totals[LOCATION_VAT_RATE] = monthly_tva
 
         payment_options = {
             "direct": {"total_ttc": round(direct_ttc_after_remise, 2)},
